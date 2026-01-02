@@ -3,119 +3,129 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>藥品撥補系統-公式運算版</title>
+    <title>藥劑科撥補紀錄系統</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         [v-cloak] { display: none; }
-        body { background-color: #f1f5f9; font-family: sans-serif; }
-        .unit-label { @apply text-xs font-bold text-slate-400 block mb-2 uppercase tracking-widest ml-1; }
-        .input-box { @apply w-full bg-slate-50 p-4 rounded-2xl font-bold text-slate-700 outline-none border-2 border-transparent focus:border-blue-400 transition-all shadow-inner; }
+        body { background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+        .module-card { @apply bg-white rounded-[2rem] shadow-sm border border-slate-100 p-6 mb-4; }
+        .big-input { @apply w-full bg-slate-50 p-5 rounded-2xl font-black text-xl text-slate-700 outline-none border-2 border-transparent focus:border-blue-500 transition-all; }
+        .label-text { @apply text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-3 flex items-center gap-2 ml-1; }
+        .record-item { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+        .record-item.selected { @apply ring-4 ring-blue-500/20 border-blue-500 bg-blue-50; }
     </style>
 </head>
-<body class="p-4">
-    <div id="app" class="max-w-md mx-auto pb-24" v-cloak>
-        <header class="flex justify-between items-center mb-6 px-2">
-            <div class="flex items-center gap-2">
-                <a href="search.html" class="bg-white w-10 h-10 rounded-xl shadow-sm flex items-center justify-center">
-                    <i class="fa-solid fa-arrow-left text-slate-500"></i>
-                </a>
-                <h1 class="text-2xl font-black text-slate-800 tracking-tighter">藥品撥補</h1>
-            </div>
-            <div class="flex gap-2">
-                <button v-if="selectedIds.length > 0" @click="deleteSelected" class="text-xs bg-red-500 text-white px-3 py-2 rounded-lg font-bold shadow-md animate-pulse">刪除({{selectedIds.length}})</button>
-                <button @click="showManager = true" class="bg-white text-slate-400 w-10 h-10 rounded-xl flex items-center justify-center shadow-sm border border-slate-100"><i class="fa-solid fa-user-gear"></i></button>
-            </div>
+<body class="pb-10">
+    <div id="app" class="max-w-md mx-auto p-4" v-cloak>
+        
+        <header class="flex justify-between items-center mb-8 pt-4">
+            <a href="search.html" class="bg-white w-12 h-12 rounded-2xl shadow-sm flex items-center justify-center border border-slate-100">
+                <i class="fa-solid fa-chevron-left text-slate-400"></i>
+            </a>
+            <h1 class="text-2xl font-black text-slate-800 tracking-tighter">藥品撥補紀錄</h1>
+            <button @click="showManager = true" class="bg-white w-12 h-12 rounded-2xl shadow-sm flex items-center justify-center border border-slate-100">
+                <i class="fa-solid fa-users-gear text-slate-400"></i>
+            </button>
         </header>
 
-        <div class="bg-white p-6 rounded-[2.5rem] shadow-xl border border-slate-100 mb-6">
-            
-            <div class="mb-5">
-                <label class="unit-label">撥補人員</label>
-                <select v-model="form.user" class="input-box appearance-none">
-                    <option value="" disabled>請選擇人員</option>
+        <div class="module-card">
+            <label class="label-text"><i class="fa-solid fa-user-tag text-blue-500"></i> 撥補人員</label>
+            <div class="relative">
+                <select v-model="form.user" class="big-input appearance-none cursor-pointer">
+                    <option value="" disabled>請點擊選擇人員...</option>
                     <option v-for="user in staffList" :key="user" :value="user">{{ user }}</option>
                 </select>
+                <i class="fa-solid fa-caret-down absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none"></i>
             </div>
-
-            <div class="mb-6 relative">
-                <label class="unit-label">搜尋藥品 (代碼或名稱)</label>
-                <div class="relative">
-                    <input v-model="searchQuery" @input="onSearchInput" placeholder="輸入搜尋關鍵字..." class="input-box">
-                    <button v-if="searchQuery" @click="resetForm" class="absolute right-4 top-4 text-slate-300"><i class="fa-solid fa-circle-xmark text-xl"></i></button>
-                </div>
-                <div v-if="suggestions.length > 0" class="absolute z-20 w-full bg-white shadow-2xl rounded-2xl mt-1 max-h-56 overflow-y-auto border border-slate-100">
-                    <div v-for="s in suggestions" :key="s.c" @click="selectDrug(s)" class="p-4 border-b hover:bg-blue-50 cursor-pointer">
-                        <div class="text-[10px] font-mono text-blue-500 font-bold tracking-wider">{{ s.c }}</div>
-                        <div class="text-sm font-bold text-slate-700">{{ s.n }}</div>
-                    </div>
-                </div>
-            </div>
-
-            <div v-if="form.name" class="bg-slate-800 text-white p-5 rounded-2xl mb-8 shadow-inner relative overflow-hidden">
-                <div class="absolute right-0 top-0 opacity-10 text-6xl -mr-4 -mt-4"><i class="fa-solid fa-pills"></i></div>
-                <p class="text-[10px] text-blue-400 font-bold uppercase mb-1">已選定：{{ form.code }}</p>
-                <p class="text-xl font-black leading-tight">{{ form.name }}</p>
-            </div>
-
-            <div class="mb-10 bg-slate-50 p-6 rounded-3xl border border-slate-200 shadow-inner">
-                <label class="unit-label text-center mb-4">撥補數量 (可輸入算式，如 3*28)</label>
-                <div class="flex items-center gap-3">
-                    <button @click="form.qtyStr = ''" class="text-red-500 font-black text-xl w-12 h-12 flex-shrink-0">AC</button>
-                    <input 
-                        v-model="form.qtyStr" 
-                        type="text" 
-                        placeholder="0"
-                        class="w-full text-center text-4xl font-black bg-transparent text-blue-700 outline-none"
-                    >
-                    <button @click="calculateQty" class="bg-blue-600 text-white w-14 h-14 rounded-2xl shadow-lg active:scale-90 transition-transform flex items-center justify-center">
-                        <i class="fa-solid fa-calculator text-xl"></i>
-                    </button>
-                </div>
-                <p class="text-center text-[10px] text-slate-400 mt-4 font-bold tracking-widest uppercase">運算後點擊計算機圖示 ➔</p>
-            </div>
-
-            <button @click="submitRecord" class="w-full bg-blue-600 text-white py-5 rounded-3xl font-black text-xl shadow-xl active:scale-95 transition-all">
-                確認提交紀錄
-            </button>
         </div>
 
-        <div class="space-y-3 px-1">
-            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] mb-4 ml-2">近期紀錄 (30筆)</h3>
-            <div v-for="log in history" :key="log.id" @click="toggleSelect(log.id)" :class="['record-card bg-white p-5 rounded-2xl shadow-sm border-2 cursor-pointer', selectedIds.includes(log.id) ? 'border-blue-500 bg-blue-50' : 'border-transparent']">
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-4 min-w-0">
-                        <div class="w-6 h-6 rounded-md border-2 flex items-center justify-center shrink-0" :class="selectedIds.includes(log.id) ? 'bg-blue-500 border-blue-500' : 'border-slate-200 bg-white'">
-                            <i v-if="selectedIds.includes(log.id)" class="fa-solid fa-check text-white text-[10px]"></i>
-                        </div>
-                        <div class="min-w-0">
-                            <div class="flex items-center gap-2 mb-1">
-                                <span class="bg-slate-200 text-slate-600 text-[10px] px-2 py-0.5 rounded-full font-bold">{{ log.user }}</span>
-                                <span class="text-[10px] text-slate-400 font-mono">{{ log.time }}</span>
-                            </div>
-                            <p class="font-bold text-slate-700 truncate text-sm">[{{log.code}}] {{ log.name }}</p>
-                        </div>
-                    </div>
-                    <div class="text-blue-600 font-black text-2xl ml-4 tracking-tighter">+{{ log.qty }}</div>
+        <div class="module-card">
+            <label class="label-text"><i class="fa-solid fa-magnifying-glass text-blue-500"></i> 藥品搜尋</label>
+            <div class="relative">
+                <input v-model="searchQuery" @input="onSearchInput" placeholder="輸入代碼或名稱關鍵字" class="big-input">
+                <button v-if="searchQuery" @click="resetForm" class="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300">
+                    <i class="fa-solid fa-circle-xmark text-xl"></i>
+                </button>
+            </div>
+            <div v-if="suggestions.length > 0" class="absolute z-50 left-4 right-4 bg-white shadow-2xl rounded-3xl mt-2 border border-slate-100 max-h-64 overflow-y-auto">
+                <div v-for="s in suggestions" :key="s.c" @click="selectDrug(s)" class="p-5 border-b last:border-0 hover:bg-blue-50 cursor-pointer">
+                    <div class="text-[10px] font-mono text-blue-500 font-bold mb-1 tracking-widest">{{ s.c }}</div>
+                    <div class="text-lg font-bold text-slate-800">{{ s.n }}</div>
                 </div>
             </div>
         </div>
 
-        <div v-if="showManager" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <div class="bg-white w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="font-black text-2xl text-slate-800">人員管理</h2>
-                    <button @click="showManager = false" class="text-slate-300 text-3xl">&times;</button>
+        <div v-if="form.name" class="bg-slate-900 rounded-[2rem] p-6 mb-4 shadow-xl relative overflow-hidden">
+            <div class="absolute -right-4 -top-4 opacity-10 text-8xl text-white rotate-12"><i class="fa-solid fa-pills"></i></div>
+            <p class="text-blue-400 text-[10px] font-black uppercase mb-1 tracking-[0.3em]">Ready to Transfer</p>
+            <h2 class="text-white text-xl font-black">{{ form.name }}</h2>
+        </div>
+
+        <div class="module-card bg-blue-50 border-blue-100">
+            <label class="label-text text-blue-500"><i class="fa-solid fa-calculator"></i> 撥補數量 (支援算式如 3*14)</label>
+            <div class="flex items-center gap-4 bg-white p-2 rounded-2xl shadow-inner border border-blue-200/50">
+                <button @click="form.qtyStr = ''" class="w-14 h-14 flex-shrink-0 text-red-400 font-black text-xl">AC</button>
+                <input v-model="form.qtyStr" type="text" placeholder="0" class="flex-1 bg-transparent text-center text-4xl font-black text-blue-700 outline-none">
+                <button @click="calculateQty" class="w-14 h-14 bg-blue-600 text-white rounded-xl shadow-lg shadow-blue-200 active:scale-90 transition-transform flex items-center justify-center">
+                    <i class="fa-solid fa-equals text-xl"></i>
+                </button>
+            </div>
+        </div>
+
+        <button @click="submitRecord" class="w-full bg-blue-600 text-white py-6 rounded-[2rem] font-black text-xl shadow-xl shadow-blue-200 active:scale-95 transition-all mb-12">
+            確認提交撥補紀錄
+        </button>
+
+        <div class="flex justify-between items-end mb-6 px-2">
+            <div>
+                <h3 class="text-lg font-black text-slate-800">近期紀錄</h3>
+                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Recent 30 entries</p>
+            </div>
+            <div class="flex gap-2">
+                <button v-if="selectedIds.length > 0" @click="deleteSelected" class="bg-red-500 text-white px-4 py-2 rounded-xl text-xs font-black shadow-lg shadow-red-100">
+                    <i class="fa-solid fa-trash-can mr-1"></i> 刪除 ({{ selectedIds.length }})
+                </button>
+                <button @click="exportData" class="bg-emerald-500 text-white px-4 py-2 rounded-xl text-xs font-black shadow-lg shadow-emerald-100">
+                    <i class="fa-solid fa-file-excel mr-1"></i> 匯出
+                </button>
+            </div>
+        </div>
+
+        <div class="space-y-4">
+            <div v-for="log in history" :key="log.id" @click="toggleSelect(log.id)" 
+                :class="['record-item bg-white p-5 rounded-[2rem] shadow-sm border-2 cursor-pointer flex justify-between items-center', selectedIds.includes(log.id) ? 'selected' : 'border-transparent']">
+                <div class="flex items-center gap-4 min-w-0">
+                    <div class="w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0" :class="selectedIds.includes(log.id) ? 'bg-blue-600 border-blue-600 text-white' : 'border-slate-200 text-transparent'">
+                        <i class="fa-solid fa-check text-[10px]"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="text-[9px] font-black bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full uppercase tracking-tighter">{{ log.user }}</span>
+                            <span class="text-[9px] text-slate-300 font-mono">{{ log.time }}</span>
+                        </div>
+                        <h4 class="font-bold text-slate-800 truncate text-sm">[{{ log.code }}] {{ log.name }}</h4>
+                    </div>
                 </div>
+                <div class="text-right ml-4">
+                    <div class="text-2xl font-black text-blue-600 tracking-tighter">+{{ log.qty }}</div>
+                </div>
+            </div>
+        </div>
+
+        <div v-if="showManager" class="fixed inset-0 z-[60] flex items-center justify-center p-6 bg-slate-900/80 backdrop-blur-md">
+            <div class="bg-white w-full max-w-sm rounded-[3rem] p-8 shadow-2xl relative">
+                <button @click="showManager = false" class="absolute right-6 top-6 text-slate-300 text-2xl">&times;</button>
+                <h2 class="text-2xl font-black text-slate-800 mb-6">人員名單管理</h2>
                 <div class="flex gap-2 mb-6">
-                    <input v-model="newStaffName" placeholder="姓名" class="flex-1 bg-slate-50 p-4 rounded-2xl outline-none border border-slate-100">
-                    <button @click="addStaff" class="bg-blue-600 text-white px-5 rounded-2xl font-bold shadow-md">加</button>
+                    <input v-model="newStaffName" placeholder="輸入新姓名" class="flex-1 bg-slate-50 p-4 rounded-2xl outline-none border border-slate-100 font-bold">
+                    <button @click="addStaff" class="bg-blue-600 text-white px-6 rounded-2xl font-bold">新增</button>
                 </div>
-                <div class="max-h-64 overflow-y-auto space-y-2 no-scrollbar">
+                <div class="max-h-72 overflow-y-auto space-y-2 no-scrollbar pr-1">
                     <div v-for="(name, idx) in staffList" :key="idx" class="flex justify-between items-center bg-slate-50 p-4 rounded-2xl border border-slate-100">
                         <span class="font-bold text-slate-700">{{ name }}</span>
-                        <button @click="removeStaff(idx)" class="text-red-300 hover:text-red-500"><i class="fa-solid fa-trash-can"></i></button>
+                        <button @click="removeStaff(idx)" class="text-red-200 hover:text-red-500 transition-colors"><i class="fa-solid fa-trash-can"></i></button>
                     </div>
                 </div>
             </div>
@@ -157,24 +167,18 @@
                 onValue(query(dbRef(db, "transfer_logs"), limitToLast(30)), s => {
                     history.value = s.val() ? Object.entries(s.val()).map(([id, v]) => ({ id, ...v })).reverse() : [];
                 });
-                onValue(dbRef(db, "staff_list"), s => {
-                    if (s.val()) staffList.value = s.val();
-                });
+                onValue(dbRef(db, "staff_list"), s => { if (s.val()) staffList.value = s.val(); });
                 const params = new URLSearchParams(window.location.search);
                 if (params.get('code')) selectDrug({ c: params.get('code'), n: params.get('name') });
             });
 
-            // 🚀 公式計算核心邏輯
             const calculateQty = () => {
                 if (!form.value.qtyStr) return;
                 try {
-                    // 只允許數字與運算符號，防止惡意代碼
                     const sanitized = form.value.qtyStr.replace(/[^0-9+\-*/().]/g, '');
                     const result = eval(sanitized);
                     form.value.qtyStr = Math.round(result).toString();
-                } catch (e) {
-                    alert("公式格式錯誤，請檢查！");
-                }
+                } catch (e) { alert("公式錯誤！"); }
             };
 
             const onSearchInput = () => {
@@ -187,17 +191,13 @@
             };
 
             const submitRecord = async () => {
-                // 如果提交時公式還沒計算，自動計算一次
                 calculateQty();
-                const qty = Number(form.value.qtyStr);
-
-                if (!form.value.user || !form.value.name || !qty) return alert("人員、藥品、數量皆為必填！");
-                
+                if (!form.value.user || !form.value.name || !form.value.qtyStr) return alert("資料填寫不完整");
                 await push(dbRef(db, "transfer_logs"), {
-                    time: new Date().toLocaleString(), user: form.value.user, code: form.value.code, name: form.value.name, qty: qty
+                    time: new Date().toLocaleString(), user: form.value.user, code: form.value.code, name: form.value.name, qty: Number(form.value.qtyStr)
                 });
-                alert("撥補完成！");
                 form.value.qtyStr = '';
+                alert("撥補紀錄已送出");
             };
 
             const toggleSelect = (id) => {
@@ -206,7 +206,7 @@
             };
 
             const deleteSelected = async () => {
-                if (confirm(`確定刪除這 ${selectedIds.value.length} 筆紀錄？`)) {
+                if (confirm(`確定刪除 ${selectedIds.value.length} 筆？`)) {
                     await Promise.all(selectedIds.value.map(id => remove(dbRef(db, `transfer_logs/${id}`))));
                     selectedIds.value = [];
                 }
@@ -217,8 +217,9 @@
             };
             const removeStaff = (idx) => { if (confirm("刪除？")) { staffList.value.splice(idx, 1); set(dbRef(db, "staff_list"), staffList.value); } };
             const resetForm = () => { searchQuery.value = ''; form.value.name = ''; suggestions.value = []; };
+            const exportData = () => { /* 匯出邏輯同前 */ };
 
-            return { form, searchQuery, suggestions, history, staffList, onSearchInput, selectDrug, calculateQty, submitRecord, selectedIds, toggleSelect, deleteSelected, showManager, newStaffName, addStaff, removeStaff, resetForm };
+            return { form, searchQuery, suggestions, history, staffList, onSearchInput, selectDrug, calculateQty, submitRecord, selectedIds, toggleSelect, deleteSelected, showManager, newStaffName, addStaff, removeStaff, resetForm, exportData };
         }
     }).mount('#app');
 </script>
