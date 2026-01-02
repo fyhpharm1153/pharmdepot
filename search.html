@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>藥劑科-全院藥品位置查詢</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <style>
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        body { background-color: #f8fafc; }
+        .result-card:active { transform: scale(0.98); opacity: 0.9; }
+    </style>
+</head>
+<body class="p-4">
+
+<div id="app" class="max-w-md mx-auto">
+    <header class="mb-4">
+        <div class="flex justify-between items-center">
+            <h1 class="text-2xl font-black text-slate-800 flex items-center gap-2">🔍 藥品查詢</h1>
+            <button @click="exportAll" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2 px-3 rounded-lg shadow-sm transition-colors flex items-center gap-1">
+                📥 匯出 Excel
+            </button>
+        </div>
+        
+        <div class="flex gap-2 mt-4 overflow-x-auto no-scrollbar py-1">
+            <button v-for="cat in categories" :key="cat" 
+                @click="selectedCat = cat"
+                :class="selectedCat === cat ? 'bg-blue-500 text-white shadow-md' : 'bg-white text-slate-500 border border-slate-200'"
+                class="px-5 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-all">
+                {{ cat }}
+            </button>
+        </div>
+    </header>
+
+    <div class="sticky top-2 z-10 mb-6 shadow-lg">
+        <input v-model="keyword" type="text" placeholder="輸入藥名或代碼搜尋..." 
+            class="w-full p-4 rounded-2xl border-none ring-2 ring-blue-400 focus:ring-4 outline-none text-lg">
+    </div>
+
+    <div v-if="filteredResults.length > 0" class="space-y-3 pb-10">
+        <div v-for="item in filteredResults" :key="item.id || item.code + item.zone" 
+             @click="goToFormulary(item.name)"
+             class="result-card cursor-pointer bg-white p-4 rounded-2xl shadow-sm border border-slate-100 transition-all flex justify-between items-center gap-2">
+            
+            <div class="flex-1 min-w-0">
+                <div class="text-[10px] font-mono font-bold text-slate-400 mb-0.5 flex items-center gap-1">
+                    {{ item.code }}
+                    <span class="text-[8px] bg-slate-100 px-1 rounded text-slate-400">處方集 ↗</span>
+                </div>
+                <h2 class="text-lg font-bold text-slate-800 leading-tight truncate">{{ item.name }}</h2>
+            </div>
+
+            <div class="flex gap-1 shrink-0">
+                <div :class="item.zone === '藥庫' ? 'bg-amber-50 border-amber-200 text-amber-800' : 'bg-blue-50 border-blue-200 text-blue-800'"
+                     class="w-20 h-16 flex flex-col justify-center items-center border rounded-xl shadow-sm">
+                    <span class="text-[10px] font-bold opacity-60 mb-0.5">區域</span>
+                    <span class="text-xl font-black tracking-tighter">{{ getDisplayZone(item.zone) }}</span>
+                </div>
+                <div :class="item.zone === '藥庫' ? 'bg-orange-50 border-orange-200 text-orange-800' : 'bg-red-50 border-red-200 text-red-800'"
+                     class="w-20 h-16 flex flex-col justify-center items-center border rounded-xl shadow-sm">
+                    <span class="text-[10px] font-bold opacity-60 mb-0.5">儲位</span>
+                    <span class="text-xl font-black tracking-tighter">{{ item.shelf || '無' }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div v-else class="text-center py-20 text-slate-400">
+        <p>{{ keyword ? '查無相關藥品' : '請選擇分類並輸入關鍵字' }}</p>
+    </div>
+</div>
+
+<script type="module">
+    import { createApp, ref, computed, onMounted } from "https://unpkg.com/vue@3/dist/vue.esm-browser.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getDatabase, ref as dbRef, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDZuNztwb9aLG1RqeDOyrj6KJrPhwBFi9M",
+      authDomain: "fyh-pharmacy-inventory.firebaseapp.com",
+      databaseURL: "https://fyh-pharmacy-inventory-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "fyh-pharmacy-inventory",
+      storageBucket: "fyh-pharmacy-inventory.firebasestorage.app",
+      messagingSenderId: "751378148626",
+      appId: "1:751378148626:web:5a2d2be1c5f905657457cb"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    createApp({
+        setup() {
+            const inventory = ref([]); // 盤點資料
+            const warehouse = ref([]); // 藥庫資料
+            const keyword = ref('');
+            const selectedCat = ref('門診藥局');
+            const categories = ['門診藥局', '住院藥局', '急診藥局', '藥庫', '全部'];
+
+            const zoneCategoryMap = {
+                'A台': '門診藥局', 'B台': '門診藥局', 'C台': '門診藥局', 'D台': '門診藥局',
+                '兒科': '門診藥局', '冰箱': '門診藥局', '小庫': '門診藥局', '大庫': '門診藥局',
+                '機器': '門診藥局', 'OPD點滴': '門診藥局', '覆核發藥': '門診藥局',
+                'UD': '住院藥局',
+                'ER常': '急診藥局', 'ER': '急診藥局',
+                '藥庫': '藥庫'
+            };
+
+            onMounted(() => {
+                // 1. 讀取盤點節點
+                onValue(dbRef(db, "inventory"), s => {
+                    const data = s.val();
+                    inventory.value = data ? (Array.isArray(data) ? data : Object.values(data)) : [];
+                });
+                // 2. 讀取藥庫節點
+                onValue(dbRef(db, "warehouse"), s => {
+                    const data = s.val();
+                    warehouse.value = data ? (Array.isArray(data) ? data : Object.values(data)) : [];
+                });
+            });
+
+            const getDisplayZone = (z) => {
+                if (['A台', 'B台', 'D台'].includes(z)) return '一般';
+                if (z === 'C台') return '特殊';
+                return z;
+            };
+
+            const goToFormulary = (drugName) => {
+                if (!drugName) return;
+                window.open(`https://amanhung.github.io/hospital-drug-search/?q=${encodeURIComponent(drugName)}`, '_blank');
+            };
+
+            const filteredResults = computed(() => {
+                // 合併兩組資料
+                let allData = [...inventory.value, ...warehouse.value];
+
+                // 分類篩選
+                if (selectedCat.value !== '全部') {
+                    allData = allData.filter(i => zoneCategoryMap[i.zone] === selectedCat.value);
+                }
+
+                const k = keyword.value.trim().toLowerCase();
+                if (!k) return [];
+
+                // 關鍵字搜尋
+                let matches = allData.filter(i => (i.name?.toLowerCase().includes(k) || i.code?.toLowerCase().includes(k)));
+
+                // 去重邏輯：同一代碼在同一區域若有重複，取總量較高者 (藥庫 totalQty 設很大，會勝出)
+                const uniqueMap = new Map();
+                matches.forEach(item => {
+                    const key = `${item.code}_${item.zone}`;
+                    const currentTotal = item.totalQty || 0; 
+                    const existing = uniqueMap.get(key);
+                    if (!existing || currentTotal > (existing.totalQty || 0)) {
+                        uniqueMap.set(key, item);
+                    }
+                });
+
+                return Array.from(uniqueMap.values());
+            });
+
+            const exportAll = () => {
+                const data = [...inventory.value, ...warehouse.value].map(item => ({
+                    '分類': zoneCategoryMap[item.zone] || '其他',
+                    '區域': item.zone,
+                    '代碼': item.code,
+                    '名稱': item.name,
+                    '儲位': item.shelf || ''
+                }));
+                const ws = XLSX.utils.json_to_sheet(data);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "藥品儲位清單");
+                XLSX.writeFile(wb, `儲位總表_${new Date().toLocaleDateString()}.xlsx`);
+            };
+
+            return { keyword, selectedCat, categories, filteredResults, getDisplayZone, goToFormulary, exportAll };
+        }
+    }).mount('#app');
+</script>
+</body>
+</html>

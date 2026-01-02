@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>藥庫儲位資料管理</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+</head>
+<body class="bg-gray-50 p-6">
+    <div id="app" class="max-w-2xl mx-auto bg-white shadow-xl rounded-2xl p-8">
+        <h1 class="text-3xl font-black text-gray-800 mb-2">📦 藥庫儲位維護</h1>
+        <p class="text-gray-500 mb-8">此工具將同步資料至雲端，供全院查詢使用。</p>
+
+        <div class="border-4 border-dashed border-blue-100 rounded-3xl p-10 text-center hover:border-blue-500 transition-colors">
+            <input type="file" @change="handleFileUpload" accept=".xlsx, .xls" class="hidden" ref="fileInput">
+            <div @click="$refs.fileInput.click()" class="cursor-pointer">
+                <div class="text-6xl mb-4">📊</div>
+                <p class="text-xl font-bold text-blue-600 mb-2">點擊上傳藥庫 Excel</p>
+                <p class="text-sm text-gray-400">規格：第二欄為藥名，第三欄為儲位</p>
+            </div>
+        </div>
+
+        <div v-if="isProcessing" class="mt-6 p-4 bg-blue-50 text-blue-700 rounded-xl font-bold animate-pulse text-center">
+            ⏳ 正在處理並同步至雲端...
+        </div>
+
+        <div v-if="count > 0" class="mt-6 p-4 bg-green-50 text-green-700 rounded-xl font-bold text-center">
+            ✅ 雲端目前已有 {{ count }} 筆藥庫資料
+        </div>
+
+        <div class="grid grid-cols-2 gap-4 mt-10">
+            <button @click="clearWarehouse" class="bg-red-50 text-red-600 font-bold py-3 rounded-xl hover:bg-red-100 transition">🔥 清空雲端藥庫</button>
+            <a href="search.html" class="bg-gray-100 text-gray-600 font-bold py-3 rounded-xl text-center hover:bg-gray-200 transition">🔍 前往查詢頁面</a>
+        </div>
+    </div>
+
+<script type="module">
+    import { createApp, ref, onMounted } from "https://unpkg.com/vue@3/dist/vue.esm-browser.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getDatabase, ref as dbRef, set, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+    // 沿用您的 Firebase 配置 [cite: 126]
+    const firebaseConfig = {
+      apiKey: "AIzaSyDZuNztwb9aLG1RqeDOyrj6KJrPhwBFi9M",
+      authDomain: "fyh-pharmacy-inventory.firebaseapp.com",
+      databaseURL: "https://fyh-pharmacy-inventory-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "fyh-pharmacy-inventory",
+      storageBucket: "fyh-pharmacy-inventory.firebasestorage.app",
+      messagingSenderId: "751378148626",
+      appId: "1:751378148626:web:5a2d2be1c5f905657457cb"
+    };
+
+    const app = initializeApp(firebaseConfig); [cite: 127]
+    const db = getDatabase(app); [cite: 127]
+
+    createApp({
+        setup() {
+            const count = ref(0);
+            const isProcessing = ref(false);
+
+            onMounted(() => {
+                // 監控雲端數量 [cite: 125]
+                onValue(dbRef(db, "warehouse"), s => {
+                    const data = s.val();
+                    if (data) count.value = Object.keys(data).length;
+                    else count.value = 0;
+                });
+            });
+
+            const handleFileUpload = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                if (!confirm("上傳將會覆蓋舊有的雲端藥庫資料，確定嗎？")) return;
+
+                isProcessing.value = true;
+                const reader = new FileReader();
+                reader.onload = (evt) => {
+                    const wb = XLSX.read(evt.target.result, { type: 'binary' }); [cite: 248]
+                    const sheet = wb.Sheets[wb.SheetNames[0]]; [cite: 248]
+                    const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 }); [cite: 248]
+                    
+                    // 根據您的要求：第二欄為藥名(row[1])，第三欄為儲位(row[2])
+                    const parsed = rows.slice(1).map((row, idx) => ({
+                        id: `WH_${idx}`,
+                        zone: '藥庫',
+                        name: String(row[1] || '').trim(),
+                        shelf: String(row[2] || '').trim(),
+                        code: 'WH',
+                        totalQty: 999999 // 賦予極大值以在去重邏輯中勝出
+                    })).filter(x => x.name);
+
+                    // 批次寫入 Firebase warehouse 節點 [cite: 223, 244]
+                    set(dbRef(db, "warehouse"), parsed).then(() => {
+                        alert("同步成功！");
+                        isProcessing.value = false;
+                    });
+                };
+                reader.readAsBinaryString(file); [cite: 274]
+            };
+
+            const clearWarehouse = () => {
+                if (confirm("確定要徹底清空雲端藥庫資料嗎？")) {
+                    set(dbRef(db, "warehouse"), null); [cite: 223]
+                }
+            };
+
+            return { count, isProcessing, handleFileUpload, clearWarehouse };
+        }
+    }).mount('#app');
+</script>
+</body>
+</html>
