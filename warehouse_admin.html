@@ -77,22 +77,20 @@
 
                 isProcessing.value = true;
                 const reader = new FileReader();
-                reader.onload = async (evt) => {
-                    try {
-                        const wb = XLSX.read(evt.target.result, { type: 'binary', cellDates: false });
-                        const sheet = wb.Sheets[wb.SheetNames[0]];
-                        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-                        
-                        // 優化：僅保留必要欄位以縮減體積
-                        const parsed = rows.slice(1)
-                            .filter(row => row[1]) // 過濾掉藥名為空的行
-                            .map((row, idx) => ({
-                                z: '藥庫',
-                                n: String(row[1]).trim(), // 藥名 (縮寫為 n)
-                                s: String(row[2] || '').trim(), // 儲位 (縮寫為 s)
-                                q: 999999 // 權重
-                            }));
-
+reader.onload = async (evt) => {
+            const wb = XLSX.read(evt.target.result, { type: 'binary' });
+            const sheet = wb.Sheets[wb.SheetNames[0]];
+            const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+            
+            const parsed = rows.slice(1)
+                .filter(row => row[1]) // 有藥名才執行
+                .map((row, idx) => ({
+                    c: String(row[0] || '').trim(), // 第一欄：藥品代碼 (c)
+                    n: String(row[1] || '').trim(), // 第二欄：藥名 (n)
+                    s: String(row[2] || '').trim(), // 第三欄：儲位 (s)
+                    z: '藥庫',
+                    q: 999999 
+                }));
                         // 直接寫入雲端
                         await set(dbRef(db, "warehouse"), parsed);
                         alert("同步成功！已處理 " + parsed.length + " 筆資料。");
@@ -118,3 +116,4 @@
 </script>
 </body>
 </html>
+
