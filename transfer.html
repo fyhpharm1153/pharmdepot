@@ -2,38 +2,64 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>藥品撥補紀錄</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>藥品撥補紀錄系統</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        body { background-color: #f1f5f9; }
+        .dropdown-item:active { background-color: #e2e8f0; }
+    </style>
 </head>
-<body class="bg-slate-50 p-4">
+<body class="p-4">
     <div id="app" class="max-w-md mx-auto">
         <header class="flex justify-between items-center mb-6">
             <div class="flex items-center gap-2">
-                <a href="search.html" class="text-slate-500 bg-white w-10 h-10 rounded-xl shadow-sm flex items-center justify-center hover:bg-slate-100">
-                    <i class="fa-solid fa-arrow-left"></i>
+                <a href="search.html" class="bg-white w-10 h-10 rounded-xl shadow-sm flex items-center justify-center hover:bg-slate-100 transition-colors">
+                    <i class="fa-solid fa-arrow-left text-slate-500"></i>
                 </a>
                 <h1 class="text-2xl font-black text-slate-800">藥品撥補</h1>
             </div>
-            <button @click="exportData" class="text-xs bg-emerald-600 text-white px-3 py-2 rounded-lg font-bold">匯出紀錄</button>
+            <button @click="exportData" class="text-xs bg-emerald-600 text-white px-3 py-2 rounded-lg font-bold shadow-md">匯出紀錄</button>
         </header>
 
-        <div class="bg-white p-6 rounded-3xl shadow-md border border-slate-100 mb-8">
-            <div class="mb-4">
-                <label class="text-xs font-bold text-slate-400 block mb-1 uppercase">藥品代碼</label>
-                <input v-model="form.code" readonly class="w-full bg-slate-50 p-3 rounded-xl font-mono text-blue-600 font-bold border-none outline-none">
+        <div class="bg-white p-6 rounded-[2rem] shadow-xl border border-slate-100 mb-8 relative">
+            <div class="mb-4 relative">
+                <label class="text-xs font-bold text-slate-400 block mb-1 uppercase">搜尋或輸入藥名/代碼</label>
+                <div class="relative">
+                    <input 
+                        v-model="searchQuery" 
+                        @input="onSearchInput"
+                        placeholder="輸入代碼或藥名..." 
+                        class="w-full bg-slate-50 p-4 rounded-2xl font-bold text-slate-700 border-2 border-transparent focus:border-blue-400 outline-none transition-all"
+                    >
+                    <button v-if="searchQuery" @click="resetForm" class="absolute right-4 top-4 text-slate-300">
+                        <i class="fa-solid fa-circle-xmark"></i>
+                    </button>
+                </div>
+                
+                <div v-if="suggestions.length > 0" class="absolute z-20 w-full bg-white shadow-2xl rounded-2xl mt-1 border border-slate-100 max-h-60 overflow-y-auto">
+                    <div v-for="s in suggestions" :key="s.c + s.n" @click="selectDrug(s)" class="p-4 border-b border-slate-50 dropdown-item cursor-pointer">
+                        <div class="text-[10px] font-mono text-blue-500 font-bold">{{ s.c }}</div>
+                        <div class="text-sm font-bold text-slate-700">{{ s.n }}</div>
+                    </div>
+                </div>
             </div>
-            <div class="mb-6">
-                <label class="text-xs font-bold text-slate-400 block mb-1 uppercase">藥品名稱</label>
-                <input v-model="form.name" readonly class="w-full bg-slate-50 p-3 rounded-xl font-bold text-slate-700 border-none outline-none">
+
+            <div v-if="form.name" class="bg-blue-50 p-4 rounded-2xl mb-6 border border-blue-100 animate-pulse">
+                <p class="text-[10px] text-blue-400 font-bold uppercase">已選擇藥品</p>
+                <p class="font-black text-blue-800 leading-tight">{{ form.name }}</p>
             </div>
-            <div class="mb-8">
-                <label class="text-xs font-bold text-blue-600 block mb-1 uppercase text-center">撥補數量 (移入藥局)</label>
-                <input v-model.number="form.qty" type="number" placeholder="請輸入數量" class="w-full text-center text-4xl font-black p-4 rounded-2xl bg-blue-50 border-2 border-blue-200 outline-none text-blue-700 focus:ring-4 focus:ring-blue-100 transition-all">
+
+            <div class="mb-8 text-center">
+                <label class="text-xs font-bold text-blue-600 block mb-2 uppercase">撥補數量</label>
+                <input v-model.number="form.qty" type="number" placeholder="0" class="w-full text-center text-5xl font-black p-4 rounded-2xl bg-slate-50 border-none outline-none text-blue-600">
             </div>
-            <button @click="submitRecord" class="w-full bg-blue-600 text-white py-4 rounded-2xl font-black text-xl shadow-lg active:scale-95 transition-all">
+
+            <button @click="submitRecord" class="w-full bg-blue-600 text-white py-5 rounded-2xl font-black text-xl shadow-lg active:scale-95 transition-all">
                 確認撥補
             </button>
         </div>
@@ -42,13 +68,18 @@
             <i class="fa-solid fa-history"></i> 近期撥補紀錄 (30筆)
         </h3>
         <div class="space-y-3 pb-20">
-            <div v-for="log in history" :key="log.id" class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center">
+            <div v-for="log in history" :key="log.id" class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center group">
                 <div class="min-w-0 flex-1">
                     <p class="text-[10px] text-slate-400 font-mono">{{ log.time }}</p>
-                    <p class="font-bold text-slate-700 truncate text-sm">{{ log.name }}</p>
+                    <p class="font-bold text-slate-700 truncate text-sm">[{{ log.code }}] {{ log.name }}</p>
                 </div>
-                <div class="bg-blue-100 text-blue-700 font-black px-4 py-2 rounded-xl text-xl">
-                    +{{ log.qty }}
+                <div class="flex items-center gap-4 ml-2">
+                    <div class="bg-blue-50 text-blue-600 font-black px-3 py-1 rounded-lg text-lg">
+                        {{ log.qty }}
+                    </div>
+                    <button @click="deleteRecord(log.id)" class="text-slate-200 hover:text-red-500 transition-colors p-2">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
                 </div>
             </div>
         </div>
@@ -57,7 +88,7 @@
 <script type="module">
     import { createApp, ref, onMounted } from "https://unpkg.com/vue@3/dist/vue.esm-browser.js";
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getDatabase, ref as dbRef, push, set, query, limitToLast, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+    import { getDatabase, ref as dbRef, push, set, remove, query, limitToLast, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDZuNztwb9aLG1RqeDOyrj6KJrPhwBFi9M",
@@ -75,27 +106,67 @@
     createApp({
         setup() {
             const form = ref({ code: '', name: '', qty: null });
+            const searchQuery = ref('');
+            const warehouse = ref([]); // 存放藥庫母資料
+            const suggestions = ref([]);
             const history = ref([]);
 
             onMounted(() => {
-                // 從網址解析參數
-                const params = new URLSearchParams(window.location.search);
-                form.value.code = params.get('code') || '';
-                form.value.name = params.get('name') || '';
+                // 1. 讀取藥庫資料供模糊搜尋使用
+                onValue(dbRef(db, "warehouse"), s => {
+                    const data = s.val();
+                    warehouse.value = data ? Object.values(data) : [];
+                    
+                    // 從網址解析傳過來的藥品
+                    const params = new URLSearchParams(window.location.search);
+                    const pCode = params.get('code');
+                    const pName = params.get('name');
+                    if (pCode && pName) {
+                        selectDrug({ c: pCode, n: pName });
+                    }
+                });
 
-                // 監聽最近30筆紀錄
+                // 2. 監聽最近30筆紀錄
                 const logRef = query(dbRef(db, "transfer_logs"), limitToLast(30));
                 onValue(logRef, s => {
                     const data = s.val();
                     if (data) {
                         const list = Object.entries(data).map(([id, val]) => ({ id, ...val }));
-                        history.value = list.reverse(); // 最新在上面
+                        history.value = list.reverse(); 
+                    } else {
+                        history.value = [];
                     }
                 });
             });
 
+            const onSearchInput = () => {
+                const k = searchQuery.value.trim().toLowerCase();
+                if (!k) {
+                    suggestions.value = [];
+                    return;
+                }
+                // 模糊比對藥名(n)或代碼(c)
+                suggestions.value = warehouse.value.filter(item => 
+                    (item.n && item.n.toLowerCase().includes(k)) || 
+                    (item.c && item.c.toLowerCase().includes(k))
+                ).slice(0, 10); // 只顯示前10筆
+            };
+
+            const selectDrug = (drug) => {
+                form.value.code = drug.c;
+                form.value.name = drug.n;
+                searchQuery.value = drug.n;
+                suggestions.value = [];
+            };
+
+            const resetForm = () => {
+                form.value = { code: '', name: '', qty: null };
+                searchQuery.value = '';
+                suggestions.value = [];
+            };
+
             const submitRecord = async () => {
-                if (!form.value.qty || form.value.qty <= 0) return alert("請輸入撥補數量");
+                if (!form.value.name || !form.value.qty) return alert("請選擇藥品並輸入數量");
                 
                 const newRecord = {
                     time: new Date().toLocaleString(),
@@ -105,18 +176,30 @@
                 };
 
                 await push(dbRef(db, "transfer_logs"), newRecord);
-                alert("撥補紀錄已儲存！");
-                form.value.qty = null;
+                alert("撥補完成！");
+                resetForm();
+            };
+
+            const deleteRecord = async (id) => {
+                if (confirm("確定要刪除這筆紀錄嗎？")) {
+                    await remove(dbRef(db, `transfer_logs/${id}`));
+                }
             };
 
             const exportData = () => {
-                const ws = XLSX.utils.json_to_sheet(history.value);
+                const data = history.value.map(log => ({
+                    '時間': log.time,
+                    '代碼': log.code,
+                    '藥名': log.name,
+                    '數量': log.qty
+                }));
+                const ws = XLSX.utils.json_to_sheet(data);
                 const wb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(wb, ws, "撥補紀錄");
-                XLSX.writeFile(wb, `藥品撥補清單_${new Date().toLocaleDateString()}.xlsx`);
+                XLSX.utils.book_append_sheet(wb, ws, "撥補清單");
+                XLSX.writeFile(wb, `撥補清單_${new Date().getTime()}.xlsx`);
             };
 
-            return { form, history, submitRecord, exportData };
+            return { form, searchQuery, suggestions, history, onSearchInput, selectDrug, resetForm, submitRecord, deleteRecord, exportData };
         }
     }).mount('#app');
 </script>
