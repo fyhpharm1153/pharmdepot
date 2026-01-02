@@ -12,8 +12,6 @@
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         body { background-color: #f1f5f9; }
         .dropdown-item:active { background-color: #e2e8f0; }
-        input[type="number"] { -moz-appearance: textfield; }
-        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
     </style>
 </head>
 <body class="p-4">
@@ -31,17 +29,17 @@
         <div class="bg-white p-6 rounded-[2rem] shadow-xl border border-slate-100 mb-8 relative">
             
             <div class="mb-5">
-                <label class="text-xs font-bold text-slate-400 block mb-2 uppercase">撥補人員</label>
-                <select v-model="form.user" class="w-full bg-slate-50 p-4 rounded-2xl font-bold text-slate-700 border-2 border-transparent focus:border-blue-400 outline-none appearance-none">
+                <label class="text-xs font-bold text-slate-400 block mb-2 uppercase tracking-widest">撥補人員</label>
+                <select v-model="form.user" class="w-full bg-slate-50 p-4 rounded-2xl font-bold text-slate-700 border-2 border-transparent focus:border-blue-400 outline-none appearance-none shadow-inner">
                     <option value="" disabled>請選擇人員</option>
                     <option v-for="user in staffList" :key="user" :value="user">{{ user }}</option>
                 </select>
             </div>
 
             <div class="mb-5 relative">
-                <label class="text-xs font-bold text-slate-400 block mb-1 uppercase">藥品搜尋 (代碼或名稱)</label>
+                <label class="text-xs font-bold text-slate-400 block mb-1 uppercase tracking-widest">藥品搜尋 (從藥庫資料)</label>
                 <div class="relative">
-                    <input v-model="searchQuery" @input="onSearchInput" placeholder="輸入搜尋關鍵字..." 
+                    <input v-model="searchQuery" @input="onSearchInput" placeholder="搜尋代碼或藥名..." 
                         class="w-full bg-slate-50 p-4 rounded-2xl font-bold text-slate-700 border-2 border-transparent focus:border-blue-400 outline-none">
                     <button v-if="searchQuery" @click="resetForm" class="absolute right-4 top-4 text-slate-300">
                         <i class="fa-solid fa-circle-xmark text-xl"></i>
@@ -56,25 +54,26 @@
             </div>
 
             <div v-if="form.name" class="bg-blue-50 p-4 rounded-2xl mb-6 border border-blue-100">
-                <p class="text-[10px] text-blue-400 font-bold uppercase">已選定藥品</p>
+                <div class="flex justify-between items-center mb-1">
+                    <span class="text-[10px] text-blue-400 font-bold uppercase">已選定藥品</span>
+                    <span class="text-[10px] bg-blue-200 text-blue-700 px-2 py-0.5 rounded-full font-bold">1 大 = {{ form.cap }} 小</span>
+                </div>
                 <p class="font-black text-blue-800 leading-tight">{{ form.name }}</p>
             </div>
 
             <div class="grid grid-cols-2 gap-4 mb-8">
                 <div class="text-center">
-                    <label class="text-[10px] font-bold text-blue-500 block mb-1 uppercase">大包裝數量</label>
-                    <input v-model.number="form.lgQty" type="number" placeholder="0" class="w-full text-center text-3xl font-black p-4 rounded-2xl bg-slate-50 border-none outline-none text-blue-700">
-                    <span class="text-[10px] text-slate-400 font-bold mt-1 block">瓶 / 盒 / 罐</span>
+                    <label class="text-[10px] font-bold text-blue-500 block mb-1">大包裝數量</label>
+                    <input v-model.number="form.lgQty" type="number" placeholder="0" class="w-full text-center text-4xl font-black p-4 rounded-2xl bg-slate-50 border-none outline-none text-blue-700">
                 </div>
                 <div class="text-center">
-                    <label class="text-[10px] font-bold text-blue-500 block mb-1 uppercase">小包裝數量</label>
-                    <input v-model.number="form.smQty" type="number" placeholder="0" class="w-full text-center text-3xl font-black p-4 rounded-2xl bg-slate-50 border-none outline-none text-blue-700">
-                    <span class="text-[10px] text-slate-400 font-bold mt-1 block">顆 / 片 / 支</span>
+                    <label class="text-[10px] font-bold text-blue-500 block mb-1">小包裝數量</label>
+                    <input v-model.number="form.smQty" type="number" placeholder="0" class="w-full text-center text-4xl font-black p-4 rounded-2xl bg-slate-50 border-none outline-none text-blue-700">
                 </div>
             </div>
 
             <button @click="submitRecord" class="w-full bg-blue-600 text-white py-5 rounded-2xl font-black text-xl shadow-lg active:scale-95 transition-all">
-                確認撥補提交
+                確認提交撥補
             </button>
         </div>
 
@@ -92,10 +91,10 @@
                 </div>
                 <div class="flex items-center gap-3 ml-2">
                     <div class="text-right">
-                        <div class="text-blue-600 font-black text-xl leading-none">{{ log.totalQty }}</div>
+                        <div class="text-blue-600 font-black text-xl leading-none">+{{ log.totalQty }}</div>
                         <div class="text-[8px] text-slate-400 font-bold mt-0.5">{{ log.detail }}</div>
                     </div>
-                    <button @click="deleteRecord(log.id)" class="text-slate-200 hover:text-red-500 p-2"><i class="fa-solid fa-trash-can"></i></button>
+                    <button @click="deleteRecord(log.id)" class="text-slate-200 hover:text-red-500 p-2"><i class="fa-solid fa-trash-can text-sm"></i></button>
                 </div>
             </div>
         </div>
@@ -104,7 +103,7 @@
 <script type="module">
     import { createApp, ref, onMounted } from "https://unpkg.com/vue@3/dist/vue.esm-browser.js";
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getDatabase, ref as dbRef, push, remove, query, limitToLast, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+    import { getDatabase, ref as dbRef, push, remove, query, limitToLast, onValue, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDZuNztwb9aLG1RqeDOyrj6KJrPhwBFi9M",
@@ -124,29 +123,34 @@
             const form = ref({ user: '', code: '', name: '', lgQty: null, smQty: null, cap: 1 });
             const searchQuery = ref('');
             const warehouse = ref([]);
+            const inventoryData = ref([]); // 同步盤點系統資料庫
             const suggestions = ref([]);
             const history = ref([]);
-            // 人員名單 (依照您的盤點網頁)
-            const staffList = ['大雄', '胖虎', '小夫', '靜香', '哆啦A夢']; 
+            // 人員名單 (同步盤點系統設定)
+            const staffList = ['Hung', 'Hung1', 'Hung2', 'Hung3', 'Hung4']; 
 
             onMounted(() => {
+                // 1. 讀取藥庫資料 (供搜尋用)
                 onValue(dbRef(db, "warehouse"), s => {
-                    const data = s.val();
-                    warehouse.value = data ? Object.values(data) : [];
+                    warehouse.value = s.val() ? Object.values(s.val()) : [];
+                });
+
+                // 2. 讀取盤點資料 (供包裝量 cap 同步用)
+                onValue(dbRef(db, "inventory"), s => {
+                    inventoryData.value = s.val() ? Object.values(s.val()) : [];
                     
+                    // 從 URL 帶入預選藥品
                     const params = new URLSearchParams(window.location.search);
                     const pCode = params.get('code');
                     const pName = params.get('name');
                     if (pCode && pName) selectDrug({ c: pCode, n: pName });
                 });
 
+                // 3. 監聽最近紀錄
                 const logRef = query(dbRef(db, "transfer_logs"), limitToLast(30));
                 onValue(logRef, s => {
                     const data = s.val();
-                    if (data) {
-                        const list = Object.entries(data).map(([id, val]) => ({ id, ...val }));
-                        history.value = list.reverse(); 
-                    } else { history.value = []; }
+                    history.value = data ? Object.entries(data).map(([id, val]) => ({ id, ...val })).reverse() : [];
                 });
             });
 
@@ -154,68 +158,58 @@
                 const k = searchQuery.value.trim().toLowerCase();
                 if (!k) { suggestions.value = []; return; }
                 suggestions.value = warehouse.value.filter(item => 
-                    (item.n && item.n.toLowerCase().includes(k)) || 
-                    (item.c && item.c.toLowerCase().includes(k))
+                    (item.n && item.n.toLowerCase().includes(k)) || (item.c && item.c.toLowerCase().includes(k))
                 ).slice(0, 10);
             };
 
             const selectDrug = (drug) => {
                 form.value.code = drug.c;
                 form.value.name = drug.n;
-                // 嘗試從藥庫資料抓取包裝量 (若有上傳的話)，預設為 1
-                form.value.cap = drug.cap || 1; 
                 searchQuery.value = drug.n;
                 suggestions.value = [];
+
+                // 🚀 同步包裝量邏輯：去盤點庫找對應代碼的 cap
+                const matchedInv = inventoryData.value.find(i => i.code === drug.c);
+                if (matchedInv && matchedInv.units && matchedInv.units.lg) {
+                    form.value.cap = Number(matchedInv.units.lg.cap) || 1;
+                } else {
+                    form.value.cap = 1;
+                }
             };
 
             const resetForm = () => {
-                form.value = { ...form.value, code: '', name: '', lgQty: null, smQty: null };
+                form.value = { ...form.value, code: '', name: '', lgQty: null, smQty: null, cap: 1 };
                 searchQuery.value = '';
             };
 
             const submitRecord = async () => {
-                if (!form.value.user) return alert("請選擇撥補人員");
-                if (!form.value.name) return alert("請選擇藥品");
-                if (!form.value.lgQty && !form.value.smQty) return alert("請輸入撥補數量");
-                
+                if (!form.value.user || !form.value.name) return alert("請填寫人員與藥品");
                 const lg = form.value.lgQty || 0;
                 const sm = form.value.smQty || 0;
-                // 換算總小包裝量 (假設大包裝換算率為 cap)
                 const total = (lg * form.value.cap) + sm;
+                if (total <= 0) return alert("請輸入數量");
 
                 const newRecord = {
                     time: new Date().toLocaleString(),
                     user: form.value.user,
                     code: form.value.code,
                     name: form.value.name,
-                    lg: lg,
-                    sm: sm,
+                    lg: lg, sm: sm, cap: form.value.cap,
                     totalQty: total,
                     detail: `${lg} 大 / ${sm} 小`
                 };
 
                 await push(dbRef(db, "transfer_logs"), newRecord);
-                alert("撥補紀錄提交成功！");
+                alert("撥補完成！");
                 resetForm();
             };
 
             const deleteRecord = async (id) => {
-                if (confirm("確定刪除這筆撥補紀錄？")) {
-                    await remove(dbRef(db, `transfer_logs/${id}`));
-                }
+                if (confirm("確定刪除？")) await remove(dbRef(db, `transfer_logs/${id}`));
             };
 
             const exportData = () => {
-                const data = history.value.map(log => ({
-                    '時間': log.time,
-                    '撥補人': log.user,
-                    '代碼': log.code,
-                    '藥名': log.name,
-                    '大包裝': log.lg,
-                    '小包裝': log.sm,
-                    '換算總量': log.totalQty
-                }));
-                const ws = XLSX.utils.json_to_sheet(data);
+                const ws = XLSX.utils.json_to_sheet(history.value);
                 const wb = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(wb, ws, "撥補清單");
                 XLSX.writeFile(wb, `撥補清單_${new Date().getTime()}.xlsx`);
