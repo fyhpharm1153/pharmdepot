@@ -99,4 +99,143 @@
             <div class="bg-white w-full max-w-md rounded-[2rem] shadow-2xl overflow-hidden flex flex-col max-h-[80vh]">
                 <div class="p-6 border-b flex justify-between items-center">
                     <h2 class="text-xl font-black text-slate-800">人員名單管理</h2>
-                    <button @click="showManager = false" class="
+                    <button @click="showManager = false" class="text-slate-400 text-2xl">&times;</button>
+                </div>
+                <div class="p-4 overflow-y-auto">
+                    <div class="flex gap-2 mb-4">
+                        <input v-model="newStaffName" @keyup.enter="addStaff" placeholder="輸入姓名..." class="flex-1 bg-slate-50 p-3 rounded-xl outline-none focus:ring-2 focus:ring-blue-400">
+                        <button @click="addStaff" class="bg-blue-600 text-white px-4 rounded-xl font-bold">新增</button>
+                    </div>
+                    <div class="space-y-2">
+                        <div v-for="(name, idx) in staffList" :key="idx" class="flex justify-between items-center p-3 bg-slate-50 rounded-xl">
+                            <span class="font-bold text-slate-700">{{ name }}</span>
+                            <button @click="removeStaff(idx)" class="text-red-400 p-2"><i class="fa-solid fa-trash-can"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script type="module">
+    import { createApp, ref, computed, onMounted } from "https://unpkg.com/vue@3/dist/vue.esm-browser.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getDatabase, ref as dbRef, push, set, remove, query, limitToLast, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDZuNztwb9aLG1RqeDOyrj6KJrPhwBFi9M",
+      authDomain: "fyh-pharmacy-inventory.firebaseapp.com",
+      databaseURL: "https://fyh-pharmacy-inventory-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "fyh-pharmacy-inventory",
+      storageBucket: "fyh-pharmacy-inventory.firebasestorage.app",
+      messagingSenderId: "751378148626",
+      appId: "1:751378148626:web:5a2d2be1c5f905657457cb"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    createApp({
+        setup() {
+            const form = ref({ user: '', code: '', name: '', lg: null, sm: null, lo: null });
+            const units = ref({ lgName: '盒', smName: '排', loName: '顆', lgCap: 1, smCap: 1 });
+            const searchQuery = ref('');
+            const warehouse = ref([]);
+            const inventory = ref([]);
+            const suggestions = ref([]);
+            const history = ref([]);
+            const selectedIds = ref([]);
+            
+            // 人員管理
+            const staffList = ref([]);
+            const showManager = ref(false);
+            const newStaffName = ref('');
+
+            // 初始化名單
+            const initialStaff = ["吳惠珠","陳佳瑜","凃博懷","蔡定甫","郭益宏","唐瑋瞬","嚴婉瑄","葉姿鷰","黃忠廉","林俊杰","林學成","張俊哲","陳嘉絨","張湘瑜","李舒菁","王耀霆","詹濬竹","黃柏銘","鄧媛心","陳聖容","林建勳","吳詩茵","林聖雅","陳妍蓁","解志欽","陳凱微","莊桇澺","黃苾昀","林頌智","李瑋蓁","許凱菁","張戎狄","劉育豪","王貽鈴","文小熏"];
+
+            onMounted(() => {
+                onValue(dbRef(db, "warehouse"), s => warehouse.value = s.val() ? Object.values(s.val()) : []);
+                onValue(dbRef(db, "inventory"), s => {
+                    inventory.value = s.val() ? Object.values(s.val()) : [];
+                    const params = new URLSearchParams(window.location.search);
+                    if (params.get('code')) selectDrug({ c: params.get('code'), n: params.get('name') });
+                });
+                onValue(query(dbRef(db, "transfer_logs"), limitToLast(30)), s => {
+                    history.value = s.val() ? Object.entries(s.val()).map(([id, v]) => ({ id, ...v })).reverse() : [];
+                });
+                // 讀取/初始化雲端人員名單
+                onValue(dbRef(db, "staff_list"), s => {
+                    if (!s.val()) {
+                        set(dbRef(db, "staff_list"), initialStaff);
+                    } else {
+                        staffList.value = s.val();
+                    }
+                });
+            });
+
+            const onSearchInput = () => {
+                const k = searchQuery.value.trim().toLowerCase();
+                suggestions.value = k ? warehouse.value.filter(i => (i.n?.toLowerCase().includes(k) || i.c?.toLowerCase().includes(k))).slice(0, 10) : [];
+            };
+
+            const selectDrug = (drug) => {
+                form.value.code = drug.c; form.value.name = drug.n; searchQuery.value = drug.n; suggestions.value = [];
+                const inv = inventory.value.find(i => i.code === drug.c);
+                if (inv && inv.units) {
+                    units.value = {
+                        lgName: inv.units.lg?.name || '大', smName: inv.units.sm?.name || '中', loName: inv.units.lo?.name || '小',
+                        lgCap: Number(inv.units.lg?.cap) || 1, smCap: Number(inv.units.sm?.cap) || 1
+                    };
+                }
+            };
+
+            const calculatedTotal = computed(() => {
+                const l = form.value.lg || 0, m = form.value.sm || 0, s = form.value.lo || 0;
+                return (l * units.value.lgCap * units.value.smCap) + (m * units.value.smCap) + s;
+            });
+
+            const submitRecord = async () => {
+                if (!form.value.user || !form.value.name || calculatedTotal.value <= 0) return alert("資料不完整");
+                const desc = `${form.value.lg || 0}${units.value.lgName}/${form.value.sm || 0}${units.value.smName}/${form.value.lo || 0}${units.value.loName}`;
+                await push(dbRef(db, "transfer_logs"), {
+                    time: new Date().toLocaleString(), user: form.value.user, code: form.value.code, name: form.value.name,
+                    total: calculatedTotal.value, desc: desc
+                });
+                alert("撥補成功！");
+                form.value.lg = form.value.sm = form.value.lo = null;
+            };
+
+            const addStaff = () => {
+                if (!newStaffName.value.trim()) return;
+                staffList.value.push(newStaffName.value.trim());
+                set(dbRef(db, "staff_list"), staffList.value);
+                newStaffName.value = '';
+            };
+
+            const removeStaff = (idx) => {
+                if (confirm("確定刪除此人員？")) {
+                    staffList.value.splice(idx, 1);
+                    set(dbRef(db, "staff_list"), staffList.value);
+                }
+            };
+
+            const toggleSelect = (id) => {
+                const i = selectedIds.value.indexOf(id);
+                if (i > -1) selectedIds.value.splice(i, 1); else selectedIds.value.push(id);
+            };
+
+            const deleteSelected = async () => {
+                if (!confirm(`確定刪除 ${selectedIds.value.length} 筆紀錄？`)) return;
+                await Promise.all(selectedIds.value.map(id => remove(dbRef(db, `transfer_logs/${id}`))));
+                selectedIds.value = [];
+            };
+
+            const resetForm = () => { searchQuery.value = ''; form.value.name = ''; suggestions.value = []; };
+
+            return { form, units, searchQuery, suggestions, history, staffList, onSearchInput, selectDrug, calculatedTotal, submitRecord, selectedIds, toggleSelect, deleteSelected, resetForm, showManager, newStaffName, addStaff, removeStaff };
+        }
+    }).mount('#app');
+</script>
+</body>
+</html>
