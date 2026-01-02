@@ -3,49 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>藥品撥補系統-內建鍵盤版</title>
+    <title>藥品撥補系統-滿版大鍵盤版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         [v-cloak] { display: none; }
-        body { background-color: #f1f5f9; user-select: none; }
-        .key-btn { @apply bg-white border border-slate-200 h-16 rounded-2xl flex items-center justify-center text-2xl font-black text-slate-700 active:bg-blue-500 active:text-white transition-colors shadow-sm; }
-        .key-op { @apply bg-slate-100 text-blue-600; }
-        .key-del { @apply bg-red-50 text-red-500; }
-        .input-display { @apply w-full bg-slate-50 p-4 rounded-2xl text-right overflow-hidden; }
+        body { background-color: #f1f5f9; user-select: none; -webkit-tap-highlight-color: transparent; }
+        /* 滿版大按鈕樣式 */
+        .big-key { @apply bg-white h-20 rounded-2xl flex items-center justify-center text-3xl font-black text-slate-700 shadow-md active:bg-blue-600 active:text-white transition-all; }
+        .key-op { @apply bg-blue-100 text-blue-700 border-blue-200; }
+        .key-del { @apply bg-red-100 text-red-600 border-red-200; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
     </style>
 </head>
-<body class="p-4 pb-12">
+<body class="p-4">
     <div id="app" class="max-w-md mx-auto" v-cloak>
-        <header class="flex justify-between items-center mb-6">
+        
+        <header class="flex justify-between items-center mb-4">
             <div class="flex items-center gap-2">
-                <a href="search.html" class="bg-white w-10 h-10 rounded-xl shadow-sm flex items-center justify-center">
-                    <i class="fa-solid fa-arrow-left text-slate-500"></i>
+                <a href="search.html" class="bg-white w-12 h-12 rounded-2xl shadow-sm flex items-center justify-center">
+                    <i class="fa-solid fa-arrow-left text-slate-500 text-xl"></i>
                 </a>
                 <h1 class="text-2xl font-black text-slate-800">藥品撥補</h1>
             </div>
-            <button @click="showManager = true" class="bg-white w-10 h-10 rounded-xl shadow-sm flex items-center justify-center text-slate-400">
-                <i class="fa-solid fa-user-gear"></i>
-            </button>
+            <div class="flex gap-2">
+                <button @click="showManager = true" class="bg-white w-12 h-12 rounded-2xl shadow-sm flex items-center justify-center"><i class="fa-solid fa-user-gear text-slate-400 text-xl"></i></button>
+            </div>
         </header>
 
-        <div class="bg-white p-6 rounded-[2rem] shadow-xl border border-slate-100 mb-6">
-            
+        <div class="bg-white p-5 rounded-[2rem] shadow-xl border border-slate-100 mb-4">
             <div class="grid grid-cols-2 gap-3 mb-4">
-                <div>
-                    <label class="text-[10px] font-bold text-slate-400 uppercase ml-2">撥補人員</label>
-                    <select v-model="form.user" class="w-full bg-slate-50 p-3 rounded-xl font-bold text-slate-700 outline-none border-none appearance-none">
-                        <option value="" disabled>請選擇</option>
-                        <option v-for="user in staffList" :key="user" :value="user">{{ user }}</option>
-                    </select>
-                </div>
+                <select v-model="form.user" class="w-full bg-slate-100 p-4 rounded-2xl font-bold text-lg text-slate-700 outline-none appearance-none">
+                    <option value="" disabled>撥補人員</option>
+                    <option v-for="user in staffList" :key="user" :value="user">{{ user }}</option>
+                </select>
                 <div class="relative">
-                    <label class="text-[10px] font-bold text-slate-400 uppercase ml-2">藥品搜尋</label>
-                    <input v-model="searchQuery" @input="onSearchInput" placeholder="點擊搜尋" class="w-full bg-slate-50 p-3 rounded-xl font-bold text-slate-700 outline-none border-none">
-                    <div v-if="suggestions.length > 0" class="absolute z-50 w-full bg-white shadow-2xl rounded-xl mt-1 max-h-48 overflow-y-auto border">
-                        <div v-for="s in suggestions" :key="s.c" @click="selectDrug(s)" class="p-3 border-b text-sm font-bold hover:bg-slate-50">
-                            <div class="text-[9px] text-blue-500">{{ s.c }}</div>
+                    <input v-model="searchQuery" @input="onSearchInput" placeholder="搜尋藥品" class="w-full bg-slate-100 p-4 rounded-2xl font-bold text-lg text-slate-700 outline-none">
+                    <div v-if="suggestions.length > 0" class="absolute z-50 w-full bg-white shadow-2xl rounded-2xl mt-1 max-h-40 overflow-y-auto border">
+                        <div v-for="s in suggestions" :key="s.c" @click="selectDrug(s)" class="p-4 border-b text-lg font-bold hover:bg-slate-50">
+                            <div class="text-[10px] text-blue-500">{{ s.c }}</div>
                             <div class="truncate">{{ s.n }}</div>
                         </div>
                     </div>
@@ -53,65 +50,58 @@
             </div>
 
             <div v-if="form.name" class="bg-slate-800 text-white p-4 rounded-2xl mb-4 shadow-inner">
-                <p class="text-[9px] opacity-60 font-bold tracking-widest uppercase">{{ form.code }}</p>
-                <p class="font-black leading-tight truncate text-lg">{{ form.name }}</p>
+                <p class="text-[10px] text-blue-400 font-bold tracking-widest uppercase mb-1">{{ form.code }}</p>
+                <p class="font-black text-xl leading-tight truncate">{{ form.name }}</p>
             </div>
 
-            <div class="input-display mb-4 border-2 border-slate-100">
-                <div class="text-xs text-slate-400 font-bold mb-1 uppercase tracking-tighter">算式預覽：{{ form.qtyStr || '0' }}</div>
-                <div class="text-4xl font-black text-blue-600 tracking-tighter">
-                    {{ displayResult || 0 }} <span class="text-sm text-slate-300 font-normal">總計</span>
-                </div>
+            <div class="bg-blue-600 text-white p-6 rounded-3xl shadow-inner text-center">
+                <div class="text-xs font-bold opacity-60 mb-1 uppercase tracking-widest">目前算式：{{ form.qtyStr || '0' }}</div>
+                <div class="text-6xl font-black tracking-tighter">{{ displayResult }}</div>
+                <div class="text-sm font-bold opacity-60 mt-1 uppercase">撥補總計顆數</div>
             </div>
-
-            <div class="grid grid-cols-4 gap-2 mb-6">
-                <button v-for="n in ['7','8','9']" @click="press(n)" class="key-btn">{{n}}</button>
-                <button @click="press('*')" class="key-btn key-op"><i class="fa-solid fa-times"></i></button>
-                
-                <button v-for="n in ['4','5','6']" @click="press(n)" class="key-btn">{{n}}</button>
-                <button @click="press('+')" class="key-btn key-op"><i class="fa-solid fa-plus"></i></button>
-                
-                <button v-for="n in ['1','2','3']" @click="press(n)" class="key-btn">{{n}}</button>
-                <button @click="press('-')" class="key-btn key-op"><i class="fa-solid fa-minus"></i></button>
-                
-                <button @click="press('0')" class="key-btn">0</button>
-                <button @click="press('.')" class="key-btn">.</button>
-                <button @click="backspace" class="key-btn key-del"><i class="fa-solid fa-backspace"></i></button>
-                <button @click="form.qtyStr = ''" class="key-btn key-del font-black">AC</button>
-            </div>
-
-            <button @click="submitRecord" class="w-full bg-blue-600 text-white py-5 rounded-2xl font-black text-xl shadow-lg active:scale-95 transition-all">
-                確認撥補提交
-            </button>
         </div>
 
-        <div class="space-y-3 px-1">
+        <div class="grid grid-cols-4 gap-3 mb-6">
+            <button v-for="n in ['7','8','9']" @click="press(n)" class="big-key">{{n}}</button>
+            <button @click="press('*')" class="big-key key-op"><i class="fa-solid fa-times text-2xl"></i></button>
+            
+            <button v-for="n in ['4','5','6']" @click="press(n)" class="big-key">{{n}}</button>
+            <button @click="press('+')" class="big-key key-op"><i class="fa-solid fa-plus text-2xl"></i></button>
+            
+            <button v-for="n in ['1','2','3']" @click="press(n)" class="big-key">{{n}}</button>
+            <button @click="press('-')" class="big-key key-op"><i class="fa-solid fa-minus text-2xl"></i></button>
+            
+            <button @click="press('0')" class="big-key">0</button>
+            <button @click="backspace" class="big-key key-del"><i class="fa-solid fa-backspace"></i></button>
+            <button @click="form.qtyStr = ''" class="big-key key-del text-2xl">AC</button>
+            <button @click="submitRecord" class="big-key bg-blue-600 text-white"><i class="fa-solid fa-check text-3xl"></i></button>
+        </div>
+
+        <h3 class="text-slate-400 text-xs font-bold mb-3 px-2 uppercase tracking-widest">近期紀錄 (30)</h3>
+        <div class="space-y-2 pb-10">
             <div v-for="log in history" :key="log.id" class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center">
-                <div class="min-w-0 flex-1">
-                    <div class="flex items-center gap-2 mb-1">
-                        <span class="bg-slate-100 text-slate-500 text-[9px] px-1.5 py-0.5 rounded font-bold">{{ log.user }}</span>
-                        <span class="text-[9px] text-slate-400">{{ log.time }}</span>
-                    </div>
-                    <p class="font-bold text-slate-700 truncate text-sm">[{{log.code}}] {{ log.name }}</p>
+                <div class="min-w-0">
+                    <span class="text-[9px] font-black text-slate-400 uppercase">{{ log.user }} · {{ log.time.split(' ')[1] }}</span>
+                    <p class="font-bold text-slate-700 truncate text-sm">[{{ log.code }}] {{ log.name }}</p>
                 </div>
                 <div class="text-blue-600 font-black text-xl ml-4">+{{ log.qty }}</div>
             </div>
         </div>
 
-        <div v-if="showManager" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-            <div class="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="font-black text-xl">管理人員</h2>
-                    <button @click="showManager = false"><i class="fa-solid fa-times"></i></button>
+        <div v-if="showManager" class="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
+            <div class="bg-white w-full max-w-sm rounded-[2rem] p-8 shadow-2xl">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="font-black text-xl text-slate-800">人員名單</h2>
+                    <button @click="showManager = false" class="text-slate-400 text-2xl">&times;</button>
                 </div>
                 <div class="flex gap-2 mb-4">
-                    <input v-model="newStaffName" class="flex-1 bg-slate-100 p-3 rounded-xl outline-none">
-                    <button @click="addStaff" class="bg-blue-600 text-white px-4 rounded-xl font-bold">加</button>
+                    <input v-model="newStaffName" placeholder="姓名" class="flex-1 bg-slate-100 p-4 rounded-2xl font-bold">
+                    <button @click="addStaff" class="bg-blue-600 text-white px-6 rounded-2xl font-bold">加</button>
                 </div>
-                <div class="max-h-60 overflow-y-auto space-y-2">
-                    <div v-for="(name, idx) in staffList" class="flex justify-between items-center bg-slate-50 p-3 rounded-xl">
-                        <span class="font-bold">{{ name }}</span>
-                        <button @click="removeStaff(idx)" class="text-red-400"><i class="fa-solid fa-trash-can"></i></button>
+                <div class="max-h-48 overflow-y-auto space-y-2 no-scrollbar">
+                    <div v-for="(name, idx) in staffList" :key="idx" class="flex justify-between items-center bg-slate-50 p-4 rounded-xl">
+                        <span class="font-bold text-slate-700">{{ name }}</span>
+                        <button @click="removeStaff(idx)" class="text-red-300"><i class="fa-solid fa-trash-can"></i></button>
                     </div>
                 </div>
             </div>
@@ -157,7 +147,6 @@
                 if (params.get('code')) selectDrug({ c: params.get('code'), n: params.get('name') });
             });
 
-            // 即時計算結果
             const displayResult = computed(() => {
                 if (!form.value.qtyStr) return 0;
                 try {
@@ -166,7 +155,11 @@
                 } catch { return '...'; }
             });
 
-            const press = (val) => { form.value.qtyStr += val; };
+            const press = (val) => { 
+                // 防止算式過長撐破畫面
+                if (form.value.qtyStr.length > 15) return;
+                form.value.qtyStr += val; 
+            };
             const backspace = () => { form.value.qtyStr = form.value.qtyStr.slice(0, -1); };
 
             const onSearchInput = () => {
@@ -180,7 +173,7 @@
 
             const submitRecord = async () => {
                 const finalQty = Number(displayResult.value);
-                if (!form.value.user || !form.value.name || !finalQty) return alert("資料不完整");
+                if (!form.value.user || !form.value.name || !finalQty) return alert("資料填寫不全");
                 await push(dbRef(db, "transfer_logs"), {
                     time: new Date().toLocaleString(), user: form.value.user, code: form.value.code, name: form.value.name, qty: finalQty
                 });
@@ -188,9 +181,7 @@
                 alert("提交成功！");
             };
 
-            const addStaff = () => {
-                if (newStaffName.value.trim()) { staffList.value.push(newStaffName.value.trim()); set(dbRef(db, "staff_list"), staffList.value); newStaffName.value = ''; }
-            };
+            const addStaff = () => { if (newStaffName.value.trim()) { staffList.value.push(newStaffName.value.trim()); set(dbRef(db, "staff_list"), staffList.value); newStaffName.value = ''; } };
             const removeStaff = (idx) => { if (confirm("刪除？")) { staffList.value.splice(idx, 1); set(dbRef(db, "staff_list"), staffList.value); } };
 
             return { form, searchQuery, suggestions, history, staffList, onSearchInput, selectDrug, displayResult, press, backspace, submitRecord, showManager, newStaffName, addStaff, removeStaff };
