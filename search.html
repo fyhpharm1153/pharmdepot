@@ -55,7 +55,7 @@
     </div>
 
     <div v-if="filteredResults.length > 0" class="space-y-3 pb-10">
-        <div v-for="item in filteredResults" :key="item.key" class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 relative">
+        <div v-for="(item, index) in filteredResults" :key="item.key + index" class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 relative">
             <div class="flex justify-between items-center gap-2">
                 <div class="flex-1 min-w-0" @click="goToFormulary(item.name)">
                     <div class="text-[10px] font-mono font-bold text-slate-400 mb-0.5 flex items-center gap-1">
@@ -68,10 +68,10 @@
                 <div class="flex items-center gap-2">
                     <div class="flex gap-1 shrink-0">
                         <div :class="item.zone === '藥庫' ? 'bg-amber-50 border-amber-200 text-amber-800' : 'bg-blue-50 border-blue-200 text-blue-800'"
-                             class="w-20 h-16 flex flex-col justify-center items-center border rounded-xl shadow-sm">
+                             class="w-20 h-16 flex flex-col justify-center items-center border rounded-xl shadow-sm text-center">
                             <span class="text-[10px] font-bold opacity-60 mb-0.5">區域</span>
                             <input v-if="editingKey === item.key" v-model="editData.zone" class="edit-input text-xs">
-                            <span v-else class="text-xl font-black tracking-tighter">{{ getDisplayZone(item.zone) }}</span>
+                            <span v-else class="text-[13px] font-black leading-tight">{{ getDisplayZone(item.zone) }}</span>
                         </div>
                         <div :class="item.zone === '藥庫' ? 'bg-orange-50 border-orange-200 text-orange-800' : 'bg-red-50 border-red-200 text-red-800'"
                              class="w-20 h-16 flex flex-col justify-center items-center border rounded-xl shadow-sm">
@@ -96,7 +96,6 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getDatabase, ref as dbRef, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-    // Firebase 配置 (保持原本的不變)
     const firebaseConfig = {
       apiKey: "AIzaSyDZuNztwb9aLG1RqeDOyrj6KJrPhwBFi9M",
       authDomain: "fyh-pharmacy-inventory.firebaseapp.com",
@@ -122,10 +121,20 @@
             const categories = ['門診藥局', '住院藥局', '急診藥局', '藥庫', '全部'];
 
             const zoneCategoryMap = {
-                'A台': '門診藥局', 'B台': '門診藥局', 'C台': '門診藥局', 'D台': '門診藥局',
-                '兒科': '門診藥局', '冰箱': '門診藥局', '小庫': '門診藥局', '大庫': '門診藥局',
-                '機器': '門診藥局', 'OPD點滴': '門診藥局', '覆核發藥': '門診藥局',
-                'UD': '住院藥局', 'ER常': '急診藥局', 'ER': '急診藥局', '藥庫': '藥庫'
+                'A台': '門診藥局', 
+                'C台': '門診藥局', 
+                '兒科': '門診藥局', 
+                '冰箱': '門診藥局', 
+                '小庫': '門診藥局', 
+                '大庫': '門診藥局',
+                '大庫(排)': '門診藥局',
+                '機器': '門診藥局', 
+                'OPD點滴': '門診藥局', 
+                '覆核發藥': '門診藥局',
+                'UD': '住院藥局', 
+                'ER常': '急診藥局', 
+                'ER': '急診藥局', 
+                '藥庫': '藥庫'
             };
 
             onMounted(() => {
@@ -136,7 +145,7 @@
             });
 
             const getDisplayZone = (z) => {
-                if (['A台', 'B台', 'D台'].includes(z)) return '一般';
+                if (z === 'A台') return '一般';
                 if (z === 'C台') return '特殊';
                 return z;
             };
@@ -149,7 +158,7 @@
             const saveEdit = (key) => {
                 editMap.value[key] = { 
                     ...editData.value, 
-                    modifiedAt: new Date().toLocaleString() // 記錄修改時間
+                    modifiedAt: new Date().toLocaleString()
                 };
                 localStorage.setItem('pharmEdits', JSON.stringify(editMap.value));
                 editingKey.value = null;
@@ -158,47 +167,41 @@
             const hasEdits = computed(() => Object.keys(editMap.value).length > 0);
 
             const filteredResults = computed(() => {
-                // 合併資料
-                const invData = Object.values(inventory.value).map(item => {
-                    const lg = Number(item.units?.lg?.cap || 0);
-                    const sm = Number(item.units?.sm?.cap || 0);
-                    const qty = (Number(item.inputs?.lg || 0) * lg) + (Number(item.inputs?.sm || 0) * sm) + Number(item.inputs?.lo || 0);
-                    return { ...item, totalQty: qty, key: `${item.code}_${item.zone}` };
-                });
+                // 1. 處理盤點資料 (過濾掉 B、D 台)
+                const invData = Object.values(inventory.value)
+                    .filter(item => item.zone !== 'B台' && item.zone !== 'D台')
+                    .map(item => ({
+                        ...item, 
+                        key: `${item.code}_${item.zone}_${item.shelf}` // 修改 Key 包含儲位
+                    }));
 
+                // 2. 處理藥庫資料
                 const whData = Object.values(warehouse.value).map(item => ({
                     key: `WH-${item.c}-${item.n}`,
                     zone: '藥庫',
                     name: item.n,
                     shelf: item.s,
-                    code: item.c,
-                    totalQty: 999999
+                    code: item.c
                 }));
 
                 let combined = [...invData, ...whData];
 
-                // 搜尋與去重
+                // 3. 搜尋過濾
                 const k = keyword.value.trim().toLowerCase();
                 if (k) {
                     combined = combined.filter(i => (i.name?.toLowerCase().includes(k) || i.code?.toLowerCase().includes(k)));
                 } else if(selectedCat.value === '全部') return [];
 
-                // 同代碼同區域取最大值
-                const uniqueMap = new Map();
-                combined.forEach(item => {
-                    const qty = item.totalQty || 0;
-                    if (!uniqueMap.has(item.key) || qty > uniqueMap.get(item.key).totalQty) {
-                        uniqueMap.set(item.key, item);
-                    }
-                });
-
-                let results = Array.from(uniqueMap.values()).map(item => {
+                // 4. 套用編輯異動
+                let results = combined.map(item => {
                     return editMap.value[item.key] ? { ...item, ...editMap.value[item.key] } : item;
                 });
 
+                // 5. 分類篩選
                 if (selectedCat.value !== '全部') {
                     results = results.filter(i => zoneCategoryMap[i.zone] === selectedCat.value);
                 }
+                
                 return results;
             });
 
@@ -215,7 +218,7 @@
                     '藥品關鍵碼': key,
                     '修改後區域': val.zone,
                     '修改後儲位': val.shelf,
-                    '修改日期時間': val.modifiedAt // 報表中匯出時間
+                    '修改日期時間': val.modifiedAt
                 }));
                 saveExcel(data, "儲位異動記錄");
             };
@@ -224,7 +227,7 @@
                 const ws = XLSX.utils.json_to_sheet(data);
                 const wb = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(wb, ws, "Data");
-                XLSX.writeFile(wb, `${name}_${new Date().getTime()}.xlsx`);
+                XLSX.writeFile(wb, `${name}.xlsx`);
             };
 
             const goToFormulary = (drugName) => {
