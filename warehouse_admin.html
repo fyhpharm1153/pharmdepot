@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>藥庫儲位資料管理 (雲端同步版)</title>
+    <title>藥庫儲位資料管理 (具匯出功能)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -23,32 +23,28 @@
         <p class="text-slate-500 mt-2 font-bold">同步 Excel 資料至雲端資料庫</p>
     </header>
 
-    <section class="bg-slate-50 rounded-2xl p-4 mb-8 border border-slate-100">
-        <h3 class="font-bold text-slate-700 mb-2"><i class="fa-solid fa-circle-info mr-1 text-blue-500"></i> Excel 格式要求</h3>
-        <ul class="text-sm text-slate-500 space-y-1 ml-5 list-disc">
-            <li>第一欄 (A)：藥品代碼</li>
-            <li>第二欄 (B)：藥名</li>
-            <li>第三欄 (C)：儲位編號</li>
-        </ul>
-    </section>
+    <div v-if="count > 0 && !isProcessing" class="mb-6 flex flex-col gap-3">
+        <div class="p-4 bg-emerald-50 text-emerald-700 rounded-2xl font-bold text-center border border-emerald-100 flex items-center justify-center gap-2">
+            <i class="fa-solid fa-database text-lg"></i>
+            雲端已有 {{ count }} 筆資料
+        </div>
+        <button @click="downloadWarehouse" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-2xl shadow-sm transition flex items-center justify-center gap-2">
+            <i class="fa-solid fa-file-arrow-down"></i> 匯出雲端藥庫 (Excel)
+        </button>
+    </div>
 
     <div v-if="!isProcessing" 
          @click="$refs.fileInput.click()"
          class="upload-area border-4 border-dashed border-slate-200 rounded-3xl p-12 text-center transition-all cursor-pointer">
         <input type="file" @change="handleFileUpload" accept=".xlsx, .xls" class="hidden" ref="fileInput">
         <i class="fa-solid fa-file-excel text-5xl text-slate-300 mb-4"></i>
-        <p class="text-xl font-bold text-slate-700">點擊選擇檔案</p>
-        <p class="text-xs text-slate-400 mt-2">上傳後將自動覆蓋舊有的雲端藥庫資料</p>
+        <p class="text-xl font-bold text-slate-700">點擊上傳新檔案</p>
+        <p class="text-xs text-slate-400 mt-2">Column A:代碼 | B:藥名 | C:儲位</p>
     </div>
 
     <div v-else class="py-12 text-center">
         <div class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-amber-500 border-t-transparent mb-4"></div>
-        <p class="text-lg font-bold text-amber-600">正在處理並同步雲端...</p>
-        <p class="text-xs text-slate-400 mt-2">請勿關閉或重新整理網頁</p>
-    </div>
-
-    <div v-if="count > 0 && !isProcessing" class="mt-8 p-4 bg-emerald-50 text-emerald-700 rounded-2xl font-bold text-center border border-emerald-100">
-        <i class="fa-solid fa-check-circle mr-1"></i> 目前雲端資料庫已有 {{ count }} 筆資料
+        <p class="text-lg font-bold text-amber-600">正在處理中...</p>
     </div>
 
     <div class="grid grid-cols-2 gap-4 mt-10">
@@ -64,9 +60,8 @@
 <script type="module">
     import { createApp, ref, onMounted } from "https://unpkg.com/vue@3/dist/vue.esm-browser.js";
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getDatabase, ref as dbRef, set, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+    import { getDatabase, ref as dbRef, set, onValue, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-    // Firebase 配置 (與盤點系統相同)
     const firebaseConfig = {
       apiKey: "AIzaSyDZuNztwb9aLG1RqeDOyrj6KJrPhwBFi9M",
       authDomain: "fyh-pharmacy-inventory.firebaseapp.com",
@@ -86,68 +81,81 @@
             const isProcessing = ref(false);
 
             onMounted(() => {
-                // 安全檢查：簡單密碼保護
                 const pass = prompt("請輸入管理員密碼");
                 if (pass !== "8888") {
-                    alert("密碼錯誤，將返回首頁");
+                    alert("密碼錯誤");
                     window.location.href = "index.html";
                 }
 
-                // 獲取雲端目前數量
                 onValue(dbRef(db, "warehouse"), s => {
                     const data = s.val();
-                    if (data) count.value = Object.keys(data).length;
-                    else count.value = 0;
+                    count.value = data ? Object.keys(data).length : 0;
                 });
             });
 
+            // 1. 上傳 Excel 邏輯
             const handleFileUpload = (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
-                
-                if (!confirm("確定要上傳並覆蓋現有的藥庫儲位資料嗎？")) return;
+                if (!confirm("確定要覆蓋現有的藥庫資料嗎？")) return;
 
                 isProcessing.value = true;
                 const reader = new FileReader();
                 reader.onload = async (evt) => {
                     try {
                         const wb = XLSX.read(evt.target.result, { type: 'binary' });
-                        const sheetName = wb.SheetNames[0];
-                        const rows = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { header: 1 });
-                        
-                        // 優化：欄位壓縮處理以提升效能
-                        // 第一欄 row[0]: 代碼 -> c
-                        // 第二欄 row[1]: 藥名 -> n
-                        // 第三欄 row[2]: 儲位 -> s
-                        const parsed = rows.slice(1) // 跳過第一行標題
-                            .filter(row => row[1])   // 過濾掉藥名為空的行
+                        const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1 });
+                        const parsed = rows.slice(1)
+                            .filter(row => row[1]) 
                             .map((row) => ({
                                 c: String(row[0] || '').trim(), 
                                 n: String(row[1] || '').trim(), 
                                 s: String(row[2] || '').trim(),
                                 z: '藥庫',
-                                q: 999999 // 權重
+                                q: 999999 
                             }));
-
                         await set(dbRef(db, "warehouse"), parsed);
-                        alert(`雲端同步完成！共匯入 ${parsed.length} 筆資料。`);
-                    } catch (err) {
-                        alert("處理發生錯誤：" + err.message);
-                    } finally {
-                        isProcessing.value = false;
-                        e.target.value = ''; // 重置 file input
-                    }
+                        alert(`同步完成！共 ${parsed.length} 筆。`);
+                    } catch (err) { alert("錯誤：" + err.message); }
+                    finally { isProcessing.value = false; e.target.value = ''; }
                 };
                 reader.readAsBinaryString(file);
             };
 
-            const clearWarehouse = () => {
-                if (confirm("警告：此操作將徹底清空雲端藥庫資料，且無法還原！確定執行？")) {
-                    set(dbRef(db, "warehouse"), null);
+            // 2. 匯出 Excel 邏輯 (新增)
+            const downloadWarehouse = async () => {
+                isProcessing.value = true;
+                try {
+                    const snapshot = await get(dbRef(db, "warehouse"));
+                    const data = snapshot.val();
+                    if (!data) {
+                        alert("雲端目前沒有資料可供匯出！");
+                        return;
+                    }
+
+                    // 將壓縮過的 c, n, s 還原為中文標題
+                    const exportData = Object.values(data).map(item => ({
+                        '藥品代碼': item.c,
+                        '藥名': item.n,
+                        '儲位': item.s
+                    }));
+
+                    const ws = XLSX.utils.json_to_sheet(exportData);
+                    const wb = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(wb, ws, "藥庫儲位表");
+                    XLSX.writeFile(wb, `雲端藥庫備份_${new Date().toLocaleDateString()}.xlsx`);
+                } catch (err) {
+                    alert("匯出失敗：" + err.message);
+                } finally {
+                    isProcessing.value = false;
                 }
             };
 
-            return { count, isProcessing, handleFileUpload, clearWarehouse };
+            const clearWarehouse = () => {
+                if (confirm("確定要徹底清空雲端藥庫資料嗎？")) set(dbRef(db, "warehouse"), null);
+            };
+
+            return { count, isProcessing, handleFileUpload, clearWarehouse, downloadWarehouse };
         }
     }).mount('#app');
 </script>
