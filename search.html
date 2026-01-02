@@ -6,6 +6,7 @@
     <title>藥劑科-全院藥品位置查詢</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -18,9 +19,18 @@
 <div id="app" class="max-w-md mx-auto">
     <header class="mb-4">
         <div class="flex justify-between items-center">
-            <h1 class="text-2xl font-black text-slate-800 flex items-center gap-2">🔍 藥品查詢</h1>
-            <button @click="exportAll" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2 px-3 rounded-lg shadow-sm transition-colors flex items-center gap-1">
-                📥 匯出 Excel
+            <div class="flex items-center gap-1.5">
+                <a href="index.html" class="bg-slate-200 text-slate-600 w-9 h-9 rounded-xl flex items-center justify-center hover:bg-slate-300 transition-colors" title="回首頁">
+                    <i class="fa-solid fa-house text-sm"></i>
+                </a>
+                <a href="warehouse_admin.html" class="bg-amber-100 text-amber-700 w-9 h-9 rounded-xl flex items-center justify-center hover:bg-amber-200 transition-colors" title="藥庫維護">
+                    <i class="fa-solid fa-cloud-arrow-up text-sm"></i>
+                </a>
+                <h1 class="text-xl font-black text-slate-800 ml-1">藥品查詢</h1>
+            </div>
+            
+            <button @click="exportAll" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2 px-3 rounded-lg shadow-sm flex items-center gap-1">
+                <i class="fa-solid fa-file-export"></i> 匯出
             </button>
         </div>
         
@@ -40,14 +50,14 @@
     </div>
 
     <div v-if="filteredResults.length > 0" class="space-y-3 pb-10">
-        <div v-for="item in filteredResults" :key="item.id || item.code + item.zone" 
+        <div v-for="item in filteredResults" :key="item.key" 
              @click="goToFormulary(item.name)"
              class="result-card cursor-pointer bg-white p-4 rounded-2xl shadow-sm border border-slate-100 transition-all flex justify-between items-center gap-2">
             
             <div class="flex-1 min-w-0">
                 <div class="text-[10px] font-mono font-bold text-slate-400 mb-0.5 flex items-center gap-1">
                     {{ item.code }}
-                    <span class="text-[8px] bg-slate-100 px-1 rounded text-slate-400">處方集 ↗</span>
+                    <span class="text-[8px] bg-slate-100 px-1 rounded text-slate-400 italic">處方集 ↗</span>
                 </div>
                 <h2 class="text-lg font-bold text-slate-800 leading-tight truncate">{{ item.name }}</h2>
             </div>
@@ -92,8 +102,8 @@
 
     createApp({
         setup() {
-            const inventory = ref([]); // 盤點資料
-            const warehouse = ref([]); // 藥庫資料
+            const inventory = ref([]);
+            const warehouse = ref([]);
             const keyword = ref('');
             const selectedCat = ref('門診藥局');
             const categories = ['門診藥局', '住院藥局', '急診藥局', '藥庫', '全部'];
@@ -101,19 +111,15 @@
             const zoneCategoryMap = {
                 'A台': '門診藥局', 'B台': '門診藥局', 'C台': '門診藥局', 'D台': '門診藥局',
                 '兒科': '門診藥局', '冰箱': '門診藥局', '小庫': '門診藥局', '大庫': '門診藥局',
-                '機器': '門診藥局', 'OPD點滴': '門診藥局', '覆核發藥': '門診藥局',
-                'UD': '住院藥局',
-                'ER常': '急診藥局', 'ER': '急診藥局',
-                '藥庫': '藥庫'
+                '機器': '門診藥局', 'OPD點滴': '門診藥局', '覆核發藥': '門劑藥局',
+                'UD': '住院藥局', 'ER常': '急診藥局', 'ER': '急診藥局', '藥庫': '藥庫'
             };
 
             onMounted(() => {
-                // 1. 讀取盤點節點
                 onValue(dbRef(db, "inventory"), s => {
                     const data = s.val();
                     inventory.value = data ? (Array.isArray(data) ? data : Object.values(data)) : [];
                 });
-                // 2. 讀取藥庫節點
                 onValue(dbRef(db, "warehouse"), s => {
                     const data = s.val();
                     warehouse.value = data ? (Array.isArray(data) ? data : Object.values(data)) : [];
@@ -131,22 +137,34 @@
                 window.open(`https://amanhung.github.io/hospital-drug-search/?q=${encodeURIComponent(drugName)}`, '_blank');
             };
 
-            const filteredResults = computed(() => {
-                // 合併兩組資料
-                let allData = [...inventory.value, ...warehouse.value];
+            const normalizedWarehouse = computed(() => {
+                return warehouse.value.map(item => ({
+                    key: 'WH-' + (item.n || item.name || Math.random()),
+                    zone: '藥庫',
+                    name: item.n || item.name || '未知藥名',
+                    shelf: item.s || item.shelf || '',
+                    code: 'WH',
+                    totalQty: item.q || 999999
+                }));
+            });
 
-                // 分類篩選
+            const filteredResults = computed(() => {
+                const invData = inventory.value.map(item => {
+                    const lg = Number(item.units?.lg?.cap || 0);
+                    const sm = Number(item.units?.sm?.cap || 0);
+                    const qty = (Number(item.inputs?.lg || 0) * lg) + (Number(item.inputs?.sm || 0) * sm) + Number(item.inputs?.lo || 0);
+                    return { ...item, totalQty: qty, key: item.code + item.zone };
+                });
+
+                let allData = [...invData, ...normalizedWarehouse.value];
                 if (selectedCat.value !== '全部') {
                     allData = allData.filter(i => zoneCategoryMap[i.zone] === selectedCat.value);
                 }
-
                 const k = keyword.value.trim().toLowerCase();
                 if (!k) return [];
 
-                // 關鍵字搜尋
                 let matches = allData.filter(i => (i.name?.toLowerCase().includes(k) || i.code?.toLowerCase().includes(k)));
 
-                // 去重邏輯：同一代碼在同一區域若有重複，取總量較高者 (藥庫 totalQty 設很大，會勝出)
                 const uniqueMap = new Map();
                 matches.forEach(item => {
                     const key = `${item.code}_${item.zone}`;
@@ -161,7 +179,7 @@
             });
 
             const exportAll = () => {
-                const data = [...inventory.value, ...warehouse.value].map(item => ({
+                const data = filteredResults.value.map(item => ({
                     '分類': zoneCategoryMap[item.zone] || '其他',
                     '區域': item.zone,
                     '代碼': item.code,
@@ -171,7 +189,7 @@
                 const ws = XLSX.utils.json_to_sheet(data);
                 const wb = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(wb, ws, "藥品儲位清單");
-                XLSX.writeFile(wb, `儲位總表_${new Date().toLocaleDateString()}.xlsx`);
+                XLSX.writeFile(wb, `藥劑科儲位總表.xlsx`);
             };
 
             return { keyword, selectedCat, categories, filteredResults, getDisplayZone, goToFormulary, exportAll };
