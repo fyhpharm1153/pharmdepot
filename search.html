@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>藥劑科-儲位查詢與撥補導引 v1.6.1</title>
+    <title>藥劑科-儲位查詢與撥補導引 v1.6.3</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -42,10 +42,10 @@
         <div class="flex justify-between items-center mb-4">
             <div class="flex items-center gap-1.5">
                 <a href="index.html" class="bg-slate-200 text-slate-600 w-10 h-10 rounded-xl flex items-center justify-center hover:bg-slate-300 transition-colors">
-                    <i class="fa-solid fa-house"></i>
+                    <i class="fa-solid fa-house text-sm"></i>
                 </a>
                 <a href="warehouse_admin.html" class="bg-amber-100 text-amber-700 w-10 h-10 rounded-xl flex items-center justify-center hover:bg-amber-200 transition-colors">
-                    <i class="fa-solid fa-cloud-arrow-up"></i>
+                    <i class="fa-solid fa-cloud-arrow-up text-sm"></i>
                 </a>
                 <h1 class="text-[1.2em] font-black text-slate-800 ml-1">儲位查詢</h1>
             </div>
@@ -123,7 +123,7 @@
     </div>
 
     <footer class="mt-8 text-center pb-10 opacity-30">
-        <p class="text-[0.6em] font-mono">System Version 1.6.1.20260106</p>
+        <p class="text-[0.6em] font-mono">System Version 1.6.3.20260106</p>
     </footer>
 </div>
 
@@ -159,7 +159,8 @@
 
             const zoneCategoryMap = {
                 'A台': '門診藥局', 'C台': '門診藥局', '兒科': '門診藥局', '冰箱': '門診藥局', 
-                '小庫': '門診藥局', '大庫': '門診藥局', '大庫(排)': '門診藥局', '機器': '門診藥局', 
+                '小庫': '門診藥局', '大庫': '門診藥局', '大庫(排': '門診藥局', '機器': '門診藥局', 
+                '機器(單)': '門診藥局', '機器(雙)': '門診藥局',
                 'OPD點滴': '門診藥局', '覆核發藥': '門診藥局', 'UD': '住院藥局', 
                 'ER常': '急診藥局', 'ER': '急診藥局', '藥庫': '藥庫'
             };
