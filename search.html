@@ -3,221 +3,144 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>藥劑科-儲位查詢與撥補導引</title>
+    <title>儲位查詢系統</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        body { background-color: #f8fafc; }
-        .result-card:active { transform: scale(0.99); }
-        .edit-input { @apply border-2 border-blue-400 rounded px-1 py-0.5 w-full text-center font-bold text-blue-800 bg-white; }
+        :root { --base-font-size: 16px; }
+        [v-cloak] { display: none; }
+        body { 
+            background-color: #f1f5f9; 
+            font-family: sans-serif; 
+            font-size: var(--base-font-size);
+            transition: font-size 0.2s ease;
+        }
+        .search-input { @apply w-full bg-white p-5 rounded-3xl font-black text-[1.2em] text-slate-700 border-2 border-transparent shadow-xl focus:border-blue-400 outline-none transition-all pl-14; }
+        .drug-card { @apply bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100 mb-4 transition-all active:scale-[0.98]; }
+        .font-adjust-btn { @apply w-10 h-10 rounded-full border border-slate-200 bg-white flex items-center justify-center text-slate-600 font-bold active:bg-blue-500 active:text-white transition-all text-sm; }
     </style>
 </head>
-<body class="p-4">
-
-<div id="app" class="max-w-md mx-auto">
-    <header class="mb-4">
-        <div class="flex justify-between items-center">
-            <div class="flex items-center gap-1.5">
-                <a href="index.html" class="bg-slate-200 text-slate-600 w-9 h-9 rounded-xl flex items-center justify-center hover:bg-slate-300 transition-colors">
-                    <i class="fa-solid fa-house text-sm"></i>
-                </a>
-                <a href="warehouse_admin.html" class="bg-amber-100 text-amber-700 w-9 h-9 rounded-xl flex items-center justify-center hover:bg-amber-200 transition-colors">
-                    <i class="fa-solid fa-cloud-arrow-up text-sm"></i>
-                </a>
-                <h1 class="text-xl font-black text-slate-800 ml-1">儲位查詢</h1>
-            </div>
-            
-            <div class="flex gap-1">
-                <button @click="exportModified" v-if="hasEdits" class="bg-orange-500 hover:bg-orange-600 text-white text-[10px] font-bold py-2 px-2 rounded-lg shadow-sm">
-                    <i class="fa-solid fa-clock-rotate-left"></i> 異動
-                </button>
-                <button @click="exportAll" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2 px-3 rounded-lg shadow-sm">
-                    <i class="fa-solid fa-file-export"></i> 匯出
-                </button>
+<body class="p-4 pb-12">
+    <div id="app" class="max-w-md mx-auto" v-cloak>
+        
+        <div class="flex justify-between items-center mb-6">
+            <a href="index.html" class="bg-white w-10 h-10 rounded-xl shadow-sm flex items-center justify-center text-slate-500 hover:bg-slate-50">
+                <i class="fa-solid fa-house"></i>
+            </a>
+            <div class="flex items-center gap-2">
+                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">字體調整</span>
+                <button @click="adjustFont(-2)" class="font-adjust-btn">A-</button>
+                <button @click="adjustFont(2)" class="font-adjust-btn">A+</button>
             </div>
         </div>
-        
-        <div class="flex gap-2 mt-4 overflow-x-auto no-scrollbar py-1">
-            <button v-for="cat in categories" :key="cat" @click="selectedCat = cat"
-                :class="selectedCat === cat ? 'bg-blue-500 text-white shadow-md' : 'bg-white text-slate-500 border border-slate-200'"
-                class="px-5 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-all">
-                {{ cat }}
+
+        <header class="mb-8">
+            <h1 class="text-[1.8em] font-black text-slate-800 tracking-tighter">儲位查詢</h1>
+            <p class="text-slate-400 font-bold text-[0.8em] uppercase tracking-widest">Storage Location Search</p>
+        </header>
+
+        <div class="relative mb-8">
+            <i class="fa-solid fa-magnifying-glass absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 text-[1.2em]"></i>
+            <input v-model="query" @input="onSearch" placeholder="輸入代碼、藥名或位置..." class="search-input">
+            <button v-if="query" @click="query = ''; results = []" class="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300">
+                <i class="fa-solid fa-circle-xmark text-[1.2em]"></i>
             </button>
         </div>
-    </header>
 
-    <div class="sticky top-2 z-10 mb-6 shadow-lg">
-        <input v-model="keyword" type="text" placeholder="搜尋藥名或代碼..." 
-            class="w-full p-4 rounded-2xl border-none ring-2 ring-blue-400 focus:ring-4 outline-none text-lg">
-    </div>
-
-    <div v-if="filteredResults.length > 0" class="space-y-3 pb-10">
-        <div v-for="(item, index) in filteredResults" :key="item.key + index" class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 relative">
-            <div class="flex justify-between items-center gap-2">
-                <div class="flex-1 min-w-0 cursor-pointer" @click="goToTransfer(item)">
-                    <div class="text-[10px] font-mono font-bold text-slate-400 mb-0.5 flex items-center gap-1">
-                        {{ item.code }}
-                        <span v-if="editMap[item.key]" class="text-[8px] bg-orange-100 px-1 rounded text-orange-600 font-bold">已修正</span>
-                        <span class="text-[8px] bg-blue-50 px-1 rounded text-blue-500 font-bold ml-auto">撥補 ➔</span>
-                    </div>
-                    <h2 class="text-lg font-bold text-slate-800 leading-tight truncate">{{ item.name }}</h2>
+        <div v-if="results.length > 0" class="space-y-4">
+            <div v-for="item in results" :key="item.c" class="drug-card">
+                <div class="flex justify-between items-start mb-3">
+                    <span class="text-[0.7em] font-mono font-bold text-blue-500 tracking-widest uppercase bg-blue-50 px-2 py-0.5 rounded">{{ item.c }}</span>
+                    <a :href="'transfer.html?code=' + item.c + '&name=' + item.n" class="text-blue-500 text-[0.9em] font-bold flex items-center gap-1">
+                        撥補 <i class="fa-solid fa-chevron-right text-[0.8em]"></i>
+                    </a>
                 </div>
-
-                <div class="flex items-center gap-2">
-                    <div class="flex gap-1 shrink-0">
-                        <div :class="item.zone === '藥庫' ? 'bg-amber-50 border-amber-200 text-amber-800' : 'bg-blue-50 border-blue-200 text-blue-800'"
-                             class="w-20 h-16 flex flex-col justify-center items-center border rounded-xl shadow-sm text-center">
-                            <span class="text-[10px] font-bold opacity-60 mb-0.5">區域</span>
-                            <input v-if="editingKey === item.key" v-model="editData.zone" class="edit-input text-xs">
-                            <span v-else class="text-[13px] font-black leading-tight">{{ getDisplayZone(item.zone) }}</span>
-                        </div>
-                        <div :class="item.zone === '藥庫' ? 'bg-orange-50 border-orange-200 text-orange-800' : 'bg-red-50 border-red-200 text-red-800'"
-                             class="w-20 h-16 flex flex-col justify-center items-center border rounded-xl shadow-sm">
-                            <span class="text-[10px] font-bold opacity-60 mb-0.5">儲位</span>
-                            <input v-if="editingKey === item.key" v-model="editData.shelf" class="edit-input text-xs">
-                            <span v-else class="text-xl font-black tracking-tighter">{{ item.shelf || '無' }}</span>
-                        </div>
+                <h2 class="text-[1.2em] font-black text-slate-800 mb-4 leading-tight">{{ item.n }}</h2>
+                
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                        <p class="text-[0.6em] text-slate-400 font-bold uppercase mb-1">儲位位置</p>
+                        <p class="text-[1.1em] font-black text-slate-700">{{ item.l || '未標記' }}</p>
                     </div>
-                    
-                    <div class="flex flex-col gap-2">
-                        <button v-if="editingKey !== item.key" @click.stop="startEdit(item)" class="text-slate-300 hover:text-blue-500"><i class="fa-solid fa-pen-to-square"></i></button>
-                        <button v-else @click.stop="saveEdit(item.key)" class="text-green-500"><i class="fa-solid fa-check-circle text-xl"></i></button>
+                    <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                        <p class="text-[0.6em] text-slate-400 font-bold uppercase mb-1">規格單位</p>
+                        <p class="text-[1.1em] font-black text-slate-700">{{ item.u || '---' }}</p>
                     </div>
                 </div>
             </div>
         </div>
+
+        <div v-else-if="query" class="text-center py-20">
+            <i class="fa-solid fa-box-open text-slate-200 text-5xl mb-4"></i>
+            <p class="text-slate-400 font-bold">找不到相關藥品</p>
+        </div>
+
+        <footer class="mt-12 text-center opacity-50">
+            <p class="text-[10px] text-slate-400 font-mono">v1.6.20260106</p>
+        </footer>
     </div>
-    
-    <div v-else class="text-center py-20 text-slate-400">
-        <p>{{ keyword ? '查無相關藥品' : '請輸入關鍵字搜尋' }}</p>
-    </div>
-</div>
 
-<script type="module">
-    import { createApp, ref, computed, onMounted } from "https://unpkg.com/vue@3/dist/vue.esm-browser.js";
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getDatabase, ref as dbRef, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+    <script type="module">
+        import { createApp, ref, onMounted } from "https://unpkg.com/vue@3/dist/vue.esm-browser.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref as dbRef, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyDZuNztwb9aLG1RqeDOyrj6KJrPhwBFi9M",
-      authDomain: "fyh-pharmacy-inventory.firebaseapp.com",
-      databaseURL: "https://fyh-pharmacy-inventory-default-rtdb.asia-southeast1.firebasedatabase.app",
-      projectId: "fyh-pharmacy-inventory",
-      storageBucket: "fyh-pharmacy-inventory.firebasestorage.app",
-      messagingSenderId: "751378148626",
-      appId: "1:751378148626:web:5a2d2be1c5f905657457cb"
-    };
+        const firebaseConfig = {
+            apiKey: "AIzaSyDZuNztwb9aLG1RqeDOyrj6KJrPhwBFi9M",
+            authDomain: "fyh-pharmacy-inventory.firebaseapp.com",
+            databaseURL: "https://fyh-pharmacy-inventory-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "fyh-pharmacy-inventory",
+            storageBucket: "fyh-pharmacy-inventory.firebasestorage.app",
+            messagingSenderId: "751378148626",
+            appId: "1:751378148626:web:5a2d2be1c5f905657457cb"
+        };
 
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
 
-    createApp({
-        setup() {
-            const inventory = ref([]);
-            const warehouse = ref([]);
-            const keyword = ref('');
-            const selectedCat = ref('門診藥局');
-            const editingKey = ref(null);
-            const editData = ref({ zone: '', shelf: '' });
-            const editMap = ref({});
-            const categories = ['門診藥局', '住院藥局', '急診藥局', '藥庫', '全部'];
+        createApp({
+            setup() {
+                const query = ref('');
+                const warehouse = ref([]);
+                const results = ref([]);
+                const fontSize = ref(16);
 
-            const zoneCategoryMap = {
-                'A台': '門診藥局', 'C台': '門診藥局', '兒科': '門診藥局', '冰箱': '門診藥局', 
-                '小庫': '門診藥局', '大庫': '門診藥局', '大庫(排)': '門診藥局', '機器': '門診藥局', 
-                'OPD點滴': '門診藥局', '覆核發藥': '門診藥局', 'UD': '住院藥局', 
-                'ER常': '急診藥局', 'ER': '急診藥局', '藥庫': '藥庫'
-            };
+                onMounted(() => {
+                    // 讀取字體大小設定
+                    const savedSize = localStorage.getItem('fyh-font-size');
+                    if (savedSize) {
+                        fontSize.value = parseInt(savedSize);
+                        document.documentElement.style.setProperty('--base-font-size', `${fontSize.value}px`);
+                    }
 
-            onMounted(() => {
-                onValue(dbRef(db, "inventory"), s => { inventory.value = s.val() || []; });
-                onValue(dbRef(db, "warehouse"), s => { warehouse.value = s.val() || []; });
-                const saved = localStorage.getItem('pharmEdits');
-                if(saved) editMap.value = JSON.parse(saved);
-            });
+                    // 讀取藥庫資料
+                    onValue(dbRef(db, "warehouse"), (snapshot) => {
+                        const data = snapshot.val();
+                        warehouse.value = data ? Object.values(data) : [];
+                    });
+                });
 
-            const getDisplayZone = (z) => {
-                if (z === 'A台') return '一般';
-                if (z === 'C台') return '特殊';
-                return z;
-            };
+                const adjustFont = (delta) => {
+                    fontSize.value += delta;
+                    if (fontSize.value < 12) fontSize.value = 12;
+                    if (fontSize.value > 32) fontSize.value = 32;
+                    document.documentElement.style.setProperty('--base-font-size', `${fontSize.value}px`);
+                    localStorage.setItem('fyh-font-size', fontSize.value);
+                };
 
-            const goToTransfer = (item) => {
-                // 跳轉至撥補紀錄網頁，並傳遞代碼與名稱
-                const url = `transfer.html?code=${encodeURIComponent(item.code)}&name=${encodeURIComponent(item.name)}`;
-                window.location.href = url;
-            };
+                const onSearch = () => {
+                    const k = query.value.trim().toLowerCase();
+                    if (!k) { results.value = []; return; }
+                    results.value = warehouse.value.filter(i => 
+                        (i.n?.toLowerCase().includes(k) || 
+                         i.c?.toLowerCase().includes(k) || 
+                         i.l?.toLowerCase().includes(k))
+                    ).slice(0, 20);
+                };
 
-            const startEdit = (item) => {
-                editingKey.value = item.key;
-                editData.value = { zone: item.zone, shelf: item.shelf };
-            };
-
-            const saveEdit = (key) => {
-                editMap.value[key] = { ...editData.value, modifiedAt: new Date().toLocaleString() };
-                localStorage.setItem('pharmEdits', JSON.stringify(editMap.value));
-                editingKey.value = null;
-            };
-
-            const hasEdits = computed(() => Object.keys(editMap.value).length > 0);
-
-            const filteredResults = computed(() => {
-                // 1. 處理盤點資料 (過濾 B/D)
-                const invData = Object.values(inventory.value)
-                    .filter(item => item.zone !== 'B台' && item.zone !== 'D台')
-                    .map(item => ({ ...item, key: `${item.code}_${item.zone}_${item.shelf}` }));
-
-                // 2. 處理藥庫資料 (同步讀取代碼 c, 藥名 n, 儲位 s)
-                const whData = Object.values(warehouse.value).map(item => ({
-                    key: `WH-${item.c}-${item.n}`,
-                    zone: '藥庫',
-                    name: item.n || item.name,
-                    shelf: item.s || item.shelf,
-                    code: item.c || 'WH'
-                }));
-
-                let results = [...invData, ...whData];
-
-                // 3. 關鍵字搜尋
-                const k = keyword.value.trim().toLowerCase();
-                if (k) {
-                    results = results.filter(i => (i.name?.toLowerCase().includes(k) || i.code?.toLowerCase().includes(k)));
-                } else if(selectedCat.value === '全部') return [];
-
-                // 4. 套用本地異動並過濾分類 (不進行去重)
-                return results.map(item => {
-                    return editMap.value[item.key] ? { ...item, ...editMap.value[item.key] } : item;
-                }).filter(i => selectedCat.value === '全部' || zoneCategoryMap[i.zone] === selectedCat.value);
-            });
-
-            const exportAll = () => {
-                const data = filteredResults.value.map(i => ({
-                    '分類': zoneCategoryMap[i.zone] || '其他',
-                    '區域': i.zone, '代碼': i.code, '名稱': i.name, '儲位': i.shelf || ''
-                }));
-                saveExcel(data, "儲位總表");
-            };
-
-            const exportModified = () => {
-                const data = Object.entries(editMap.value).map(([key, val]) => ({
-                    '修改項目': key, '新區域': val.zone, '新儲位': val.shelf, '修改時間': val.modifiedAt
-                }));
-                saveExcel(data, "異動清單");
-            };
-
-            const saveExcel = (data, name) => {
-                const ws = XLSX.utils.json_to_sheet(data);
-                const wb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(wb, ws, "Data");
-                XLSX.writeFile(wb, `${name}.xlsx`);
-            };
-
-            return { keyword, selectedCat, categories, filteredResults, getDisplayZone, startEdit, saveEdit, editingKey, editData, editMap, hasEdits, exportAll, exportModified, goToTransfer };
-        }
-    }).mount('#app');
-</script>
+                return { query, results, onSearch, fontSize, adjustFont };
+            }
+        }).mount('#app');
+    </script>
 </body>
 </html>
