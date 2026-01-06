@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>藥劑科-儲位查詢與撥補導引 v1.6</title>
+    <title>藥劑科-儲位查詢與撥補導引 v1.6.1</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -18,11 +18,16 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         
-        /* 響應式結果網格 */
+        /* 🚀 修正：手機維持一欄，平板/電腦寬度時固定為「最多兩欄」 */
         .results-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            grid-template-columns: repeat(1, minmax(0, 1fr));
             gap: 1rem;
+        }
+        @media (min-width: 768px) {
+            .results-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
         }
 
         .result-card:active { transform: scale(0.99); }
@@ -118,7 +123,7 @@
     </div>
 
     <footer class="mt-8 text-center pb-10 opacity-30">
-        <p class="text-[0.6em] font-mono">System Version 1.6.20260106</p>
+        <p class="text-[0.6em] font-mono">System Version 1.6.1.20260106</p>
     </footer>
 </div>
 
@@ -160,10 +165,9 @@
             };
 
             onMounted(() => {
-                // 1. 同步字體大小
                 const savedFont = localStorage.getItem('fyh-font-size');
                 if (savedFont) {
-                    currentFontSize.ref = parseInt(savedFont);
+                    currentFontSize.value = parseInt(savedFont);
                     applyFont();
                 }
 
