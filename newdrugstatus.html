@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>藥品採購與建檔進度追蹤</title>
+    <style>
+        body { font-family: "Microsoft JhengHei", Arial, sans-serif; background-color: #f4f7f6; margin: 20px; }
+        h2 { color: #2c3e50; text-align: center; }
+        .container { max-width: 1000px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background-color: #34495e; color: white; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        .status-badge { padding: 4px 8px; border-radius: 4px; font-size: 0.9em; font-weight: bold; }
+        /* 簡單的顏色區分 */
+        .bg-success { background-color: #d4edda; color: #155724; } /* 已完成 / 開檔 */
+        .bg-warning { background-color: #fff3cd; color: #856404; } /* 進行中 */
+        .bg-danger { background-color: #f8d7da; color: #721c24; }  /* 關檔 / 停滯 */
+        .loading { text-align: center; font-size: 1.2em; color: #666; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>💊 藥品進度追蹤看板</h2>
+    <div id="loading" class="loading">正在從 Google 雲端抓取最新資料...</div>
+    <table id="data-table" style="display:none;">
+        <thead>
+            <tr>
+                <th>藥品名稱</th>
+                <th>採購進度</th>
+                <th>HIS 建檔</th>
+                <th>開/關檔情形</th>
+            </tr>
+        </thead>
+        <tbody id="table-body">
+            </tbody>
+    </table>
+</div>
+
+<script>
+    // 您的 Google Sheet CSV 連結
+    const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQVAyi3_RHMvbMH91EKHlNIMF6cMvgPjw-29OczSJnJjyNT6FeOAusRSPTn7UH17I8VJUD9cBydhcJr/pub?output=csv&gid=283594106";
+
+    async function fetchData() {
+        try {
+            const response = await fetch(csvUrl);
+            const csvText = await response.text();
+            
+            // 解析 CSV (處理換行與逗號)
+            const rows = csvText.split('\n').map(row => row.split(','));
+            
+            // 假設：
+            // 標題列通常在第一列，我們需要根據您的試算表欄位索引來調整
+            // 這裡預設：藥品名稱在第1欄, 採購進度在第2欄, HIS建檔在第3欄, 開關檔在第4欄
+            // 如果欄位順序不同，請修改下方的 row[index]
+            
+            const tableBody = document.getElementById('table-body');
+            tableBody.innerHTML = ''; // 清空
+
+            // 從第二列開始抓取資料 (index 1)
+            for (let i = 1; i < rows.length; i++) {
+                const row = rows[i];
+                if (row.length < 2) continue; // 跳過空行
+
+                const name = row[1] || '---';      // 藥品名稱
+                const progress = row[2] || '---';  // 採購進度
+                const his = row[3] || '---';       // HIS建檔
+                const status = row[4] || '---';    // 開/關檔
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><strong>${name}</strong></td>
+                    <td><span class="status-badge ${getStatusClass(progress)}">${progress}</span></td>
+                    <td><span class="status-badge ${getStatusClass(his)}">${his}</span></td>
+                    <td><span class="status-badge ${getStatusClass(status)}">${status}</span></td>
+                `;
+                tableBody.appendChild(tr);
+            }
+
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('data-table').style.display = 'table';
+
+        } catch (error) {
+            console.error("Error:", error);
+            document.getElementById('loading').innerText = "資料載入失敗，請檢查網路或連結設定。";
+        }
+    }
+
+    // 根據文字內容自動給顏色
+    function getStatusClass(text) {
+        if (text.includes("完成") || text.includes("開檔") || text.includes("已")) return "bg-success";
+        if (text.includes("進中") || text.includes("處理")) return "bg-warning";
+        if (text.includes("關檔") || text.includes("暫停") || text.includes("未")) return "bg-danger";
+        return "";
+    }
+
+    fetchData();
+</script>
+
+</body>
+</html>
