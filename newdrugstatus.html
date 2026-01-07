@@ -73,12 +73,12 @@
     <table id="data-table" style="display:none;">
         <thead>
             <tr>
-                <th style="width: 28%;">藥名(H)/成分(J)/規格(K)</th>
+                <th style="width: 28%;">藥名 / 成分 / 規格</th>
                 <th style="width: 11%;">採購進度</th>
                 <th style="width: 11%;">HIS建檔</th>
                 <th style="width: 11%;">開/關檔</th>
-                <th style="width: 12%;">儲位(Y)</th>
-                <th style="width: 27%;">備註(L)</th>
+                <th style="width: 12%;">儲位</th>
+                <th style="width: 27%;">備註</th>
             </tr>
         </thead>
         <tbody id="table-body"></tbody>
@@ -119,14 +119,20 @@
             const tableBody = document.getElementById('table-body');
             
             lines.forEach((line, index) => {
-                if (index === 0) return;
+                // 1. 解析 CSV 欄位
                 const row = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
                 
-                // 欄位索引說明：
-                // H:7 (藥名), J:9 (成分), K:10 (規格), L:11 (備註), S:18 (採購), T:19 (HIS), U:20 (開關), Y:24 (儲位)
-                
+                // 2. 獲取核心欄位資料
                 const name = row[7] ? row[7].replace(/"/g, "").trim() : "";
-                if (!name || name.length < 2 || /^\d+$/.test(name)) return;
+                
+                // --- 修正搜尋結果出現標題列的問題 ---
+                // 過濾標題列：如果藥名包含「藥名」或「規格」等關鍵字，或者是空行/純數字，則不抓取
+                if (!name || 
+                    name === "藥名" || 
+                    name === "規格藥名" || 
+                    name === "商品名" || 
+                    name.length < 2 || 
+                    /^\d+$/.test(name)) return;
 
                 const ingredient = row[9] ? row[9].replace(/"/g, "").trim() : "";
                 const spec = row[10] ? row[10].replace(/"/g, "").trim() : "";
@@ -135,6 +141,9 @@
                 const t_val = (row[19] || "").replace(/"/g, "").trim();
                 const u_val = (row[20] || "").replace(/"/g, "").trim();
                 const location = row[24] ? row[24].replace(/"/g, "").trim() : "---";
+
+                // 如果整行都是空的標題字樣也略過
+                if (ingredient === "成分" || s_val === "採購進度") return;
 
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
@@ -146,7 +155,7 @@
                     <td data-label="採購進度"><span class="badge ${getStatusClass(s_val)}">${s_val || '待定'}</span></td>
                     <td data-label="HIS建檔"><span class="badge ${getStatusClass(t_val)}">${t_val || '待定'}</span></td>
                     <td data-label="開/關檔"><span class="badge ${getStatusClass(u_val)}">${u_val || '待定'}</span></td>
-                    <td data-label="儲位(Y)"><span class="location-text">${location}</span></td>
+                    <td data-label="儲位"><span class="location-text">${location}</span></td>
                     <td data-label="備註">${note}</td>
                 `;
                 tableBody.appendChild(tr);
