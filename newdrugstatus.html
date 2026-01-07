@@ -3,109 +3,127 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>114Q4 藥品進度追蹤</title>
+    <title>114Q4 藥品進度看板</title>
     <style>
-        body { font-family: "PingFang TC", "Microsoft JhengHei", sans-serif; background-color: #f0f2f5; padding: 20px; color: #333; }
-        .container { max-width: 1200px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
-        h2 { text-align: center; color: #1a73e8; margin-bottom: 25px; border-bottom: 2px solid #e8f0fe; padding-bottom: 10px; }
+        :root { --base-font-size: 16px; }
+        body { font-family: "PingFang TC", "Microsoft JhengHei", sans-serif; background-color: #f0f2f5; padding: 20px; color: #333; font-size: var(--base-font-size); }
+        .container { max-width: 1300px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
         
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; table-layout: fixed; }
-        th { background-color: #f8f9fa; color: #5f6368; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; word-wrap: break-word; font-size: 14px; }
-        
-        tr:hover { background-color: #fdfdfd; }
-        
-        .badge { padding: 4px 10px; border-radius: 15px; font-size: 12px; font-weight: bold; display: inline-block; white-space: nowrap; }
-        .bg-success { background-color: #e6f4ea; color: #1e7e34; } 
-        .bg-warning { background-color: #fef7e0; color: #b05a00; } 
-        .bg-danger { background-color: #fce8e6; color: #d93025; }  
-        .bg-default { background-color: #f1f3f4; color: #70757a; } 
+        /* 工具列樣式 */
+        .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
+        .btn { padding: 8px 16px; cursor: pointer; border: none; border-radius: 6px; font-weight: bold; transition: 0.2s; background: #e8f0fe; color: #1a73e8; }
+        .btn:hover { background: #1a73e8; color: white; }
+        .font-controls button { margin-left: 5px; width: 40px; }
 
-        .note-text { color: #666; font-size: 13px; line-height: 1.4; }
-        .loading { text-align: center; padding: 50px; font-size: 18px; color: #1a73e8; font-weight: bold; }
+        h2 { text-align: center; color: #1a73e8; width: 100%; margin-top: 0; }
+        
+        table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+        th { background-color: #f8f9fa; color: #5f6368; font-weight: 600; padding: 12px; border-bottom: 2px solid #dee2e6; text-align: left; }
+        td { padding: 12px; border-bottom: 1px solid #eee; word-wrap: break-word; vertical-align: top; }
+        
+        /* 狀態標籤基礎樣式 */
+        .badge { padding: 6px 12px; border-radius: 6px; font-size: 0.9em; font-weight: bold; display: inline-block; text-align: center; width: 90%; }
+        
+        /* 1. 狀態配色邏輯 */
+        .status-ready { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; } /* 綠色：完成/開檔 */
+        .status-work { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; }  /* 黃色：辦理中/待辦 */
+        .status-stop { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }  /* 紅色：關檔/停止 */
+        .status-none { background-color: #f1f3f4; color: #70757a; border: 1px solid #dadce0; }  /* 灰色：無資料 */
+
+        .loading { text-align: center; padding: 50px; font-size: 1.2em; color: #1a73e8; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>📋 114Q4 藥品採購與建檔進度看板</h2>
-    <div id="status-container">
-        <div id="loading" class="loading">📡 正在同步 Google Sheets 資料...</div>
-        <table id="data-table" style="display:none;">
-            <thead>
-                <tr>
-                    <th style="width: 25%;">藥品名稱 (H)</th>
-                    <th style="width: 12%;">採購進度 (S)</th>
-                    <th style="width: 12%;">HIS 建檔 (T)</th>
-                    <th style="width: 12%;">開/關檔 (U)</th>
-                    <th style="width: 39%;">備註 (L)</th>
-                </tr>
-            </thead>
-            <tbody id="table-body"></tbody>
-        </table>
+    <div class="toolbar">
+        <button class="btn" onclick="history.back()">← 回上一頁</button>
+        
+        <h2>💊 114Q4 藥品採購與建檔看板</h2>
+
+        <div class="font-controls">
+            <span>字體：</span>
+            <button class="btn" onclick="changeFontSize(2)">A+</button>
+            <button class="btn" onclick="changeFontSize(-2)">A-</button>
+        </div>
     </div>
+
+    <div id="loading" class="loading">📡 正在同步資料，請稍候...</div>
+    
+    <table id="data-table" style="display:none;">
+        <thead>
+            <tr>
+                <th style="width: 25%;">藥品名稱 (H)</th>
+                <th style="width: 15%;">採購進度 (S)</th>
+                <th style="width: 15%;">HIS 建檔 (T)</th>
+                <th style="width: 15%;">開/關檔 (U)</th>
+                <th style="width: 30%;">備註 (L)</th>
+            </tr>
+        </thead>
+        <tbody id="table-body"></tbody>
+    </table>
 </div>
 
 <script>
     const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQVAyi3_RHMvbMH91EKHlNIMF6cMvgPjw-29OczSJnJjyNT6FeOAusRSPTn7UH17I8VJUD9cBydhcJr/pub?output=csv&gid=283594106";
+
+    // 字體縮放功能
+    let currentFontSize = 16;
+    function changeFontSize(delta) {
+        currentFontSize += delta;
+        if (currentFontSize < 12) currentFontSize = 12;
+        if (currentFontSize > 30) currentFontSize = 30;
+        document.documentElement.style.setProperty('--base-font-size', currentFontSize + 'px');
+    }
+
+    // 自動判斷顏色類別
+    function getStatusClass(text) {
+        if (!text || text.trim() === "" || text.includes("---")) return "status-none";
+        
+        const t = text.trim();
+        // 綠色：完成、已、開檔
+        if (t.includes("完成") || t.includes("已") || t.includes("開檔") || t.includes("OK")) return "status-ready";
+        // 紅色：關檔、停、不、退
+        if (t.includes("關檔") || t.includes("停") || t.includes("不") || t.includes("退")) return "status-stop";
+        // 黃色：其餘（進中、簽核、待、辦理）
+        return "status-work";
+    }
 
     async function fetchData() {
         try {
             const response = await fetch(csvUrl);
             const csvText = await response.text();
             
-            // 解析 CSV 行
-            const rows = csvText.split('\n').map(row => {
-                // 處理可能包含逗號的儲存格內容 (CSV 基本處理)
-                return row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-            });
-            
+            // 簡易 CSV 解析（處理換行）
+            const rows = csvText.split('\n').map(row => row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/));
             const tableBody = document.getElementById('table-body');
-            tableBody.innerHTML = ''; 
-
+            
             for (let i = 1; i < rows.length; i++) {
                 const row = rows[i];
                 if (!row[7] || row[7].trim() === "") continue; 
 
-                const name = row[7].replace(/"/g, "").trim();      // H 欄
-                const note = row[11] ? row[11].replace(/"/g, "").trim() : ''; // L 欄 (備註)
-                const progress = row[18] ? row[18].trim() : '---'; // S 欄
-                const his = row[19] ? row[19].trim() : '---';      // T 欄
-                const status = row[20] ? row[20].trim() : '---';   // U 欄
+                const name = row[7].replace(/"/g, "").trim(); 
+                const note = row[11] ? row[11].replace(/"/g, "").trim() : ""; 
+                const s_val = (row[18] || "").replace(/"/g, "").trim();
+                const t_val = (row[19] || "").replace(/"/g, "").trim();
+                const u_val = (row[20] || "").replace(/"/g, "").trim();
 
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td><strong>${name}</strong></td>
-                    <td>${renderBadge(progress)}</td>
-                    <td>${renderBadge(his)}</td>
-                    <td>${renderBadge(status)}</td>
-                    <td class="note-text">${note}</td>
+                    <td><span class="badge ${getStatusClass(s_val)}">${s_val || '待定'}</span></td>
+                    <td><span class="badge ${getStatusClass(t_val)}">${t_val || '待定'}</span></td>
+                    <td><span class="badge ${getStatusClass(u_val)}">${u_val || '待定'}</span></td>
+                    <td style="color:#666; font-size:0.95em;">${note}</td>
                 `;
                 tableBody.appendChild(tr);
             }
 
             document.getElementById('loading').style.display = 'none';
             document.getElementById('data-table').style.display = 'table';
-
-        } catch (error) {
-            document.getElementById('loading').innerHTML = "❌ 無法讀取資料，請確認 Google Sheet 已「發佈到網路」。";
+        } catch (e) {
+            document.getElementById('loading').innerText = "❌ 讀取失敗，請確認網路或試算表發佈設定。";
         }
-    }
-
-    function renderBadge(text) {
-        text = text.replace(/"/g, ""); // 移除 CSV 可能帶有的引號
-        if (!text || text === '---' || text === "") return `<span class="badge bg-default">待定</span>`;
-        
-        let colorClass = "bg-default";
-        if (text.includes("完成") || text.includes("已") || text.includes("開檔") || text.includes("OK")) {
-            colorClass = "bg-success";
-        } else if (text.includes("進中") || text.includes("辦理") || text.includes("待") || text.includes("簽核")) {
-            colorClass = "bg-warning";
-        } else if (text.includes("關檔") || text.includes("停") || text.includes("不")) {
-            colorClass = "bg-danger";
-        }
-        
-        return `<span class="badge ${colorClass}">${text}</span>`;
     }
 
     fetchData();
