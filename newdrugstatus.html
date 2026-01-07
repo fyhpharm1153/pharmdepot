@@ -9,22 +9,25 @@
         body { font-family: "PingFang TC", "Microsoft JhengHei", sans-serif; background-color: #f4f7f9; padding: 20px; color: #333; font-size: var(--base-font-size); }
         .container { max-width: 1350px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         
-        .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 15px; }
-        .btn { padding: 8px 16px; cursor: pointer; border: 1px solid #dcdfe6; border-radius: 6px; font-weight: bold; background: #fff; color: #606266; }
+        .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 15px; flex-wrap: wrap; gap: 15px; }
+        .btn { padding: 8px 16px; cursor: pointer; border: 1px solid #dcdfe6; border-radius: 6px; font-weight: bold; background: #fff; color: #606266; text-decoration: none; display: inline-flex; align-items: center; }
         .btn:hover { background: #1a73e8; color: white; border-color: #1a73e8; }
         
-        h2 { text-align: center; color: #1a73e8; margin: 0; }
+        .search-box { flex-grow: 1; max-width: 400px; }
+        .search-box input { width: 100%; padding: 8px 12px; border: 1px solid #dcdfe6; border-radius: 6px; outline: none; }
+
+        h2 { text-align: center; color: #1a73e8; margin: 0; flex-basis: 100%; order: -1; padding-bottom: 10px; }
         
         table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-top: 10px; }
         th { background-color: #f8f9fa; color: #5f6368; padding: 12px; border-bottom: 2px solid #dee2e6; text-align: left; }
         td { padding: 15px 12px; border-bottom: 1px solid #eee; vertical-align: middle; word-wrap: break-word; }
         tr:hover { background-color: #f9fbff; }
 
-        /* 藥品名稱與成分排版 */
-        .drug-name { font-weight: bold; color: #2c3e50; display: block; margin-bottom: 4px; font-size: 1.1em; }
-        .drug-ingredient { font-size: 0.85em; color: #666; display: block; line-height: 1.3; }
+        /* 第一欄藥品資訊層次 */
+        .drug-name { font-weight: bold; color: #1a2a3a; display: block; margin-bottom: 2px; font-size: 1.15em; }
+        .drug-ingredient { font-size: 0.9em; color: #0056b3; display: block; margin-bottom: 2px; }
+        .drug-spec { font-size: 0.85em; color: #666; display: block; font-style: italic; }
         
-        /* 狀態標籤基礎樣式 */
         .badge { padding: 6px 10px; border-radius: 6px; font-size: 0.9em; font-weight: bold; display: inline-block; text-align: center; width: 90%; }
         .status-ready { background-color: #e6f4ea; color: #1e7e34; } 
         .status-work { background-color: #fef7e0; color: #b05a00; }  
@@ -38,8 +41,13 @@
 
 <div class="container">
     <div class="toolbar">
-        <button class="btn" onclick="history.back()">← 回上一頁</button>
         <h2>💊 114Q4 藥品採購進度看板</h2>
+        <a href="https://fyhpharm1153.github.io/pharmdepot/index.html" class="btn">🏠 回首頁</a>
+
+        <div class="search-box">
+            <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="🔍 搜尋藥名、成分或規格...">
+        </div>
+
         <div class="font-controls">
             <span>字體：</span>
             <button class="btn" onclick="changeFontSize(2)">+</button>
@@ -47,16 +55,16 @@
         </div>
     </div>
 
-    <div id="loading" class="loading">📡 正在連接 Google 雲端抓取資料...</div>
+    <div id="loading" class="loading">📡 資料同步中...</div>
     
     <table id="data-table" style="display:none;">
         <thead>
             <tr>
-                <th style="width: 32%;">規格藥名 (K) / 成分 (J)</th>
+                <th style="width: 34%;">藥名 (H) / 成分 (J) / 規格 (K)</th>
                 <th style="width: 12%;">採購進度 (S)</th>
                 <th style="width: 12%;">HIS 建檔 (T)</th>
                 <th style="width: 12%;">開/關檔 (U)</th>
-                <th style="width: 32%;">備註 (L)</th>
+                <th style="width: 30%;">備註 (L)</th>
             </tr>
         </thead>
         <tbody id="table-body"></tbody>
@@ -70,6 +78,18 @@
     function changeFontSize(delta) {
         currentFontSize = Math.min(Math.max(currentFontSize + delta, 12), 32);
         document.documentElement.style.setProperty('--base-font-size', currentFontSize + 'px');
+    }
+
+    function filterTable() {
+        const filter = document.getElementById("searchInput").value.toUpperCase();
+        const tr = document.getElementById("table-body").getElementsByTagName("tr");
+        for (let i = 0; i < tr.length; i++) {
+            const td = tr[i].getElementsByTagName("td")[0];
+            if (td) {
+                const text = td.textContent || td.innerText;
+                tr[i].style.display = text.toUpperCase().indexOf(filter) > -1 ? "" : "none";
+            }
+        }
     }
 
     function getStatusClass(text) {
@@ -88,23 +108,18 @@
             const tableBody = document.getElementById('table-body');
             
             lines.forEach((line, index) => {
-                if (index === 0) return; // 略過標題列
-
-                // 處理 CSV 欄位，考慮引號內含逗號的情況
+                if (index === 0) return;
                 const row = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
                 
-                // --- 更新後的欄位對應 ---
+                // 修正後的欄位對應
+                // H 欄 (藥名) = 索引 7
                 // J 欄 (成分) = 索引 9
-                // K 欄 (規格藥名) = 索引 10
-                // L 欄 (備註) = 索引 11
-                // S 欄 (採購) = 索引 18
-                // T 欄 (HIS) = 索引 19
-                // U 欄 (開關) = 索引 20
-                
+                // K 欄 (規格) = 索引 10
+                const name = row[7] ? row[7].replace(/"/g, "").trim() : "";
                 const ingredient = row[9] ? row[9].replace(/"/g, "").trim() : "";
-                const name = row[10] ? row[10].replace(/"/g, "").trim() : "";
+                const spec = row[10] ? row[10].replace(/"/g, "").trim() : "";
                 
-                // 過濾機制：如果藥名為空、純數字或是內容太短，則視為雜訊不顯示
+                // 過濾雜訊：藥名為空或純數字則跳過
                 if (!name || name.length < 2 || /^\d+$/.test(name)) return;
 
                 const note = row[11] ? row[11].replace(/"/g, "").trim() : ""; 
@@ -116,7 +131,8 @@
                 tr.innerHTML = `
                     <td>
                         <span class="drug-name">${name}</span>
-                        <span class="drug-ingredient">${ingredient}</span>
+                        <span class="drug-ingredient">成分：${ingredient}</span>
+                        <span class="drug-spec">規格：${spec}</span>
                     </td>
                     <td><span class="badge ${getStatusClass(s_val)}">${s_val || '待定'}</span></td>
                     <td><span class="badge ${getStatusClass(t_val)}">${t_val || '待定'}</span></td>
@@ -129,7 +145,7 @@
             document.getElementById('loading').style.display = 'none';
             document.getElementById('data-table').style.display = 'table';
         } catch (e) {
-            document.getElementById('loading').innerText = "❌ 讀取失敗，請確認 Google Sheet 已發佈到網路。";
+            document.getElementById('loading').innerText = "❌ 讀取失敗。";
         }
     }
 
