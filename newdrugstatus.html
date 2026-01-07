@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>114Q4 藥品進度追蹤</title>
+    <title>114Q4 藥品進度追蹤系統</title>
     <style>
         :root { --base-font-size: 16px; }
         body { font-family: "PingFang TC", "Microsoft JhengHei", sans-serif; background-color: #f4f7f9; padding: 10px; color: #333; font-size: var(--base-font-size); }
-        .container { max-width: 1350px; margin: auto; background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .container { max-width: 1400px; margin: auto; background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         
-        /* 工具列排版 */
+        /* 工具列 */
         .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 15px; flex-wrap: wrap; gap: 10px; }
         .btn { padding: 8px 12px; cursor: pointer; border: 1px solid #dcdfe6; border-radius: 6px; font-weight: bold; background: #fff; color: #606266; text-decoration: none; display: inline-flex; align-items: center; font-size: 14px; }
         .btn:hover { background: #1a73e8; color: white; border-color: #1a73e8; }
@@ -19,14 +19,14 @@
 
         h2 { text-align: center; color: #1a73e8; margin: 0; flex-basis: 100%; padding-bottom: 10px; }
         
-        /* 表格與卡片通用樣式 */
+        /* 表格樣式 */
         table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-top: 10px; }
-        th { background-color: #f8f9fa; color: #5f6368; padding: 12px; border-bottom: 2px solid #dee2e6; text-align: left; }
+        th { background-color: #f8f9fa; color: #5f6368; padding: 12px; border-bottom: 2px solid #dee2e6; text-align: left; font-size: 0.9em; }
         td { padding: 15px 12px; border-bottom: 1px solid #eee; vertical-align: middle; word-wrap: break-word; }
         
-        .drug-name { font-weight: bold; color: #1a2a3a; display: block; margin-bottom: 4px; font-size: 1.15em; line-height: 1.2; }
-        .drug-ingredient { font-size: 0.9em; color: #0056b3; display: block; }
-        .drug-spec { font-size: 0.85em; color: #666; display: block; }
+        .drug-name { font-weight: bold; color: #1a2a3a; display: block; margin-bottom: 4px; font-size: 1.1em; line-height: 1.2; }
+        .drug-ingredient { font-size: 0.85em; color: #0056b3; display: block; }
+        .drug-spec { font-size: 0.8em; color: #666; display: block; }
         
         .badge { padding: 6px 10px; border-radius: 6px; font-size: 0.9em; font-weight: bold; display: inline-block; text-align: center; width: 90%; }
         .status-ready { background-color: #e6f4ea; color: #1e7e34; } 
@@ -34,52 +34,20 @@
         .status-stop { background-color: #fce8e6; color: #d93025; }  
         .status-none { background-color: #f1f3f4; color: #70757a; }
 
+        .location-text { font-family: monospace; font-weight: bold; color: #d63384; background: #fff0f6; padding: 2px 6px; border-radius: 4px; }
+
         .loading { text-align: center; padding: 50px; font-size: 1.2em; color: #1a73e8; }
 
         /* --- 手機版 RWD 樣式 --- */
-        @media screen and (max-width: 768px) {
-            /* 隱藏表格標題 */
+        @media screen and (max-width: 850px) {
             thead { display: none; }
-            
-            /* 將每一列轉為卡片 */
-            tr { 
-                display: block; 
-                margin-bottom: 15px; 
-                border: 1px solid #ddd; 
-                border-radius: 8px; 
-                padding: 10px; 
-                box-shadow: 0 2px 5px rgba(0,0,0,0.05); 
-            }
-            
-            td { 
-                display: flex; 
-                justify-content: space-between; 
-                align-items: center; 
-                padding: 8px 5px; 
-                border-bottom: 1px dashed #eee; 
-                width: 100% !important; 
-                box-sizing: border-box;
-                text-align: right;
-            }
-
+            tr { display: block; margin-bottom: 20px; border: 1px solid #ddd; border-radius: 10px; padding: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+            td { display: flex; justify-content: space-between; align-items: center; padding: 10px 5px; border-bottom: 1px dashed #eee; width: 100% !important; box-sizing: border-box; }
             td:last-child { border-bottom: none; flex-direction: column; align-items: flex-start; }
-
-            /* 透過 data-label 顯示標籤 */
-            td::before {
-                content: attr(data-label);
-                font-weight: bold;
-                color: #888;
-                font-size: 0.85em;
-                margin-right: 10px;
-                flex-shrink: 0;
-            }
-
-            /* 手機版資訊欄位特殊處理 */
-            td:first-child { flex-direction: column; align-items: flex-start; text-align: left; }
-            td:first-child::before { display: none; } /* 第一欄(藥名)不需要標籤 */
-            
-            .badge { width: auto; min-width: 80px; }
-            .drug-name { font-size: 1.1em; }
+            td::before { content: attr(data-label); font-weight: bold; color: #888; font-size: 0.85em; margin-right: 10px; flex-shrink: 0; }
+            td:first-child { flex-direction: column; align-items: flex-start; }
+            td:first-child::before { display: none; }
+            .badge { width: auto; min-width: 100px; }
         }
     </style>
 </head>
@@ -91,7 +59,7 @@
         <a href="https://fyhpharm1153.github.io/pharmdepot/index.html" class="btn">🏠 回首頁</a>
 
         <div class="search-box">
-            <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="🔍 搜尋藥名、成分或規格...">
+            <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="🔍 搜尋藥名、成分、規格或儲位...">
         </div>
 
         <div class="font-controls">
@@ -100,16 +68,17 @@
         </div>
     </div>
 
-    <div id="loading" class="loading">📡 資料同步中...</div>
+    <div id="loading" class="loading">📡 正在同步雲端資料...</div>
     
     <table id="data-table" style="display:none;">
         <thead>
             <tr>
-                <th style="width: 34%;">藥名(H)/成分(J)/規格(K)</th>
-                <th style="width: 12%;">採購進度</th>
-                <th style="width: 12%;">HIS建檔</th>
-                <th style="width: 12%;">開/關檔</th>
-                <th style="width: 30%;">備註(L)</th>
+                <th style="width: 28%;">藥名(H)/成分(J)/規格(K)</th>
+                <th style="width: 11%;">採購進度</th>
+                <th style="width: 11%;">HIS建檔</th>
+                <th style="width: 11%;">開/關檔</th>
+                <th style="width: 12%;">儲位(Y)</th>
+                <th style="width: 27%;">備註(L)</th>
             </tr>
         </thead>
         <tbody id="table-body"></tbody>
@@ -153,16 +122,19 @@
                 if (index === 0) return;
                 const row = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
                 
-                const name = row[7] ? row[7].replace(/"/g, "").trim() : "";
-                const ingredient = row[9] ? row[9].replace(/"/g, "").trim() : "";
-                const spec = row[10] ? row[10].replace(/"/g, "").trim() : "";
+                // 欄位索引說明：
+                // H:7 (藥名), J:9 (成分), K:10 (規格), L:11 (備註), S:18 (採購), T:19 (HIS), U:20 (開關), Y:24 (儲位)
                 
+                const name = row[7] ? row[7].replace(/"/g, "").trim() : "";
                 if (!name || name.length < 2 || /^\d+$/.test(name)) return;
 
+                const ingredient = row[9] ? row[9].replace(/"/g, "").trim() : "";
+                const spec = row[10] ? row[10].replace(/"/g, "").trim() : "";
                 const note = row[11] ? row[11].replace(/"/g, "").trim() : ""; 
                 const s_val = (row[18] || "").replace(/"/g, "").trim();
                 const t_val = (row[19] || "").replace(/"/g, "").trim();
                 const u_val = (row[20] || "").replace(/"/g, "").trim();
+                const location = row[24] ? row[24].replace(/"/g, "").trim() : "---";
 
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
@@ -174,6 +146,7 @@
                     <td data-label="採購進度"><span class="badge ${getStatusClass(s_val)}">${s_val || '待定'}</span></td>
                     <td data-label="HIS建檔"><span class="badge ${getStatusClass(t_val)}">${t_val || '待定'}</span></td>
                     <td data-label="開/關檔"><span class="badge ${getStatusClass(u_val)}">${u_val || '待定'}</span></td>
+                    <td data-label="儲位(Y)"><span class="location-text">${location}</span></td>
                     <td data-label="備註">${note}</td>
                 `;
                 tableBody.appendChild(tr);
@@ -182,7 +155,7 @@
             document.getElementById('loading').style.display = 'none';
             document.getElementById('data-table').style.display = 'table';
         } catch (e) {
-            document.getElementById('loading').innerText = "❌ 資料讀取失敗。";
+            document.getElementById('loading').innerText = "❌ 無法讀取資料。";
         }
     }
     fetchData();
