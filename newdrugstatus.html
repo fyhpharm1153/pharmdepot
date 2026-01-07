@@ -6,21 +6,22 @@
     <title>114Q4 藥品進度追蹤</title>
     <style>
         body { font-family: "PingFang TC", "Microsoft JhengHei", sans-serif; background-color: #f0f2f5; padding: 20px; color: #333; }
-        .container { max-width: 1100px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        .container { max-width: 1200px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
         h2 { text-align: center; color: #1a73e8; margin-bottom: 25px; border-bottom: 2px solid #e8f0fe; padding-bottom: 10px; }
         
         table { width: 100%; border-collapse: collapse; margin-top: 10px; table-layout: fixed; }
         th { background-color: #f8f9fa; color: #5f6368; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
-        th, td { padding: 15px; text-align: left; border-bottom: 1px solid #eee; word-wrap: break-word; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; word-wrap: break-word; font-size: 14px; }
         
         tr:hover { background-color: #fdfdfd; }
         
-        .badge { padding: 6px 12px; border-radius: 20px; font-size: 13px; font-weight: bold; display: inline-block; }
-        .bg-success { background-color: #e6f4ea; color: #1e7e34; } /* 完成/開檔 */
-        .bg-warning { background-color: #fef7e0; color: #b05a00; } /* 進行中 */
-        .bg-danger { background-color: #fce8e6; color: #d93025; }  /* 關檔/停滯 */
+        .badge { padding: 4px 10px; border-radius: 15px; font-size: 12px; font-weight: bold; display: inline-block; white-space: nowrap; }
+        .bg-success { background-color: #e6f4ea; color: #1e7e34; } 
+        .bg-warning { background-color: #fef7e0; color: #b05a00; } 
+        .bg-danger { background-color: #fce8e6; color: #d93025; }  
         .bg-default { background-color: #f1f3f4; color: #70757a; } 
 
+        .note-text { color: #666; font-size: 13px; line-height: 1.4; }
         .loading { text-align: center; padding: 50px; font-size: 18px; color: #1a73e8; font-weight: bold; }
     </style>
 </head>
@@ -33,10 +34,11 @@
         <table id="data-table" style="display:none;">
             <thead>
                 <tr>
-                    <th style="width: 40%;">藥品名稱 (H)</th>
-                    <th>採購進度 (S)</th>
-                    <th>HIS 建檔 (T)</th>
-                    <th>開/關檔 (U)</th>
+                    <th style="width: 25%;">藥品名稱 (H)</th>
+                    <th style="width: 12%;">採購進度 (S)</th>
+                    <th style="width: 12%;">HIS 建檔 (T)</th>
+                    <th style="width: 12%;">開/關檔 (U)</th>
+                    <th style="width: 39%;">備註 (L)</th>
                 </tr>
             </thead>
             <tbody id="table-body"></tbody>
@@ -45,7 +47,6 @@
 </div>
 
 <script>
-    // 指向特定分頁並輸出為 CSV
     const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQVAyi3_RHMvbMH91EKHlNIMF6cMvgPjw-29OczSJnJjyNT6FeOAusRSPTn7UH17I8VJUD9cBydhcJr/pub?output=csv&gid=283594106";
 
     async function fetchData() {
@@ -53,21 +54,21 @@
             const response = await fetch(csvUrl);
             const csvText = await response.text();
             
-            // 使用簡單正則處理 CSV，避免內容中有逗號導致錯位
+            // 解析 CSV 行
             const rows = csvText.split('\n').map(row => {
-                // 這是一個簡單的處理方式，若資料內有特殊逗號可能需更複雜的 Parser
-                return row.split(',');
+                // 處理可能包含逗號的儲存格內容 (CSV 基本處理)
+                return row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
             });
             
             const tableBody = document.getElementById('table-body');
             tableBody.innerHTML = ''; 
 
-            // 從第 2 列或第 3 列開始（視你的標題列長度而定，這裡設 1 為略過第一行標題）
             for (let i = 1; i < rows.length; i++) {
                 const row = rows[i];
-                if (!row[7]) continue; // 如果 H 欄 (藥品名稱) 是空的就跳過
+                if (!row[7] || row[7].trim() === "") continue; 
 
-                const name = row[7].trim();     // H 欄
+                const name = row[7].replace(/"/g, "").trim();      // H 欄
+                const note = row[11] ? row[11].replace(/"/g, "").trim() : ''; // L 欄 (備註)
                 const progress = row[18] ? row[18].trim() : '---'; // S 欄
                 const his = row[19] ? row[19].trim() : '---';      // T 欄
                 const status = row[20] ? row[20].trim() : '---';   // U 欄
@@ -78,6 +79,7 @@
                     <td>${renderBadge(progress)}</td>
                     <td>${renderBadge(his)}</td>
                     <td>${renderBadge(status)}</td>
+                    <td class="note-text">${note}</td>
                 `;
                 tableBody.appendChild(tr);
             }
@@ -91,14 +93,15 @@
     }
 
     function renderBadge(text) {
-        if (!text || text === '---') return `<span class="badge bg-default">未有資料</span>`;
+        text = text.replace(/"/g, ""); // 移除 CSV 可能帶有的引號
+        if (!text || text === '---' || text === "") return `<span class="badge bg-default">待定</span>`;
         
         let colorClass = "bg-default";
         if (text.includes("完成") || text.includes("已") || text.includes("開檔") || text.includes("OK")) {
             colorClass = "bg-success";
-        } else if (text.includes("進") || text.includes("辦理") || text.includes("待")) {
+        } else if (text.includes("進中") || text.includes("辦理") || text.includes("待") || text.includes("簽核")) {
             colorClass = "bg-warning";
-        } else if (text.includes("關") || text.includes("停") || text.includes("不")) {
+        } else if (text.includes("關檔") || text.includes("停") || text.includes("不")) {
             colorClass = "bg-danger";
         }
         
