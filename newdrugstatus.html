@@ -3,23 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>114Q4 藥品進度看板</title>
+    <title>114Q4 藥品進度追蹤系統</title>
     <style>
         :root { --base-font-size: 16px; }
-        body { font-family: "PingFang TC", "Microsoft JhengHei", sans-serif; background-color: #f0f2f5; padding: 20px; color: #333; font-size: var(--base-font-size); }
-        .container { max-width: 1300px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
-        .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; border-bottom: 1px solid #eee; padding-bottom: 15px; }
-        .btn { padding: 8px 16px; cursor: pointer; border: 1px solid #dcdfe6; border-radius: 6px; font-weight: bold; transition: 0.2s; background: #fff; color: #606266; }
+        body { font-family: "PingFang TC", "Microsoft JhengHei", sans-serif; background-color: #f4f7f9; padding: 20px; color: #333; font-size: var(--base-font-size); }
+        .container { max-width: 1350px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        
+        .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 15px; }
+        .btn { padding: 8px 16px; cursor: pointer; border: 1px solid #dcdfe6; border-radius: 6px; font-weight: bold; background: #fff; color: #606266; }
         .btn:hover { background: #1a73e8; color: white; border-color: #1a73e8; }
-        .font-controls button { margin-left: 5px; width: 45px; }
-        h2 { text-align: center; color: #1a73e8; margin: 0; flex-grow: 1; }
+        
+        h2 { text-align: center; color: #1a73e8; margin: 0; }
         
         table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-top: 10px; }
-        th { background-color: #f8f9fa; color: #5f6368; font-weight: 600; padding: 12px; border-bottom: 2px solid #dee2e6; text-align: left; }
-        td { padding: 12px; border-bottom: 1px solid #eee; word-wrap: break-word; vertical-align: middle; }
-        tr:hover { background-color: #fafafa; }
+        th { background-color: #f8f9fa; color: #5f6368; padding: 12px; border-bottom: 2px solid #dee2e6; text-align: left; }
+        td { padding: 15px 12px; border-bottom: 1px solid #eee; vertical-align: middle; word-wrap: break-word; }
+        tr:hover { background-color: #f9fbff; }
+
+        /* 藥品名稱與成分排版 */
+        .drug-name { font-weight: bold; color: #2c3e50; display: block; margin-bottom: 4px; font-size: 1.1em; }
+        .drug-ingredient { font-size: 0.85em; color: #666; display: block; line-height: 1.3; }
         
-        .badge { padding: 6px 12px; border-radius: 6px; font-size: 0.9em; font-weight: bold; display: inline-block; text-align: center; width: 85%; }
+        /* 狀態標籤 */
+        .badge { padding: 6px 10px; border-radius: 6px; font-size: 0.9em; font-weight: bold; display: inline-block; text-align: center; width: 90%; }
         .status-ready { background-color: #e6f4ea; color: #1e7e34; } 
         .status-work { background-color: #fef7e0; color: #b05a00; }  
         .status-stop { background-color: #fce8e6; color: #d93025; }  
@@ -33,7 +39,7 @@
 <div class="container">
     <div class="toolbar">
         <button class="btn" onclick="history.back()">← 回上一頁</button>
-        <h2>💊 114Q4 藥品進度追蹤系統</h2>
+        <h2>💊 114Q4 藥品採購進度看板</h2>
         <div class="font-controls">
             <span>字體：</span>
             <button class="btn" onclick="changeFontSize(2)">+</button>
@@ -41,16 +47,16 @@
         </div>
     </div>
 
-    <div id="loading" class="loading">📡 正在同步資料...</div>
+    <div id="loading" class="loading">📡 讀取雲端資料中...</div>
     
     <table id="data-table" style="display:none;">
         <thead>
             <tr>
-                <th style="width: 28%;">藥品名稱 (H)</th>
-                <th style="width: 13%;">採購進度 (S)</th>
-                <th style="width: 13%;">HIS 建檔 (T)</th>
-                <th style="width: 13%;">開/關檔 (U)</th>
-                <th style="width: 33%;">備註 (L)</th>
+                <th style="width: 32%;">成分與規格 (G/H)</th>
+                <th style="width: 12%;">採購進度 (S)</th>
+                <th style="width: 12%;">HIS 建檔 (T)</th>
+                <th style="width: 12%;">開/關檔 (U)</th>
+                <th style="width: 32%;">備註 (L)</th>
             </tr>
         </thead>
         <tbody id="table-body"></tbody>
@@ -62,16 +68,15 @@
 
     let currentFontSize = 16;
     function changeFontSize(delta) {
-        currentFontSize += delta;
-        currentFontSize = Math.min(Math.max(currentFontSize, 12), 30);
+        currentFontSize = Math.min(Math.max(currentFontSize + delta, 12), 32);
         document.documentElement.style.setProperty('--base-font-size', currentFontSize + 'px');
     }
 
     function getStatusClass(text) {
-        if (!text || text.trim() === "" || text === "---" || text === "待定") return "status-none";
+        if (!text || text.trim() === "" || text === "---") return "status-none";
         const t = text.trim();
         if (t.includes("完成") || t.includes("已") || t.includes("開檔") || t.includes("OK")) return "status-ready";
-        if (t.includes("關檔") || t.includes("停") || t.includes("不") || t.includes("退") || t.includes("結案")) return "status-stop";
+        if (t.includes("關檔") || t.includes("停") || t.includes("不") || t.includes("退")) return "status-stop";
         return "status-work";
     }
 
@@ -79,22 +84,21 @@
         try {
             const response = await fetch(csvUrl);
             const csvText = await response.text();
-            
-            // 更精準的 CSV 分隔處理
             const lines = csvText.split(/\r?\n/);
             const tableBody = document.getElementById('table-body');
-            tableBody.innerHTML = '';
-
+            
             lines.forEach((line, index) => {
-                // 跳過第一列標題
-                if (index === 0) return;
+                if (index === 0) return; // 略過標題
 
+                // 處理 CSV 欄位，考慮引號內含逗號的情況
                 const row = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
                 
-                // --- 核心修正：嚴格檢查藥品名稱欄位 (H欄，索引7) ---
-                // 如果 H 欄長度小於 2，或是純數字（排除編號誤抓），或是空的就跳過
-                const nameRaw = row[7] ? row[7].replace(/"/g, "").trim() : "";
-                if (!nameRaw || nameRaw.length < 2 || /^\d+$/.test(nameRaw)) return;
+                // 抓取欄位：G(6), H(7), L(11), S(18), T(19), U(20)
+                const ingredient = row[6] ? row[6].replace(/"/g, "").trim() : "";
+                const name = row[7] ? row[7].replace(/"/g, "").trim() : "";
+                
+                // 排除無意義資料（如只有編號 26 或內容太短）
+                if (!name || name.length < 2 || /^\d+$/.test(name)) return;
 
                 const note = row[11] ? row[11].replace(/"/g, "").trim() : ""; 
                 const s_val = (row[18] || "").replace(/"/g, "").trim();
@@ -103,11 +107,14 @@
 
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td><strong>${nameRaw}</strong></td>
+                    <td>
+                        <span class="drug-name">${name}</span>
+                        <span class="drug-ingredient">${ingredient}</span>
+                    </td>
                     <td><span class="badge ${getStatusClass(s_val)}">${s_val || '待定'}</span></td>
                     <td><span class="badge ${getStatusClass(t_val)}">${t_val || '待定'}</span></td>
                     <td><span class="badge ${getStatusClass(u_val)}">${u_val || '待定'}</span></td>
-                    <td style="color:#666; font-size:0.9em;">${note}</td>
+                    <td style="color:#666; font-size:0.9em; line-height:1.4;">${note}</td>
                 `;
                 tableBody.appendChild(tr);
             });
@@ -115,7 +122,7 @@
             document.getElementById('loading').style.display = 'none';
             document.getElementById('data-table').style.display = 'table';
         } catch (e) {
-            document.getElementById('loading').innerText = "❌ 資料載入失敗。";
+            document.getElementById('loading').innerText = "❌ 資料讀取失敗。";
         }
     }
 
