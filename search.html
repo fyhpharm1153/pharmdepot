@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>藥劑科-儲位查詢與撥補導引 v1.6.3</title>
+    <title>藥劑科-儲位查詢與撥補導引 v1.7.0</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -18,7 +18,6 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         
-        /* 🚀 修正：手機維持一欄，平板/電腦寬度時固定為「最多兩欄」 */
         .results-grid {
             display: grid;
             grid-template-columns: repeat(1, minmax(0, 1fr));
@@ -76,39 +75,39 @@
     </header>
 
     <div class="sticky top-2 z-10 mb-6 shadow-lg">
-        <input v-model="keyword" type="text" placeholder="搜尋藥名或代碼..." 
+        <input v-model="keyword" type="text" placeholder="搜尋藥名、代碼或新藥進度..." 
             class="w-full p-4 rounded-2xl border-none ring-2 ring-blue-400 focus:ring-4 outline-none text-[1.1em] font-bold">
     </div>
 
     <div v-if="filteredResults.length > 0" class="results-grid pb-10">
         <div v-for="(item, index) in filteredResults" :key="item.key + index" class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 relative">
             <div class="flex justify-between items-center gap-2">
-                <div class="flex-1 min-w-0 cursor-pointer" @click="goToTransfer(item)">
+                <div class="flex-1 min-w-0 cursor-pointer" @click="handleItemClick(item)">
                     <div class="text-[0.6em] font-mono font-bold text-slate-400 mb-1 flex items-center gap-1">
                         {{ item.code }}
                         <span v-if="editMap[item.key]" class="text-[0.8em] bg-orange-100 px-1 rounded text-orange-600 font-bold">已修正</span>
-                        <span class="text-[0.8em] bg-blue-50 px-1 rounded text-blue-500 font-bold ml-auto">撥補 ➔</span>
+                        <span v-if="item.isNewDrug" class="text-[0.8em] bg-purple-100 px-1 rounded text-purple-600 font-bold">新藥進度</span>
+                        <span v-else class="text-[0.8em] bg-blue-50 px-1 rounded text-blue-500 font-bold ml-auto">撥補 ➔</span>
                     </div>
                     <h2 class="text-[1.1em] font-bold text-slate-800 leading-tight truncate">{{ item.name }}</h2>
+                    <p v-if="item.isNewDrug" class="text-[0.7em] text-slate-400 mt-1">點擊查看建檔與開關檔情形</p>
                 </div>
 
                 <div class="flex items-center gap-2">
                     <div class="flex gap-1 shrink-0">
-                        <div :class="item.zone === '藥庫' ? 'bg-amber-50 border-amber-200 text-amber-800' : 'bg-blue-50 border-blue-200 text-blue-800'"
+                        <div :class="item.zone === '藥庫' ? 'bg-amber-50 border-amber-200 text-amber-800' : (item.isNewDrug ? 'bg-purple-50 border-purple-200 text-purple-800' : 'bg-blue-50 border-blue-200 text-blue-800')"
                              class="w-24 h-20 flex flex-col justify-center items-center border rounded-xl shadow-sm text-center">
                             <span class="text-[0.6em] font-bold opacity-60 mb-0.5 uppercase tracking-tighter">區域</span>
-                            <input v-if="editingKey === item.key" v-model="editData.zone" class="edit-input text-[0.75em]">
-                            <span v-else class="text-[0.85em] font-black leading-tight">{{ getDisplayZone(item.zone) }}</span>
+                            <span class="text-[0.85em] font-black leading-tight">{{ getDisplayZone(item.zone) }}</span>
                         </div>
-                        <div :class="item.zone === '藥庫' ? 'bg-orange-50 border-orange-200 text-orange-800' : 'bg-red-50 border-red-200 text-red-800'"
+                        <div :class="item.zone === '藥庫' ? 'bg-orange-50 border-orange-200 text-orange-800' : (item.isNewDrug ? 'bg-fuchsia-50 border-fuchsia-200 text-fuchsia-800' : 'bg-red-50 border-red-200 text-red-800')"
                              class="w-24 h-20 flex flex-col justify-center items-center border rounded-xl shadow-sm">
                             <span class="text-[0.6em] font-bold opacity-60 mb-0.5 uppercase tracking-tighter">儲位</span>
-                            <input v-if="editingKey === item.key" v-model="editData.shelf" class="edit-input text-[0.75em]">
-                            <span v-else class="text-[1.2em] font-black tracking-tighter">{{ item.shelf || '無' }}</span>
+                            <span class="text-[1.2em] font-black tracking-tighter">{{ item.shelf || '無' }}</span>
                         </div>
                     </div>
                     
-                    <div class="flex flex-col gap-2">
+                    <div class="flex flex-col gap-2" v-if="!item.isNewDrug">
                         <button v-if="editingKey !== item.key" @click.stop="startEdit(item)" class="text-slate-300 hover:text-blue-500 p-2"><i class="fa-solid fa-pen-to-square"></i></button>
                         <button v-else @click.stop="saveEdit(item.key)" class="text-green-500 p-2"><i class="fa-solid fa-check-circle text-xl"></i></button>
                     </div>
@@ -123,7 +122,7 @@
     </div>
 
     <footer class="mt-8 text-center pb-10 opacity-30">
-        <p class="text-[0.6em] font-mono">System Version 1.6.3.20260106</p>
+        <p class="text-[0.6em] font-mono">System Version 1.7.0.Integrated</p>
     </footer>
 </div>
 
@@ -142,19 +141,20 @@
       appId: "1:751378148626:web:5a2d2be1c5f905657457cb"
     };
 
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
+    const firebaseApp = initializeApp(firebaseConfig);
+    const db = getDatabase(firebaseApp);
 
     createApp({
         setup() {
             const inventory = ref([]);
             const warehouse = ref([]);
+            const newDrugs = ref([]); // Google Sheet 資料
             const keyword = ref('');
             const selectedCat = ref('門診藥局');
             const editingKey = ref(null);
             const editData = ref({ zone: '', shelf: '' });
             const editMap = ref({});
-            const categories = ['門診藥局', '住院藥局', '急診藥局', '藥庫', '全部'];
+            const categories = ['門診藥局', '住院藥局', '急診藥局', '藥庫', '新藥進度', '全部'];
             const currentFontSize = ref(16);
 
             const zoneCategoryMap = {
@@ -162,7 +162,7 @@
                 '小庫': '門診藥局', '大庫': '門診藥局', '大庫(排': '門診藥局', '機器': '門診藥局', 
                 '機器(單)': '門診藥局', '機器(雙)': '門診藥局',
                 'OPD點滴': '門診藥局', '覆核發藥': '門診藥局', 'UD': '住院藥局', 
-                'ER常': '急診藥局', 'ER': '急診藥局', '藥庫': '藥庫'
+                'ER常': '急診藥局', 'ER': '急診藥局', '藥庫': '藥庫', '新藥進度': '新藥進度'
             };
 
             onMounted(() => {
@@ -172,16 +172,46 @@
                     applyFont();
                 }
 
+                // 抓取 Firebase
                 onValue(dbRef(db, "inventory"), s => { inventory.value = s.val() || []; });
                 onValue(dbRef(db, "warehouse"), s => { warehouse.value = s.val() || []; });
+                
+                // 抓取 Google Sheets 新藥
+                fetchNewDrugs();
+
                 const saved = localStorage.getItem('pharmEdits');
                 if(saved) editMap.value = JSON.parse(saved);
             });
 
+            const fetchNewDrugs = async () => {
+                const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQVAyi3_RHMvbMH91EKHlNIMF6cMvgPjw-29OczSJnJjyNT6FeOAusRSPTn7UH17I8VJUD9cBydhcJr/pub?output=csv&gid=283594106";
+                try {
+                    const res = await fetch(csvUrl);
+                    const text = await res.text();
+                    const lines = text.split(/\r?\n/);
+                    const drugs = [];
+                    lines.forEach((line, index) => {
+                        if (index === 0) return;
+                        const row = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                        const name = row[7] ? row[7].replace(/"/g, "").trim() : "";
+                        if (!name || name.length < 2 || /^\d+$/.test(name) || name === "藥名") return;
+                        
+                        drugs.push({
+                            key: `ND-${name}`,
+                            zone: '新藥進度',
+                            name: name,
+                            shelf: row[24] ? row[24].replace(/"/g, "").trim() : "未上架",
+                            code: 'NEW',
+                            isNewDrug: true
+                        });
+                    });
+                    newDrugs.value = drugs;
+                } catch (e) { console.error("新藥載入失敗", e); }
+            };
+
             const changeFont = (delta) => {
                 currentFontSize.value += delta;
-                if (currentFontSize.value < 12) currentFontSize.value = 12;
-                if (currentFontSize.value > 32) currentFontSize.value = 32;
+                currentFontSize.value = Math.min(Math.max(currentFontSize.value, 12), 32);
                 applyFont();
                 localStorage.setItem('fyh-font-size', currentFontSize.value);
             };
@@ -196,9 +226,13 @@
                 return z;
             };
 
-            const goToTransfer = (item) => {
-                const url = `transfer.html?code=${encodeURIComponent(item.code)}&name=${encodeURIComponent(item.name)}`;
-                window.location.href = url;
+            const handleItemClick = (item) => {
+                if (item.isNewDrug) {
+                    window.location.href = 'newdrugstatus.html';
+                } else {
+                    const url = `transfer.html?code=${encodeURIComponent(item.code)}&name=${encodeURIComponent(item.name)}`;
+                    window.location.href = url;
+                }
             };
 
             const startEdit = (item) => {
@@ -220,14 +254,13 @@
                     .map(item => ({ ...item, key: `${item.code}_${item.zone}_${item.shelf}` }));
 
                 const whData = Object.values(warehouse.value).map(item => ({
-                    key: `WH-${item.c}-${item.n}`,
-                    zone: '藥庫',
-                    name: item.n || item.name,
-                    shelf: item.s || item.shelf,
-                    code: item.c || 'WH'
+                    key: `WH-${item.c}-${item.n}`, zone: '藥庫',
+                    name: item.n || item.name, shelf: item.s || item.shelf, code: item.c || 'WH'
                 }));
 
-                let results = [...invData, ...whData];
+                // 合併新藥資料
+                let results = [...invData, ...whData, ...newDrugs.value];
+                
                 const k = keyword.value.trim().toLowerCase();
                 if (k) {
                     results = results.filter(i => (i.name?.toLowerCase().includes(k) || i.code?.toLowerCase().includes(k)));
@@ -243,24 +276,27 @@
                     '分類': zoneCategoryMap[i.zone] || '其他',
                     '區域': i.zone, '代碼': i.code, '名稱': i.name, '儲位': i.shelf || ''
                 }));
-                saveExcel(data, "儲位總表");
+                const ws = XLSX.utils.json_to_sheet(data);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "Data");
+                XLSX.writeFile(wb, "儲位總表.xlsx");
             };
 
             const exportModified = () => {
                 const data = Object.entries(editMap.value).map(([key, val]) => ({
                     '修改項目': key, '新區域': val.zone, '新儲位': val.shelf, '修改時間': val.modifiedAt
                 }));
-                saveExcel(data, "異動清單");
-            };
-
-            const saveExcel = (data, name) => {
                 const ws = XLSX.utils.json_to_sheet(data);
                 const wb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(wb, ws, "Data");
-                XLSX.writeFile(wb, `${name}.xlsx`);
+                XLSX.utils.book_append_sheet(wb, ws, "異動");
+                XLSX.writeFile(wb, "異動清單.xlsx");
             };
 
-            return { keyword, selectedCat, categories, filteredResults, getDisplayZone, startEdit, saveEdit, editingKey, editData, editMap, hasEdits, exportAll, exportModified, goToTransfer, changeFont };
+            return { 
+                keyword, selectedCat, categories, filteredResults, getDisplayZone, 
+                startEdit, saveEdit, editingKey, editData, editMap, hasEdits, 
+                exportAll, exportModified, handleItemClick, changeFont 
+            };
         }
     }).mount('#app');
 </script>
