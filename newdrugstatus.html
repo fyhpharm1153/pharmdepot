@@ -37,9 +37,6 @@
         .status-stop { background-color: #fce8e6; color: #d93025; }  /* 紅色 */
         .status-none { background-color: #f1f3f4; color: #70757a; }  /* 灰色 */
 
-        /* 儲位專用樣式 */
-        .loc-badge { padding: 4px 8px; border-radius: 4px; font-family: monospace; font-weight: bold; font-size: 0.95em; }
-
         .loading { text-align: center; padding: 50px; font-size: 1.2em; color: #1a73e8; }
 
         /* RWD 手機版 */
@@ -107,22 +104,37 @@
         }
     }
 
-    // 通用狀態顏色判斷
-    function getStatusClass(text) {
+    // 採購進度顏色判斷
+    function getPurchaseStyle(text) {
         if (!text || text.trim() === "" || text === "---") return "status-none";
         const t = text.trim();
-        if (t.includes("開檔") || t.includes("完成") || t.includes("OK") || t.includes("已開")) return "status-ready";
-        if (t.includes("關檔") || t.includes("進中") || t.includes("辦") || t.includes("待") || t.includes("已關")) return "status-warn";
-        if (t.includes("停") || t.includes("退") || t.includes("不")) return "status-stop";
-        return "status-none";
+        if (t.includes("到貨")) return "status-ready"; // 綠色
+        if (t.includes("訂購中")) return "status-warn"; // 黃色
+        return "status-stop"; // 其他與「未採」皆為紅色
     }
 
-    // 儲位專用顏色判斷
+    // 開關檔顏色判斷
+    function getSwitchStyle(text) {
+        if (!text || text.trim() === "" || text === "---") return "status-none";
+        const t = text.trim();
+        if (t.includes("開")) return "status-ready"; // 綠色
+        return "status-stop"; // 包含「關」或其他皆為紅色
+    }
+
+    // 儲位顏色判斷
     function getLocationStyle(text) {
         if (!text || text.trim() === "" || text === "---") return "status-none";
         const t = text.trim();
         if (t.includes("未上架")) return "status-stop"; // 紅色
         return "status-ready"; // 其他狀況均為綠色
+    }
+
+    // HIS 建檔通用顏色 (維持原樣)
+    function getHisStyle(text) {
+        if (!text || text.trim() === "" || text === "---") return "status-none";
+        const t = text.trim();
+        if (t.includes("完成") || t.includes("OK")) return "status-ready";
+        return "status-warn";
     }
 
     async function fetchData() {
@@ -153,12 +165,10 @@
                         <span class="drug-ingredient">成分：${ingredient}</span>
                         <span class="drug-spec">規格：${spec}</span>
                     </td>
-                    <td data-label="採購進度"><span class="badge ${getStatusClass(s_val)}">${s_val || '待定'}</span></td>
-                    <td data-label="HIS建檔"><span class="badge ${getStatusClass(t_val)}">${t_val || '待定'}</span></td>
-                    <td data-label="開/關檔"><span class="badge ${getStatusClass(u_val)}">${u_val || '待定'}</span></td>
-                    <td data-label="儲位">
-                        <span class="badge loc-badge ${getLocationStyle(location)}">${location}</span>
-                    </td>
+                    <td data-label="採購進度"><span class="badge ${getPurchaseStyle(s_val)}">${s_val || '未採'}</span></td>
+                    <td data-label="HIS建檔"><span class="badge ${getHisStyle(t_val)}">${t_val || '待定'}</span></td>
+                    <td data-label="開/關檔"><span class="badge ${getSwitchStyle(u_val)}">${u_val || '關'}</span></td>
+                    <td data-label="儲位"><span class="badge ${getLocationStyle(location)}">${location}</span></td>
                     <td data-label="備註">${note}</td>
                 `;
                 tableBody.appendChild(tr);
