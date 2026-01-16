@@ -7,7 +7,7 @@
     <style>
         :root { --base-font-size: 16px; }
         body { font-family: "PingFang TC", "Microsoft JhengHei", sans-serif; background-color: #f4f7f9; padding: 10px; color: #333; font-size: var(--base-font-size); }
-        .container { max-width: 1400px; margin: auto; background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .container { max-width: 1400px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         
         /* 工具列 */
         .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 15px; flex-wrap: wrap; gap: 10px; }
@@ -17,33 +17,37 @@
         .search-box { flex-grow: 1; min-width: 250px; }
         .search-box input { width: 100%; padding: 10px; border: 1px solid #dcdfe6; border-radius: 6px; outline: none; box-sizing: border-box; }
 
-        h2 { text-align: center; color: #1a73e8; margin: 0; flex-basis: 100%; padding-bottom: 10px; }
+        h2 { text-align: center; color: #1a73e8; margin: 0; flex-basis: 100%; padding-bottom: 10px; font-size: 1.5em; }
         
         /* 表格樣式 */
         table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-top: 10px; }
         th { background-color: #f8f9fa; color: #5f6368; padding: 12px; border-bottom: 2px solid #dee2e6; text-align: left; font-size: 0.9em; }
         td { padding: 15px 12px; border-bottom: 1px solid #eee; vertical-align: middle; word-wrap: break-word; }
-        
+        tr:hover { background-color: #f9fbff; }
+
+        /* 藥品資訊排版 */
         .drug-name { font-weight: bold; color: #1a2a3a; display: block; margin-bottom: 4px; font-size: 1.1em; line-height: 1.2; }
         .drug-ingredient { font-size: 0.85em; color: #0056b3; display: block; }
         .drug-spec { font-size: 0.8em; color: #666; display: block; }
         
+        /* 狀態標籤樣式 */
         .badge { padding: 6px 10px; border-radius: 6px; font-size: 0.9em; font-weight: bold; display: inline-block; text-align: center; width: 90%; }
-        .status-ready { background-color: #e6f4ea; color: #1e7e34; } 
-        .status-work { background-color: #fef7e0; color: #b05a00; }  
-        .status-stop { background-color: #fce8e6; color: #d93025; }  
-        .status-none { background-color: #f1f3f4; color: #70757a; }
+        .status-ready { background-color: #e6f4ea; color: #1e7e34; } /* 綠色 */
+        .status-warn { background-color: #fef7e0; color: #b05a00; }  /* 黃色 */
+        .status-stop { background-color: #fce8e6; color: #d93025; }  /* 紅色 */
+        .status-none { background-color: #f1f3f4; color: #70757a; }  /* 灰色 */
 
-        .location-text { font-family: monospace; font-weight: bold; color: #d63384; background: #fff0f6; padding: 2px 6px; border-radius: 4px; }
+        /* 儲位專用樣式 */
+        .loc-badge { padding: 4px 8px; border-radius: 4px; font-family: monospace; font-weight: bold; font-size: 0.95em; }
 
         .loading { text-align: center; padding: 50px; font-size: 1.2em; color: #1a73e8; }
 
-        /* --- 手機版 RWD 樣式 --- */
+        /* RWD 手機版 */
         @media screen and (max-width: 850px) {
             thead { display: none; }
             tr { display: block; margin-bottom: 20px; border: 1px solid #ddd; border-radius: 10px; padding: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
             td { display: flex; justify-content: space-between; align-items: center; padding: 10px 5px; border-bottom: 1px dashed #eee; width: 100% !important; box-sizing: border-box; }
-            td:last-child { border-bottom: none; flex-direction: column; align-items: flex-start; }
+            td:last-child { border-bottom: none; flex-direction: column; align-items: flex-start; text-align: left; }
             td::before { content: attr(data-label); font-weight: bold; color: #888; font-size: 0.85em; margin-right: 10px; flex-shrink: 0; }
             td:first-child { flex-direction: column; align-items: flex-start; }
             td:first-child::before { display: none; }
@@ -68,7 +72,7 @@
         </div>
     </div>
 
-    <div id="loading" class="loading">📡 正在同步雲端資料...</div>
+    <div id="loading" class="loading">📡 正在同步資料庫...</div>
     
     <table id="data-table" style="display:none;">
         <thead>
@@ -103,12 +107,22 @@
         }
     }
 
+    // 通用狀態顏色判斷
     function getStatusClass(text) {
         if (!text || text.trim() === "" || text === "---") return "status-none";
         const t = text.trim();
-        if (t.includes("完成") || t.includes("已") || t.includes("開檔") || t.includes("OK")) return "status-ready";
-        if (t.includes("關檔") || t.includes("停") || t.includes("不") || t.includes("退") || t.includes("結案")) return "status-stop";
-        return "status-work";
+        if (t.includes("開檔") || t.includes("完成") || t.includes("OK") || t.includes("已開")) return "status-ready";
+        if (t.includes("關檔") || t.includes("進中") || t.includes("辦") || t.includes("待") || t.includes("已關")) return "status-warn";
+        if (t.includes("停") || t.includes("退") || t.includes("不")) return "status-stop";
+        return "status-none";
+    }
+
+    // 儲位專用顏色判斷
+    function getLocationStyle(text) {
+        if (!text || text.trim() === "" || text === "---") return "status-none";
+        const t = text.trim();
+        if (t.includes("未上架")) return "status-stop"; // 紅色
+        return "status-ready"; // 其他狀況均為綠色
     }
 
     async function fetchData() {
@@ -119,20 +133,10 @@
             const tableBody = document.getElementById('table-body');
             
             lines.forEach((line, index) => {
-                // 1. 解析 CSV 欄位
                 const row = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-                
-                // 2. 獲取核心欄位資料
                 const name = row[7] ? row[7].replace(/"/g, "").trim() : "";
                 
-                // --- 修正搜尋結果出現標題列的問題 ---
-                // 過濾標題列：如果藥名包含「藥名」或「規格」等關鍵字，或者是空行/純數字，則不抓取
-                if (!name || 
-                    name === "藥名" || 
-                    name === "規格藥名" || 
-                    name === "商品名" || 
-                    name.length < 2 || 
-                    /^\d+$/.test(name)) return;
+                if (!name || name === "藥名" || name === "商品名" || name.length < 2 || /^\d+$/.test(name)) return;
 
                 const ingredient = row[9] ? row[9].replace(/"/g, "").trim() : "";
                 const spec = row[10] ? row[10].replace(/"/g, "").trim() : "";
@@ -141,9 +145,6 @@
                 const t_val = (row[19] || "").replace(/"/g, "").trim();
                 const u_val = (row[20] || "").replace(/"/g, "").trim();
                 const location = row[24] ? row[24].replace(/"/g, "").trim() : "---";
-
-                // 如果整行都是空的標題字樣也略過
-                if (ingredient === "成分" || s_val === "採購進度") return;
 
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
@@ -155,7 +156,9 @@
                     <td data-label="採購進度"><span class="badge ${getStatusClass(s_val)}">${s_val || '待定'}</span></td>
                     <td data-label="HIS建檔"><span class="badge ${getStatusClass(t_val)}">${t_val || '待定'}</span></td>
                     <td data-label="開/關檔"><span class="badge ${getStatusClass(u_val)}">${u_val || '待定'}</span></td>
-                    <td data-label="儲位"><span class="location-text">${location}</span></td>
+                    <td data-label="儲位">
+                        <span class="badge loc-badge ${getLocationStyle(location)}">${location}</span>
+                    </td>
                     <td data-label="備註">${note}</td>
                 `;
                 tableBody.appendChild(tr);
@@ -164,7 +167,7 @@
             document.getElementById('loading').style.display = 'none';
             document.getElementById('data-table').style.display = 'table';
         } catch (e) {
-            document.getElementById('loading').innerText = "❌ 無法讀取資料。";
+            document.getElementById('loading').innerText = "❌ 讀取失敗。";
         }
     }
     fetchData();
