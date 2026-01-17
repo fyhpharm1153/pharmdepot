@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>藥品撥補系統 - 搜尋優化版</title>
+    <title>藥品撥補系統 - 批次管理版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -21,12 +21,16 @@
         .btn-equal { @apply bg-blue-600 text-white; }
         .btn-sign { @apply bg-slate-500 text-white; }
         .huge-control:focus { outline: 4px solid #fbbf24; }
-        .record-card { border-left: 8px solid #cbd5e1; }
+        .record-card { border-left: 8px solid #cbd5e1; transition: background-color 0.2s; }
+        .record-card.selected { @apply bg-blue-50 border-blue-400; }
         .nav-btn { @apply bg-white border-2 border-slate-800 rounded-xl flex items-center justify-center shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[1px] active:translate-y-[1px]; }
         .modal-overlay { @apply fixed inset-0 z-[150] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm; }
         
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* 加大 Checkbox 尺寸 */
+        input[type="checkbox"] { transform: scale(1.5); cursor: pointer; }
     </style>
 </head>
 <body class="p-4 pb-20">
@@ -61,8 +65,7 @@
                     <div class="relative flex items-center">
                         <input v-model="searchQuery" @input="onSearchInput" placeholder="搜尋藥品名稱或代碼..." 
                                class="w-full bg-slate-100 p-4 pr-14 rounded-xl font-black text-xl border-2 border-slate-300 huge-control">
-                        <button v-if="searchQuery" @click="clearSearch" 
-                                class="absolute right-4 text-slate-400 hover:text-red-500 transition-colors">
+                        <button v-if="searchQuery" @click="clearSearch" class="absolute right-4 text-slate-400 hover:text-red-500">
                             <i class="fa-solid fa-circle-xmark text-2xl"></i>
                         </button>
                     </div>
@@ -112,13 +115,29 @@
             </section>
 
             <section class="space-y-4">
-                <div class="flex justify-between items-center bg-white p-4 rounded-xl border-2 border-slate-800 shadow-md">
-                    <h3 class="font-black text-xl text-slate-600">最近紀錄</h3>
-                    <input type="date" v-model="filterDate" class="p-2 border-2 border-slate-800 rounded-lg font-bold">
+                <div class="bg-white p-4 rounded-xl border-2 border-slate-800 shadow-md">
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="font-black text-xl text-slate-600">最近紀錄</h3>
+                        <input type="date" v-model="filterDate" class="p-2 border-2 border-slate-800 rounded-lg font-bold">
+                    </div>
+                    
+                    <div class="flex items-center justify-between bg-slate-50 p-2 rounded-lg border border-slate-200">
+                        <label class="flex items-center gap-2 cursor-pointer font-bold text-slate-600 ml-2">
+                            <input type="checkbox" :checked="isAllSelected" @change="toggleSelectAll"> 全選
+                        </label>
+                        <button v-if="selectedIds.length > 0" @click="batchDelete" 
+                                class="bg-red-600 text-white px-4 py-2 rounded-lg font-black text-sm shadow-md animate-bounce">
+                            <i class="fa-solid fa-trash-can mr-1"></i> 刪除選中 ({{ selectedIds.length }})
+                        </button>
+                    </div>
                 </div>
 
-                <div class="max-h-[500px] overflow-y-auto space-y-4 pr-2">
-                    <div v-for="log in history" :key="log.id" class="record-card bg-white p-4 rounded-xl shadow border-2 border-slate-300 flex justify-between items-center">
+                <div class="max-h-[500px] overflow-y-auto space-y-4 pr-2 no-scrollbar">
+                    <div v-for="log in history" :key="log.id" 
+                         :class="['record-card bg-white p-4 rounded-xl shadow border-2 border-slate-300 flex items-center gap-4', { 'selected': selectedIds.includes(log.id) }]">
+                        
+                        <input type="checkbox" :value="log.id" v-model="selectedIds">
+
                         <div class="min-w-0 flex-1">
                             <div class="text-[0.8em] font-bold text-slate-400 mb-1">
                                 <span class="bg-slate-700 text-white px-2 py-0.5 rounded mr-1">{{ log.user }}</span> {{ log.time }}
@@ -129,10 +148,13 @@
                             <div :class="log.qty > 0 ? 'bg-blue-600' : 'bg-orange-600'" class="text-white font-black px-4 py-2 rounded-lg text-2xl">
                                 {{ log.qty > 0 ? '+' : '' }}{{ log.qty }}
                             </div>
-                            <button @click="prepareDelete(log)" class="bg-red-100 text-red-600 w-12 h-12 rounded-lg flex items-center justify-center border-2 border-red-200">
+                            <button @click="deleteSingle(log)" class="bg-red-100 text-red-600 w-12 h-12 rounded-lg flex items-center justify-center border-2 border-red-200">
                                 <i class="fa-solid fa-trash-can"></i>
                             </button>
                         </div>
+                    </div>
+                    <div v-if="history.length === 0" class="text-center py-10 text-slate-400 italic font-bold">
+                        今日尚無紀錄
                     </div>
                 </div>
 
@@ -145,26 +167,6 @@
                     </button>
                 </div>
             </section>
-        </div>
-
-        <div v-if="deletingItem" class="modal-overlay">
-            <div class="bg-white w-full max-w-md rounded-3xl p-8 border-4 border-slate-800 shadow-2xl">
-                <h2 class="text-2xl font-black text-red-600 mb-4 text-center">刪除確認</h2>
-                <div class="bg-slate-100 p-4 rounded-xl mb-6 border-2 border-slate-200">
-                    <p class="text-lg font-bold text-slate-700">準備移除：</p>
-                    <p class="text-xl font-black">{{ deletingItem.name }} ({{ deletingItem.qty }})</p>
-                </div>
-                <label class="block font-black text-lg mb-2">確認執行者：</label>
-                <select v-model="deleteExecutor" class="w-full bg-white p-4 rounded-xl font-black text-xl border-2 border-slate-800 mb-6">
-                    <option value="" disabled>請選擇人員...</option>
-                    <option value="值班人員">值班人員</option>
-                    <option v-for="user in staffList" :key="user" :value="user">{{ user }}</option>
-                </select>
-                <div class="grid grid-cols-2 gap-4">
-                    <button @click="deletingItem = null" class="bg-slate-200 py-4 rounded-xl font-black text-xl border-2 border-slate-300">取消</button>
-                    <button @click="confirmDelete" :disabled="!deleteExecutor" class="bg-red-600 text-white py-4 rounded-xl font-black text-xl border-2 border-slate-800">確認</button>
-                </div>
-            </div>
         </div>
 
         <div v-if="showManager" class="modal-overlay">
@@ -188,7 +190,7 @@
     </div>
 
 <script type="module">
-    import { createApp, ref, onMounted } from "https://unpkg.com/vue@3/dist/vue.esm-browser.js";
+    import { createApp, ref, computed, onMounted } from "https://unpkg.com/vue@3/dist/vue.esm-browser.js";
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getDatabase, ref as dbRef, push, remove, query, limitToLast, onValue, set, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
@@ -212,62 +214,75 @@
             const warehouse = ref([]);
             const suggestions = ref([]);
             const history = ref([]);
-            const deletedHistory = ref([]);
             const staffList = ref([]);
             const showManager = ref(false);
             const showDeletedAudit = ref(false);
             const newStaffName = ref('');
             const baseFontSize = ref(1.1);
             const filterDate = ref(new Date().toISOString().split('T')[0]);
-            const deletingItem = ref(null);
-            const deleteExecutor = ref('');
+            
+            // 批次選擇
+            const selectedIds = ref([]);
 
             onMounted(() => {
                 onValue(dbRef(db, "warehouse"), s => warehouse.value = s.val() ? Object.values(s.val()) : []);
-                onValue(query(dbRef(db, "transfer_logs"), limitToLast(20)), s => {
+                onValue(query(dbRef(db, "transfer_logs"), limitToLast(30)), s => {
                     history.value = s.val() ? Object.entries(s.val()).map(([id, v]) => ({ id, ...v })).reverse() : [];
-                });
-                onValue(query(dbRef(db, "deleted_logs"), limitToLast(10)), s => {
-                    deletedHistory.value = s.val() ? Object.entries(s.val()).map(([id, v]) => ({ id, ...v })).reverse() : [];
                 });
                 onValue(dbRef(db, "staff_list"), s => { if (s.val()) staffList.value = s.val(); });
 
                 const params = new URLSearchParams(window.location.search);
-                const pCode = params.get('code');
-                const pName = params.get('name');
-                if (pCode && pName) {
-                    form.value.code = pCode;
-                    form.value.name = pName;
-                    searchQuery.value = pName; 
+                if (params.get('code') && params.get('name')) {
+                    form.value.code = params.get('code');
+                    form.value.name = params.get('name');
+                    searchQuery.value = params.get('name'); 
                 }
             });
 
-            const goBack = () => { window.location.href = 'search.html'; };
-            
-            // 新增清除搜尋功能
-            const clearSearch = () => {
-                searchQuery.value = '';
-                suggestions.value = [];
+            // 批次邏輯
+            const isAllSelected = computed(() => {
+                return history.value.length > 0 && selectedIds.value.length === history.value.length;
+            });
+
+            const toggleSelectAll = () => {
+                if (isAllSelected.value) selectedIds.value = [];
+                else selectedIds.value = history.value.map(log => log.id);
             };
 
-            const changeFontSize = (delta) => {
-                baseFontSize.value = Math.max(0.8, Math.min(2.0, baseFontSize.value + delta));
-                document.documentElement.style.fontSize = `${baseFontSize.value}rem`;
+            // 單筆直接刪除 (取消彈窗)
+            const deleteSingle = async (log) => {
+                const info = {
+                    deleted_at: new Date().toLocaleString('zh-TW', { hour12: false }),
+                    deleted_by: form.value.user,
+                    original_record: { ...log }
+                };
+                await push(dbRef(db, "deleted_logs"), info);
+                await remove(dbRef(db, `transfer_logs/${log.id}`));
             };
 
-            const addNum = (n) => { form.value.qtyStr += n; };
-            const addOp = (op) => { 
-                const lc = form.value.qtyStr.slice(-1);
-                if (['+','-','*','/'].includes(lc)) form.value.qtyStr = form.value.qtyStr.slice(0,-1) + op;
-                else if (form.value.qtyStr) form.value.qtyStr += op;
-            };
-            
-            const toggleSign = () => {
-                if (form.value.qtyStr.startsWith('-')) {
-                    form.value.qtyStr = form.value.qtyStr.substring(1);
-                } else {
-                    form.value.qtyStr = '-' + form.value.qtyStr;
+            // 批次刪除
+            const batchDelete = async () => {
+                if (confirm(`確定要刪除選中的 ${selectedIds.value.length} 筆紀錄嗎？`)) {
+                    const logsToDelete = history.value.filter(log => selectedIds.value.includes(log.id));
+                    
+                    for (const log of logsToDelete) {
+                        const info = {
+                            deleted_at: new Date().toLocaleString('zh-TW', { hour12: false }),
+                            deleted_by: form.value.user,
+                            original_record: { ...log }
+                        };
+                        await push(dbRef(db, "deleted_logs"), info);
+                        await remove(dbRef(db, `transfer_logs/${log.id}`));
+                    }
+                    selectedIds.value = [];
                 }
+            };
+
+            const goBack = () => { window.location.href = 'search.html'; };
+            const clearSearch = () => { searchQuery.value = ''; suggestions.value = []; };
+            const toggleSign = () => {
+                if (form.value.qtyStr.startsWith('-')) form.value.qtyStr = form.value.qtyStr.substring(1);
+                else form.value.qtyStr = '-' + form.value.qtyStr;
             };
 
             const calculateQty = () => {
@@ -291,68 +306,33 @@
             const submitRecord = async () => {
                 calculateQty();
                 const qty = Number(form.value.qtyStr);
-                if (!form.value.user || !form.value.name || isNaN(qty) || qty === 0) return alert("請檢查藥品與數量");
+                if (!form.value.user || !form.name || isNaN(qty) || qty === 0) return alert("請檢查藥品與數量");
                 const data = { 
                     time: new Date().toLocaleString('zh-TW', { hour12: false }), 
-                    user: form.value.user, 
-                    code: form.value.code, 
-                    name: form.value.name, 
-                    qty: qty 
+                    user: form.value.user, code: form.value.code, name: form.value.name, qty: qty 
                 };
                 await push(dbRef(db, "transfer_logs"), data);
                 form.value.qtyStr = '';
-                alert("提交成功！");
-            };
-
-            const prepareDelete = (log) => { deletingItem.value = log; deleteExecutor.value = ''; };
-
-            const confirmDelete = async () => {
-                const info = {
-                    deleted_at: new Date().toLocaleString('zh-TW', { hour12: false }),
-                    deleted_by: deleteExecutor.value,
-                    original_record: { ...deletingItem.value }
-                };
-                await push(dbRef(db, "deleted_logs"), info);
-                await remove(dbRef(db, `transfer_logs/${deletingItem.value.id}`));
-                deletingItem.value = null;
-                alert("刪除成功");
             };
 
             const exportByDate = async () => {
                 const snapshot = await get(dbRef(db, "transfer_logs"));
                 if (!snapshot.exists()) return alert("無資料");
-                
                 const d = new Date(filterDate.value);
-                const y = d.getFullYear();
-                const m = d.getMonth() + 1;
-                const day = d.getDate();
-                
-                const filtered = Object.values(snapshot.val()).filter(l => {
-                    if (!l.time) return false;
-                    const logDate = l.time.split(' ')[0]; 
-                    const parts = logDate.split('/');
-                    return parts[0] == y && parts[1] == m && parts[2] == day;
-                });
-
+                const target = `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`;
+                const filtered = Object.values(snapshot.val()).filter(l => l.time && l.time.split(' ')[0].split('/').map(Number).join('/') === target);
                 if (filtered.length === 0) return alert("該日無紀錄");
-                
-                const ws = XLSX.utils.json_to_sheet(filtered.map(l => ({ 
-                    '日期時間': l.time, 
-                    '人員': l.user, 
-                    '代碼': l.code, 
-                    '名稱': l.name, 
-                    '數量(正數撥補/負數退回)': l.qty 
-                })));
-                
+                const ws = XLSX.utils.json_to_sheet(filtered.map(l => ({ '時間': l.time, '人員': l.user, '代碼': l.code, '名稱': l.name, '數量': l.qty })));
                 const wb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(wb, ws, "撥補紀錄");
+                XLSX.utils.book_append_sheet(wb, ws, "撥補");
                 XLSX.writeFile(wb, `撥補紀錄_${filterDate.value}.xlsx`);
             };
 
             const addStaff = () => { if (newStaffName.value.trim()) { staffList.value.push(newStaffName.value.trim()); set(dbRef(db, "staff_list"), staffList.value); newStaffName.value = ''; } };
             const removeStaff = (idx) => { if (confirm("移除？")) { staffList.value.splice(idx, 1); set(dbRef(db, "staff_list"), staffList.value); } };
+            const changeFontSize = (delta) => { baseFontSize.value += delta; document.documentElement.style.fontSize = `${baseFontSize.value}rem`; };
 
-            return { form, searchQuery, suggestions, history, staffList, onSearchInput, selectDrug, calculateQty, submitRecord, goBack, filterDate, exportByDate, addNum, addOp, toggleSign, changeFontSize, showManager, newStaffName, addStaff, removeStaff, deletingItem, deleteExecutor, prepareDelete, confirmDelete, deletedHistory, showDeletedAudit, clearSearch };
+            return { form, searchQuery, suggestions, history, staffList, onSearchInput, selectDrug, calculateQty, submitRecord, goBack, filterDate, exportByDate, addNum: (n) => form.value.qtyStr += n, addOp, toggleSign, changeFontSize, showManager, newStaffName, addStaff, removeStaff, showDeletedAudit, clearSearch, selectedIds, isAllSelected, toggleSelectAll, deleteSingle, batchDelete };
         }
     }).mount('#app');
 </script>
