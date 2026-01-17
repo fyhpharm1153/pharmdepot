@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>藥劑科-儲位查詢與撥補導引 v1.7.0</title>
+    <title>藥劑科-儲位查詢與撥補導引 v1.7.1</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -81,20 +81,22 @@
 
     <div v-if="filteredResults.length > 0" class="results-grid pb-10">
         <div v-for="(item, index) in filteredResults" :key="item.key + index" class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 relative">
-            <div class="flex justify-between items-center gap-2">
-                <div class="flex-1 min-w-0 cursor-pointer" @click="handleItemClick(item)">
+            
+            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+                
+                <div class="flex-1 cursor-pointer" @click="handleItemClick(item)">
                     <div class="text-[0.6em] font-mono font-bold text-slate-400 mb-1 flex items-center gap-1">
                         {{ item.code }}
                         <span v-if="editMap[item.key]" class="text-[0.8em] bg-orange-100 px-1 rounded text-orange-600 font-bold">已修正</span>
                         <span v-if="item.isNewDrug" class="text-[0.8em] bg-purple-100 px-1 rounded text-purple-600 font-bold">新藥進度</span>
-                        <span v-else class="text-[0.8em] bg-blue-50 px-1 rounded text-blue-500 font-bold ml-auto">撥補 ➔</span>
+                        <span v-else class="text-[0.8em] bg-blue-50 px-1 rounded text-blue-500 font-bold ml-auto sm:ml-2">撥補 ➔</span>
                     </div>
-                    <h2 class="text-[1.1em] font-bold text-slate-800 leading-tight truncate">{{ item.name }}</h2>
+                    <h2 class="text-[1.1em] font-bold text-slate-800 leading-tight break-words">{{ item.name }}</h2>
                     <p v-if="item.isNewDrug" class="text-[0.7em] text-slate-400 mt-1">點擊查看建檔與開關檔情形</p>
                 </div>
 
-                <div class="flex items-center gap-2">
-                    <div class="flex gap-1 shrink-0">
+                <div class="flex items-center justify-end gap-2 shrink-0">
+                    <div class="flex gap-1">
                         <div :class="item.zone === '藥庫' ? 'bg-amber-50 border-amber-200 text-amber-800' : (item.isNewDrug ? 'bg-purple-50 border-purple-200 text-purple-800' : 'bg-blue-50 border-blue-200 text-blue-800')"
                              class="w-24 h-20 flex flex-col justify-center items-center border rounded-xl shadow-sm text-center">
                             <span class="text-[0.6em] font-bold opacity-60 mb-0.5 uppercase tracking-tighter">區域</span>
@@ -112,6 +114,7 @@
                         <button v-else @click.stop="saveEdit(item.key)" class="text-green-500 p-2"><i class="fa-solid fa-check-circle text-xl"></i></button>
                     </div>
                 </div>
+
             </div>
         </div>
     </div>
@@ -122,7 +125,7 @@
     </div>
 
     <footer class="mt-8 text-center pb-10 opacity-30">
-        <p class="text-[0.6em] font-mono">System Version 1.7.0.Integrated</p>
+        <p class="text-[0.6em] font-mono">System Version 1.7.1.Integrated</p>
     </footer>
 </div>
 
@@ -148,7 +151,7 @@
         setup() {
             const inventory = ref([]);
             const warehouse = ref([]);
-            const newDrugs = ref([]); // Google Sheet 資料
+            const newDrugs = ref([]);
             const keyword = ref('');
             const selectedCat = ref('門診藥局');
             const editingKey = ref(null);
@@ -172,11 +175,8 @@
                     applyFont();
                 }
 
-                // 抓取 Firebase
                 onValue(dbRef(db, "inventory"), s => { inventory.value = s.val() || []; });
                 onValue(dbRef(db, "warehouse"), s => { warehouse.value = s.val() || []; });
-                
-                // 抓取 Google Sheets 新藥
                 fetchNewDrugs();
 
                 const saved = localStorage.getItem('pharmEdits');
@@ -258,7 +258,6 @@
                     name: item.n || item.name, shelf: item.s || item.shelf, code: item.c || 'WH'
                 }));
 
-                // 合併新藥資料
                 let results = [...invData, ...whData, ...newDrugs.value];
                 
                 const k = keyword.value.trim().toLowerCase();
