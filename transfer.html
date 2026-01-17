@@ -30,7 +30,7 @@
     </style>
 </head>
 <body class="p-4 pb-20">
-    <div id="app" class="max-w-xl mx-auto" v-cloak>
+    <div id="app" class="max-w-7xl mx-auto" v-cloak>
         
         <header class="flex justify-between items-center mb-6 gap-4 bg-white p-4 rounded-2xl border-2 border-slate-800 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.1)]">
             <div class="flex items-center gap-3">
@@ -45,18 +45,19 @@
             </div>
         </header>
 
-        <div class="space-y-6">
-            <section class="bg-white p-6 rounded-[2rem] border-2 border-slate-800 shadow-xl">
-                <div class="mb-5">
-                    <label class="font-bold text-slate-500 block mb-1">撥補人員</label>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+            
+            <section class="bg-white p-6 rounded-[2rem] border-2 border-slate-800 shadow-xl space-y-5">
+                <div>
+                    <label class="font-bold text-slate-500 block mb-1 text-lg">撥補人員</label>
                     <select v-model="form.user" class="w-full bg-slate-100 p-4 rounded-xl font-black text-xl border-2 border-slate-300">
                         <option value="" disabled>點擊選擇...</option>
                         <option v-for="user in staffList" :key="user" :value="user">{{ user }}</option>
                     </select>
                 </div>
 
-                <div class="mb-5 relative">
-                    <label class="font-bold text-slate-500 block mb-1">搜尋藥品</label>
+                <div class="relative">
+                    <label class="font-bold text-slate-500 block mb-1 text-lg">搜尋藥品</label>
                     <input v-model="searchQuery" @input="onSearchInput" placeholder="輸入關鍵字..." class="w-full bg-slate-100 p-4 rounded-xl font-black text-xl border-2 border-slate-300 huge-control">
                     <div v-if="suggestions.length > 0" class="absolute z-50 w-full bg-white shadow-2xl rounded-xl mt-2 border-2 border-slate-800 max-h-60 overflow-y-auto">
                         <div v-for="s in suggestions" :key="s.c" @click="selectDrug(s)" class="p-4 border-b border-slate-100 hover:bg-blue-50 cursor-pointer">
@@ -66,11 +67,11 @@
                     </div>
                 </div>
 
-                <div v-if="form.name" class="bg-blue-700 p-5 rounded-xl mb-6 border-2 border-slate-800">
+                <div v-if="form.name" class="bg-blue-700 p-5 rounded-xl border-2 border-slate-800">
                     <p class="font-black text-white text-xl">已選：[{{ form.code }}] {{ form.name }}</p>
                 </div>
 
-                <div class="mb-8 bg-slate-200 p-5 rounded-[2rem] border-2 border-slate-800">
+                <div class="bg-slate-200 p-5 rounded-[2rem] border-2 border-slate-800">
                     <div class="bg-white p-4 rounded-xl border-2 border-slate-800 mb-4 shadow-inner">
                         <div class="text-right text-5xl font-black text-slate-900 overflow-x-auto h-16 leading-relaxed">
                             {{ form.qtyStr || '0' }}
@@ -107,27 +108,33 @@
                 </button>
             </section>
 
-            <section class="pb-10">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="font-black text-xl text-slate-600">近期 20 筆撥補</h3>
+            <section class="space-y-4">
+                <div class="flex justify-between items-center bg-white p-4 rounded-xl border-2 border-slate-800 shadow-md">
+                    <h3 class="font-black text-xl text-slate-600">近期 20 筆紀錄</h3>
                     <input type="date" v-model="filterDate" class="p-2 border-2 border-slate-800 rounded-lg font-bold text-sm">
                 </div>
 
-                <div class="space-y-4">
-                    <div v-for="log in history" :key="log.id" @click="toggleSelect(log.id)"
-                        :class="['record-card bg-white p-4 rounded-xl shadow border-2 border-slate-300 flex justify-between items-center cursor-pointer', selectedIds.includes(log.id) ? 'selected' : '']">
-                        <div class="min-w-0">
+                <div class="max-h-[800px] overflow-y-auto space-y-4 pr-2">
+                    <div v-for="log in history" :key="log.id"
+                        :class="['record-card bg-white p-4 rounded-xl shadow border-2 border-slate-300 flex justify-between items-center transition-colors', selectedIds.includes(log.id) ? 'selected border-blue-500' : '']">
+                        <div class="min-w-0 flex-1" @click="toggleSelect(log.id)">
                             <div class="text-[0.8em] font-bold text-slate-400 mb-1">
-                                <span class="bg-slate-700 text-white px-2 py-0.5 rounded">{{ log.user }}</span> {{ log.time }}
+                                <span class="bg-slate-700 text-white px-2 py-0.5 rounded mr-1">{{ log.user }}</span> {{ log.time }}
                             </div>
                             <p class="font-black text-slate-900 truncate text-xl">[{{ log.code }}] {{ log.name }}</p>
                         </div>
-                        <div class="flex items-center gap-3">
+                        <div class="flex items-center gap-4">
                             <div class="bg-blue-600 text-white font-black px-4 py-2 rounded-lg text-2xl">+{{ log.qty }}</div>
+                            <button @click.stop="deleteRecord(log.id)" class="bg-red-100 text-red-600 w-12 h-12 rounded-lg flex items-center justify-center border-2 border-red-200 hover:bg-red-200 transition-colors">
+                                <i class="fa-solid fa-trash-can text-xl"></i>
+                            </button>
                         </div>
                     </div>
                 </div>
-                <button @click="exportByDate" class="w-full mt-6 bg-slate-800 text-white py-4 rounded-xl font-black text-xl">匯出 Excel 報表</button>
+                
+                <button @click="exportByDate" class="w-full mt-4 bg-slate-800 text-white py-4 rounded-xl font-black text-xl border-2 border-slate-900 shadow-md active:translate-y-1">
+                    <i class="fa-solid fa-file-excel mr-2"></i>匯出 Excel 報表
+                </button>
             </section>
         </div>
 
@@ -231,7 +238,7 @@
             const submitRecord = async () => {
                 calculateQty();
                 const qty = Number(form.value.qtyStr);
-                if (!form.value.user || !form.value.name || isNaN(qty)) return alert("請填妥資料");
+                if (!form.value.user || !form.value.name || isNaN(qty) || qty === 0) return alert("請填妥資料及數量");
                 const data = { 
                     time: new Date().toLocaleString('zh-TW', { hour12: false }), 
                     user: form.value.user, 
@@ -246,6 +253,17 @@
                     await push(dbRef(db, "transfer_logs"), data);
                 }
                 form.value.qtyStr = ''; alert("提交成功！");
+            };
+
+            // 刪除單筆紀錄功能
+            const deleteRecord = async (id) => {
+                if(confirm("確定要刪除這筆撥補紀錄嗎？")) {
+                    try {
+                        await remove(dbRef(db, `transfer_logs/${id}`));
+                    } catch (e) {
+                        alert("刪除失敗: " + e.message);
+                    }
+                }
             };
 
             const toggleSelect = (id) => {
@@ -266,7 +284,7 @@
             const addStaff = () => { if (newStaffName.value.trim()) { staffList.value.push(newStaffName.value.trim()); set(dbRef(db, "staff_list"), staffList.value); newStaffName.value = ''; } };
             const removeStaff = (idx) => { if (confirm("確定刪除？")) { staffList.value.splice(idx, 1); set(dbRef(db, "staff_list"), staffList.value); } };
 
-            return { form, searchQuery, suggestions, history, staffList, onSearchInput, selectDrug, calculateQty, submitRecord, selectedIds, toggleSelect, goBack, filterDate, exportByDate, addNum, addOp, changeFontSize, showManager, newStaffName, addStaff, removeStaff, editingId };
+            return { form, searchQuery, suggestions, history, staffList, onSearchInput, selectDrug, calculateQty, submitRecord, deleteRecord, selectedIds, toggleSelect, goBack, filterDate, exportByDate, addNum, addOp, changeFontSize, showManager, newStaffName, addStaff, removeStaff, editingId };
         }
     }).mount('#app');
 </script>
