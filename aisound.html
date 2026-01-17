@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>藥袋語音掃描助手 - 豐原醫院版</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <style>
+        :root {
+            --primary-color: #00796b; /* 醫院體系綠色 */
+            --secondary-color: #004d40;
+            --bg-light: #f4f7f6;
+        }
+        body {
+            background-color: var(--bg-light);
+            font-family: "Microsoft JhengHei", sans-serif;
+        }
+        .header-banner {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 20px 0;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        #reader {
+            border: 2px solid var(--primary-color) !important;
+            border-radius: 15px;
+            overflow: hidden;
+            background: white;
+        }
+        .result-card {
+            display: none;
+            margin-top: 20px;
+            border-radius: 15px;
+            border: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .info-label {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        .info-value {
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: var(--secondary-color);
+        }
+        .btn-speak {
+            background-color: var(--primary-color);
+            color: white;
+            border-radius: 50px;
+            padding: 10px 30px;
+        }
+        .btn-speak:hover {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header-banner text-center">
+    <h3>💊 藥袋語音輔助系統</h3>
+    <p class="mb-0">請對準藥袋上的 QR Code 進行掃描</p>
+</div>
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div id="reader"></div>
+
+            <div id="resultCard" class="card result-card">
+                <div class="card-body">
+                    <h5 class="card-title text-center mb-4">掃描結果</h5>
+                    <div class="row text-center">
+                        <div class="col-6 mb-3">
+                            <div class="info-label">每次劑量</div>
+                            <div id="val-dose" class="info-value">-</div>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <div class="info-label">服用途徑</div>
+                            <div id="val-route" class="info-value">-</div>
+                        </div>
+                        <div class="col-12 mb-3">
+                            <div class="info-label">服用頻次</div>
+                            <div id="val-freq" class="info-value">-</div>
+                        </div>
+                    </div>
+                    <div class="text-center mt-3">
+                        <button class="btn btn-speak" onclick="replayAudio()">
+                            🔊 重新播放語音
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <p class="text-muted text-center mt-4" style="font-size: 0.8rem;">
+                * 本系統僅供輔助，用藥請務必遵照藥袋標示與藥師指示。
+            </p>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 1. 醫囑縮寫對應表 (SIG & Route)
+    const sigMap = {
+        'QD': '每日一次',
+        'QDPC': '每日一次，飯後服用',
+        'QDAC': '每日一次，飯前服用',
+        'BID': '每日二次',
+        'TID': '每日三次',
+        'QID': '每日四次',
+        'HS': '睡前服用',
+        'QN': '每晚一次',
+        'QOD': '每隔一天一次',
+        'PRN': '需要時服用'
+    };
+
+    const routeMap = {
+        'PO': '口服',
+        'EXT': '外用',
+        'SL': '舌下含服',
+        'EYE': '點眼',
+        'EAR': '點耳'
+    };
+
+    let lastMessage = ""; // 儲存最後一次解析的文字
+
+    // 2. 初始化掃描器
+    function onScanSuccess(decodedText) {
+        // 格式: 2574;20260105;0000841320;1;QDPC;PO;7;0;...
+        const parts = decodedText.split(';');
+        
+        if (parts.length >= 6) {
+            const dose = parts[3];                // 每次服用數量
+            const freq = sigMap[parts[4]] || parts[4]; // 頻次
+            const route = routeMap[parts[5]] || parts[5]; // 途徑
+
+            // 更新介面
+            document.getElementById('val-dose').innerText = dose + " 單位";
+            document.getElementById('val-freq').innerText = freq;
+            document.getElementById('val-route').innerText = route;
+            document.getElementById('resultCard').style.display = 'block';
+
+            // 組合語音字串
+            lastMessage = `每次服用 ${dose} 單位。 ${freq}。 ${route}。`;
+            speak(lastMessage);
+
+            // 暫停掃描一陣子，避免重複讀取
+            html5QrcodeScanner.clear();
+            setTimeout(() => {
+                html5QrcodeScanner.render(onScanSuccess);
+            }, 5000);
+        }
+    }
+
+    // 3. 語音朗讀功能
+    function speak(text) {
+        // 先取消所有正在進行的語音
+        window.speechSynthesis.cancel();
+        
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'zh-TW';
+        utterance.rate = 0.9; // 語速稍慢一點，聽得比較清楚
+        utterance.pitch = 1.0;
+        window.speechSynthesis.speak(utterance);
+    }
+
+    function replayAudio() {
+        if (lastMessage) speak(lastMessage);
+    }
+
+    // 啟動掃描器
+    const html5QrcodeScanner = new Html5QrcodeScanner(
+        "reader", { fps: 10, qrbox: { width: 250, height: 250 } }
+    );
+    html5QrcodeScanner.render(onScanSuccess);
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
