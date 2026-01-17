@@ -3,128 +3,127 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>藥袋語音助手 - 豐原醫院版</title>
+    <title>藥袋語音助手 - 豐原醫院</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
         :root { --med-teal: #00796b; --med-dark: #004d40; }
-        body { background-color: #f8faf9; font-family: "PingFang TC", "Microsoft JhengHei", sans-serif; }
-        .app-header { background: var(--med-teal); color: white; padding: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        body { background-color: #f1f3f4; font-family: "PingFang TC", sans-serif; }
+        .app-header { background: var(--med-teal); color: white; padding: 15px; }
         
         #scanner-wrapper {
             position: relative;
             width: 100%;
-            max-width: 450px;
+            max-width: 400px;
             aspect-ratio: 1 / 1;
-            margin: 20px auto;
+            margin: 15px auto;
             border: 4px solid white;
-            border-radius: 24px;
+            border-radius: 20px;
             overflow: hidden;
             background: #000;
-            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
         }
         #reader { width: 100%; height: 100%; }
 
-        #start-btn {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 100;
-            padding: 15px 35px;
-            font-size: 1.25rem;
-            font-weight: bold;
-            border-radius: 50px;
-            background-color: var(--med-teal);
-            border: none;
+        .lang-selector {
+            background: white;
+            border-radius: 15px;
+            padding: 15px;
+            margin: 10px 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
         }
 
         .result-card {
             background: white;
-            border-radius: 24px;
+            border-radius: 20px;
             padding: 25px;
-            margin: -40px 15px 20px;
-            position: relative;
-            z-index: 20;
+            margin: 10px 15px;
             display: none;
             box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            border: 1px solid #e0e0e0;
+            border-top: 5px solid var(--med-teal);
         }
         
-        .label { color: #757575; font-size: 0.95rem; margin-bottom: 4px; }
-        .value { color: var(--med-dark); font-weight: 800; font-size: 1.4rem; }
-        .divider { height: 1px; background: #eee; margin: 15px 0; }
+        .label { color: #666; font-size: 0.9rem; margin-bottom: 5px; }
+        .value { color: var(--med-dark); font-weight: bold; font-size: 1.4rem; line-height: 1.2; }
+        
+        #start-btn {
+            position: absolute;
+            top: 50%; left: 50%; transform: translate(-50%, -50%);
+            z-index: 100; padding: 12px 25px; border-radius: 50px;
+        }
     </style>
 </head>
 <body>
 
 <div class="app-header text-center">
-    <h4 class="mb-0">藥袋自動掃描語音系統</h4>
+    <h5 class="mb-0">藥袋語音輔助系統 (豐原醫院)</h5>
 </div>
 
-<div class="container-fluid">
-    <div id="scanner-wrapper">
-        <div id="reader"></div>
-        <button id="start-btn" class="btn btn-primary shadow-lg" onclick="startScanner()">開啟相機掃描</button>
-    </div>
+<div class="lang-selector">
+    <label class="label">請選擇語音語言 (Select Language):</label>
+    <select id="langSelect" class="form-select form-select-lg">
+        <option value="zh-TW" selected>中文 (繁體)</option>
+        <option value="en-US">English (英文)</option>
+        <option value="id-ID">Bahasa Indonesia (印尼文)</option>
+        <option value="vi-VN">Tiếng Việt (越南文)</option>
+        <option value="th-TH">ภาษาไทย (泰文)</option>
+        <option value="fil-PH">Filipino (菲律賓文)</option>
+        <option value="nan-TW">台語 (需裝置支援)</option>
+    </select>
+</div>
 
-    <div id="resultCard" class="result-card">
-        <div class="text-center mb-3">
-            <span class="badge rounded-pill bg-success px-4 py-2">掃描成功</span>
+<div id="scanner-wrapper">
+    <div id="reader"></div>
+    <button id="start-btn" class="btn btn-primary shadow" onclick="startScanner()">開啟相機掃描</button>
+</div>
+
+<div id="resultCard" class="result-card">
+    <div class="row">
+        <div class="col-12 mb-3">
+            <div class="label">服用途徑 (Route)</div>
+            <div id="res-route" class="value">-</div>
         </div>
-        <div class="row text-center">
-            <div class="col-6">
-                <div class="label">每次劑量</div>
-                <div id="res-qty" class="value">-</div>
-            </div>
-            <div class="col-6">
-                <div class="label">服用途徑</div>
-                <div id="res-route" class="value">-</div>
-            </div>
-            <div class="col-12 mt-3">
-                <div class="divider"></div>
-                <div class="label">服用時間與頻次</div>
-                <div id="res-freq" class="value">-</div>
-            </div>
+        <div class="col-12">
+            <div class="label">服用時間與頻次 (Frequency)</div>
+            <div id="res-freq" class="value">-</div>
         </div>
-        <button class="btn btn-outline-dark w-100 mt-4 py-2 fw-bold" onclick="replayAudio()">🔊 重新播放語音</button>
     </div>
+    <button class="btn btn-outline-secondary w-100 mt-4" onclick="replayAudio()">🔊 重新朗讀 / Replay</button>
 </div>
 
 <script>
-    // 1. 常用途徑對照表 (確保無英文)
-    const routeMap = {
-        'PO': '口服',
-        'EXT': '外用',
-        'SL': '舌下含服',
-        'EYE': '點眼',
-        'EAR': '點耳',
-        'NAS': '點鼻',
-        'TOP': '局部塗抹',
-        'SC': '皮下注射',
-        'IV': '靜脈注射',
-        'IM': '肌肉注射',
-        'RECT': '塞入肛門',
-        'VAG': '塞入陰道',
-        'INH': '吸入',
-        'OTH': '依醫囑使用'
+    // 多國語言翻譯字典
+    const translations = {
+        'zh-TW': {
+            'QDPC': '每日一次，飯後服用', 'BID': '每日二次', 'TID': '每日三次', 'HS': '睡前服用',
+            'PO': '口服', 'EXT': '外用', 'welcome': '您好，這個藥：', 'use': '方式是'
+        },
+        'en-US': {
+            'QDPC': 'Once daily after meals', 'BID': 'Twice daily', 'TID': 'Three times daily', 'HS': 'Before bed',
+            'PO': 'Oral', 'EXT': 'External use', 'welcome': 'Hello, this medicine: ', 'use': 'Take it by '
+        },
+        'id-ID': {
+            'QDPC': 'Sekali sehari setelah makan', 'BID': 'Dua kali sehari', 'TID': 'Tiga kali sehari', 'HS': 'Sebelum tidur',
+            'PO': 'Diminum', 'EXT': 'Obat luar', 'welcome': 'Halo, obat ini: ', 'use': 'Cara pakainya '
+        },
+        'vi-VN': {
+            'QDPC': 'Mỗi ngày một lần sau khi ăn', 'BID': 'Mỗi ngày hai lần', 'TID': 'Mỗi ngày ba lần', 'HS': 'Trước khi đi ngủ',
+            'PO': 'Đường uống', 'EXT': 'Dùng ngoài da', 'welcome': 'Xin chào, thuốc này: ', 'use': 'Cách dùng là '
+        },
+        'th-TH': {
+            'QDPC': 'วันละหนึ่งครั้ง หลังอาหาร', 'BID': 'วันละสองครั้ง', 'TID': 'วันละสามครั้ง', 'HS': 'ก่อนนอน',
+            'PO': 'รับประทาน', 'EXT': 'ใช้ภายนอก', 'welcome': 'สวัสดีค่ะ ยาตัวนี้: ', 'use': 'วิธีการคือ '
+        },
+        'fil-PH': {
+            'QDPC': 'Isang beses sa isang araw pagkatapos kumain', 'BID': 'Dalawang beses sa isang araw', 'TID': 'Tatlong beses sa isang araw', 'HS': 'Bago matulog',
+            'PO': 'Iniinom', 'EXT': 'Pang-labas na gamit', 'welcome': 'Hello, ang gamot na ito: ', 'use': 'Ang paraan ay '
+        },
+        'nan-TW': { // 台語翻譯建議
+            'QDPC': '逐工一改，食飽才食', 'BID': '逐工兩改', 'TID': '逐工三改', 'HS': '欲愛睏前食',
+            'PO': '食落去的', 'EXT': '外敷的', 'welcome': '你好，這款藥仔：', 'use': '食法是'
+        }
     };
 
-    // 2. 常用頻次對照表
-    const sigMap = {
-        'QD': '每日一次',
-        'QDPC': '每日一次，飯後服用',
-        'QDAC': '每日一次，飯前服用',
-        'BID': '每日二次',
-        'TID': '每日三次',
-        'QID': '每日四次',
-        'HS': '睡前服用',
-        'QN': '每晚一次',
-        'QOD': '每隔一天一次',
-        'PRN': '需要時服用',
-        'STAT': '立即服用'
-    };
-    
     let html5QrCode;
     let lastText = "";
     let speechMessage = "";
@@ -132,72 +131,53 @@
     function startScanner() {
         document.getElementById('start-btn').style.display = 'none';
         html5QrCode = new Html5Qrcode("reader");
-        
-        const config = { 
-            fps: 20, 
-            qrbox: { width: 250, height: 250 },
-            aspectRatio: 1.0
-        };
-
-        // 強制使用後置鏡頭
-        html5QrCode.start(
-            { facingMode: "environment" }, 
-            config, 
-            onScanSuccess
-        ).catch(err => {
-            alert("請確認已開啟相機權限");
-            document.getElementById('start-btn').style.display = 'block';
-        });
-
-        // 預熱語音引擎
+        html5QrCode.start({ facingMode: "environment" }, { fps: 20, qrbox: 250 }, onScanSuccess);
+        // 預熱語音
         window.speechSynthesis.speak(new SpeechSynthesisUtterance(""));
     }
 
     function onScanSuccess(decodedText) {
         if (decodedText === lastText) return;
-        
         const parts = decodedText.split(';');
         if (parts.length >= 6) {
             lastText = decodedText;
-            
-            const qty = parts[3];
-            const freq = sigMap[parts[4]] || "依醫囑服用";
-            const route = routeMap[parts[5]] || "依指示使用";
+            const lang = document.getElementById('langSelect').value;
+            const dict = translations[lang] || translations['zh-TW'];
 
-            // UI 更新
-            document.getElementById('res-qty').innerText = qty + " 單位";
-            document.getElementById('res-freq').innerText = freq;
-            document.getElementById('res-route').innerText = route;
+            const freqCode = parts[4];
+            const routeCode = parts[5];
+
+            const freqText = dict[freqCode] || freqCode;
+            const routeText = dict[routeCode] || routeCode;
+
+            document.getElementById('res-freq').innerText = freqText;
+            document.getElementById('res-route').innerText = routeText;
             document.getElementById('resultCard').style.display = 'block';
 
-            // 語音內容組合 (完全中文)
-            speechMessage = `這個藥，每次服用 ${qty} 單位。服用時間是：${freq}。服用途徑是：${route}。`;
-            speak(speechMessage);
+            speechMessage = `${dict['welcome']} ${freqText}。 ${dict['use']} ${routeText}。`;
+            speak(speechMessage, lang);
 
             setTimeout(() => { lastText = ""; }, 5000);
         }
     }
 
-    function speak(text) {
+    function speak(text, lang) {
         window.speechSynthesis.cancel();
         const utterance = new SpeechSynthesisUtterance(text);
-        
-        // 尋找高品質中文語音 (Google 國語或 Premium)
+        utterance.lang = lang;
+        utterance.rate = 0.85;
+
+        // 嘗試自動匹配該語言的最佳語音
         const voices = window.speechSynthesis.getVoices();
-        const chineseVoice = voices.find(v => v.lang.includes('zh-TW') && (v.name.includes('Google') || v.name.includes('Premium'))) 
-                            || voices.find(v => v.lang.includes('zh-TW'));
-        
-        if (chineseVoice) utterance.voice = chineseVoice;
-        utterance.lang = 'zh-TW';
-        utterance.rate = 0.85; // 稍慢語速，聽起來較清楚
-        utterance.pitch = 1.0;
+        const bestVoice = voices.find(v => v.lang.startsWith(lang.split('-')[0]));
+        if (bestVoice) utterance.voice = bestVoice;
+
         window.speechSynthesis.speak(utterance);
     }
 
     function replayAudio() {
-        if (speechMessage) speak(speechMessage);
+        if (speechMessage) speak(speechMessage, document.getElementById('langSelect').value);
     }
 </script>
-
 </body>
 </html>
