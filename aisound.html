@@ -2,181 +2,161 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>藥袋語音掃描助手 - 豐原醫院版</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>智慧藥袋語音助手</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
         :root {
-            --primary-color: #00796b; /* 醫院體系綠色 */
-            --secondary-color: #004d40;
-            --bg-light: #f4f7f6;
+            --medical-green: #2a9d8f;
+            --dark-blue: #264653;
         }
-        body {
-            background-color: var(--bg-light);
-            font-family: "Microsoft JhengHei", sans-serif;
-        }
-        .header-banner {
-            background-color: var(--primary-color);
-            color: white;
-            padding: 20px 0;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-        #reader {
-            border: 2px solid var(--primary-color) !important;
-            border-radius: 15px;
+        body { background-color: #f8f9fa; font-family: "PingFang TC", "Microsoft JhengHei", sans-serif; }
+        
+        /* 掃描區域美化 */
+        #scanner-container {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+            border-radius: 20px;
             overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        }
+        
+        /* 結果卡片設計 */
+        .result-box {
             background: white;
-        }
-        .result-card {
+            border-radius: 20px;
+            padding: 25px;
+            margin-top: -30px;
+            position: relative;
+            z-index: 10;
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.05);
             display: none;
-            margin-top: 20px;
-            border-radius: 15px;
-            border: none;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
-        .info-label {
-            color: #666;
-            font-size: 0.9rem;
-        }
-        .info-value {
-            font-size: 1.25rem;
-            font-weight: bold;
-            color: var(--secondary-color);
-        }
-        .btn-speak {
-            background-color: var(--primary-color);
+        
+        .status-badge {
+            background-color: var(--medical-green);
             color: white;
+            padding: 5px 15px;
             border-radius: 50px;
-            padding: 10px 30px;
+            font-size: 0.8rem;
+            display: inline-block;
+            margin-bottom: 10px;
         }
-        .btn-speak:hover {
-            background-color: var(--secondary-color);
+
+        .med-info { font-size: 1.5rem; font-weight: 800; color: var(--dark-blue); }
+        .btn-replay {
+            background: var(--dark-blue);
             color: white;
+            border-radius: 12px;
+            width: 100%;
+            padding: 12px;
+            font-weight: bold;
+            border: none;
+            transition: 0.3s;
         }
+        .btn-replay:active { transform: scale(0.98); }
     </style>
 </head>
 <body>
 
-<div class="header-banner text-center">
-    <h3>💊 藥袋語音輔助系統</h3>
-    <p class="mb-0">請對準藥袋上的 QR Code 進行掃描</p>
-</div>
+<div class="container-fluid p-0">
+    <div class="bg-dark p-3 text-center text-white">
+        <h5 class="m-0">自動掃描藥袋輔助</h5>
+    </div>
 
-<div class="container">
-    <div class="row justify-content-center">
-        <div class="col-md-6">
-            <div id="reader"></div>
+    <div id="scanner-container">
+        <div id="reader" style="width: 100%;"></div>
+    </div>
 
-            <div id="resultCard" class="card result-card">
-                <div class="card-body">
-                    <h5 class="card-title text-center mb-4">掃描結果</h5>
-                    <div class="row text-center">
-                        <div class="col-6 mb-3">
-                            <div class="info-label">每次劑量</div>
-                            <div id="val-dose" class="info-value">-</div>
-                        </div>
-                        <div class="col-6 mb-3">
-                            <div class="info-label">服用途徑</div>
-                            <div id="val-route" class="info-value">-</div>
-                        </div>
-                        <div class="col-12 mb-3">
-                            <div class="info-label">服用頻次</div>
-                            <div id="val-freq" class="info-value">-</div>
-                        </div>
-                    </div>
-                    <div class="text-center mt-3">
-                        <button class="btn btn-speak" onclick="replayAudio()">
-                            🔊 重新播放語音
-                        </button>
-                    </div>
+    <div class="container">
+        <div id="resultCard" class="result-box mx-auto">
+            <div class="text-center">
+                <span class="status-badge">掃描成功</span>
+                <div class="med-info" id="display-text">載入中...</div>
+                <hr>
+                <div class="row text-start mb-3">
+                    <div class="col-6 text-muted">服用數量：<span class="text-dark fw-bold" id="res-qty"></span></div>
+                    <div class="col-6 text-muted">途徑：<span class="text-dark fw-bold" id="res-route"></span></div>
+                    <div class="col-12 text-muted mt-2">時間：<span class="text-dark fw-bold" id="res-freq"></span></div>
                 </div>
+                <button class="btn btn-replay" onclick="replay()">🔊 重新朗讀一次</button>
             </div>
-            
-            <p class="text-muted text-center mt-4" style="font-size: 0.8rem;">
-                * 本系統僅供輔助，用藥請務必遵照藥袋標示與藥師指示。
-            </p>
+        </div>
+        
+        <div class="text-center mt-4 p-3 text-muted" style="font-size: 0.85rem;">
+            將藥袋上的 QR Code 放入方框內即可自動辨識
         </div>
     </div>
 </div>
 
 <script>
-    // 1. 醫囑縮寫對應表 (SIG & Route)
-    const sigMap = {
-        'QD': '每日一次',
-        'QDPC': '每日一次，飯後服用',
-        'QDAC': '每日一次，飯前服用',
-        'BID': '每日二次',
-        'TID': '每日三次',
-        'QID': '每日四次',
-        'HS': '睡前服用',
-        'QN': '每晚一次',
-        'QOD': '每隔一天一次',
-        'PRN': '需要時服用'
-    };
+    const sigMap = { 'QDPC': '每日一次，飯後服用', 'BID': '每日二次', 'TID': '每日三次', 'HS': '睡前服用' };
+    const routeMap = { 'PO': '口服', 'EXT': '外用' };
+    let currentVoice = null;
+    let lastParsedText = "";
 
-    const routeMap = {
-        'PO': '口服',
-        'EXT': '外用',
-        'SL': '舌下含服',
-        'EYE': '點眼',
-        'EAR': '點耳'
-    };
+    // 1. 初始化高品質語音
+    function initVoice() {
+        const voices = window.speechSynthesis.getVoices();
+        // 優先尋找 Google 國語、Microsoft Hanhan 或任何標註為 "Premium" 的中文語音
+        currentVoice = voices.find(v => v.lang.includes('zh-TW') && (v.name.includes('Google') || v.name.includes('Premium'))) 
+                       || voices.find(v => v.lang.includes('zh-TW'))
+                       || voices.find(v => v.lang.includes('zh-CN'));
+    }
+    // 監聽語音載入（Chrome 需要）
+    window.speechSynthesis.onvoiceschanged = initVoice;
 
-    let lastMessage = ""; // 儲存最後一次解析的文字
-
-    // 2. 初始化掃描器
-    function onScanSuccess(decodedText) {
-        // 格式: 2574;20260105;0000841320;1;QDPC;PO;7;0;...
-        const parts = decodedText.split(';');
+    // 2. 朗讀功能邏輯
+    function speak(text) {
+        window.speechSynthesis.cancel(); // 先停止之前的語音
+        const msg = new SpeechSynthesisUtterance(text);
+        if (currentVoice) msg.voice = currentVoice;
         
+        msg.lang = 'zh-TW';
+        msg.rate = 0.85;  // 稍慢的語速聽起來比較溫和且清晰
+        msg.pitch = 1.05; // 稍微調高音調，聽起來比較不像機器人
+        window.speechSynthesis.speak(msg);
+    }
+
+    // 3. 掃描成功回呼
+    function onScanSuccess(decodedText) {
+        const parts = decodedText.split(';');
         if (parts.length >= 6) {
-            const dose = parts[3];                // 每次服用數量
-            const freq = sigMap[parts[4]] || parts[4]; // 頻次
-            const route = routeMap[parts[5]] || parts[5]; // 途徑
+            const qty = parts[3];
+            const freq = sigMap[parts[4]] || parts[4];
+            const route = routeMap[parts[5]] || parts[5];
 
             // 更新介面
-            document.getElementById('val-dose').innerText = dose + " 單位";
-            document.getElementById('val-freq').innerText = freq;
-            document.getElementById('val-route').innerText = route;
+            document.getElementById('res-qty').innerText = qty + " 單位";
+            document.getElementById('res-freq').innerText = freq;
+            document.getElementById('res-route').innerText = route;
+            document.getElementById('display-text').innerText = `${freq}`;
             document.getElementById('resultCard').style.display = 'block';
 
-            // 組合語音字串
-            lastMessage = `每次服用 ${dose} 單位。 ${freq}。 ${route}。`;
-            speak(lastMessage);
+            // 組合語音句子
+            lastParsedText = `這個藥，每次服用 ${qty} 單位，${freq}，${route}。`;
+            speak(lastParsedText);
 
-            // 暫停掃描一陣子，避免重複讀取
-            html5QrcodeScanner.clear();
-            setTimeout(() => {
-                html5QrcodeScanner.render(onScanSuccess);
-            }, 5000);
+            // 停止掃描 3 秒，避免重複觸發
+            html5QrcodeScanner.pause(true);
+            setTimeout(() => { html5QrcodeScanner.resume(); }, 3000);
         }
     }
 
-    // 3. 語音朗讀功能
-    function speak(text) {
-        // 先取消所有正在進行的語音
-        window.speechSynthesis.cancel();
-        
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = 'zh-TW';
-        utterance.rate = 0.9; // 語速稍慢一點，聽得比較清楚
-        utterance.pitch = 1.0;
-        window.speechSynthesis.speak(utterance);
-    }
+    function replay() { if(lastParsedText) speak(lastParsedText); }
 
-    function replayAudio() {
-        if (lastMessage) speak(lastMessage);
-    }
-
-    // 啟動掃描器
-    const html5QrcodeScanner = new Html5QrcodeScanner(
-        "reader", { fps: 10, qrbox: { width: 250, height: 250 } }
-    );
+    // 4. 啟動相機掃描
+    const html5QrcodeScanner = new Html5QrcodeScanner("reader", { 
+        fps: 15, 
+        qrbox: { width: 250, height: 250 },
+        rememberLastUsedCamera: true,
+        supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA] // 強制使用相機
+    });
     html5QrcodeScanner.render(onScanSuccess);
-</script>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</script>
 </body>
 </html>
