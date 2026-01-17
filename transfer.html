@@ -3,150 +3,148 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>藥品撥補紀錄系統</title>
+    <title>藥品撥補系統 - 長者強化版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         [v-cloak] { display: none; }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        body { background-color: #f1f5f9; }
-        .dropdown-item:active { background-color: #e2e8f0; }
-        .record-card { transition: all 0.2s; cursor: pointer; }
-        .record-card.selected { border-color: #3b82f6; background-color: #eff6ff; }
-        input[type="text"] { min-width: 0; }
-        /* 統一快捷鍵樣式 */
-        .op-btn { @apply bg-white border border-slate-200 text-blue-600 font-black py-3 rounded-xl shadow-sm active:bg-blue-600 active:text-white transition-all text-xl flex-1 flex items-center justify-center; }
-        /* 統一輸入框與選單的大字體樣式 */
-        .huge-control { @apply w-full bg-slate-50 p-5 rounded-2xl font-black text-xl text-slate-700 border-2 border-transparent focus:border-blue-400 outline-none transition-all; }
+        :root { --base-size: 1.1rem; }
+        body { background-color: #f1f5f9; font-size: var(--base-size); transition: font-size 0.2s; }
+        
+        /* 強化版計算機按鈕：粗黑框與深陰影 */
+        .calc-btn { 
+            @apply flex items-center justify-center text-3xl font-black rounded-xl border-2 border-slate-800 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all active:shadow-none active:translate-x-[2px] active:translate-y-[2px];
+            height: 75px;
+        }
+        .btn-num { @apply bg-white text-slate-900; }
+        .btn-op { @apply bg-orange-400 text-white; }
+        .btn-ac { @apply bg-red-500 text-white; }
+        .btn-equal { @apply bg-blue-600 text-white; }
+
+        .huge-control:focus { outline: 4px solid #fbbf24; }
+        .record-card { border-left: 8px solid #cbd5e1; }
+        .record-card.selected { border: 2px solid #2563eb; background-color: #eff6ff; }
+        
+        .nav-btn { @apply bg-white border-2 border-slate-800 rounded-xl flex items-center justify-center shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[1px] active:translate-y-[1px]; }
     </style>
 </head>
-<body class="p-4 pb-12">
-    <div id="app" class="max-w-md mx-auto" v-cloak>
-        <header class="flex justify-between items-center mb-6">
-            <div class="flex items-center gap-2">
-                <a href="search.html" class="bg-white w-10 h-10 rounded-xl shadow-sm flex items-center justify-center hover:bg-slate-100 transition-colors">
-                    <i class="fa-solid fa-arrow-left text-slate-500"></i>
-                </a>
-                <h1 class="text-2xl font-black text-slate-800">藥品撥補</h1>
+<body class="p-4 pb-20">
+    <div id="app" class="max-w-xl mx-auto" v-cloak>
+        
+        <header class="flex justify-between items-center mb-6 gap-4 bg-white p-4 rounded-2xl border-2 border-slate-800 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.1)]">
+            <div class="flex items-center gap-3">
+                <button @click="goBack" class="nav-btn w-12 h-12 text-xl"><i class="fa-solid fa-arrow-left"></i></button>
+                <h1 class="text-2xl font-black">藥品撥補</h1>
             </div>
+            
             <div class="flex gap-2">
-                <button @click="showManager = true" class="bg-white w-10 h-10 rounded-xl shadow-sm flex items-center justify-center text-slate-400">
-                    <i class="fa-solid fa-user-gear"></i>
-                </button>
-                <button @click="exportData" class="text-xs bg-emerald-600 text-white px-3 py-2 rounded-lg font-bold shadow-md">匯出紀錄</button>
+                <button @click="changeFontSize(-0.1)" class="nav-btn px-3 py-1 font-bold text-sm">A-</button>
+                <button @click="changeFontSize(0.1)" class="nav-btn px-3 py-1 font-bold text-lg">A+</button>
+                <button @click="showManager = true" class="nav-btn w-12 h-12 bg-slate-800 text-white"><i class="fa-solid fa-cog"></i></button>
             </div>
         </header>
 
-        <div class="bg-white p-6 rounded-[2rem] shadow-xl border border-slate-100 mb-8 overflow-hidden">
-            
-            <div class="mb-5">
-                <label class="text-xs font-bold text-slate-400 block mb-1 uppercase tracking-wider">撥補人員</label>
-                <div class="relative">
-                    <select v-model="form.user" class="huge-control appearance-none">
-                        <option value="" disabled>請選擇人員...</option>
+        <div class="space-y-6">
+            <section class="bg-white p-6 rounded-[2rem] border-2 border-slate-800 shadow-xl">
+                <div class="mb-5">
+                    <label class="font-bold text-slate-500 block mb-1">撥補人員</label>
+                    <select v-model="form.user" class="w-full bg-slate-100 p-4 rounded-xl font-black text-xl border-2 border-slate-300">
+                        <option value="" disabled>點擊選擇...</option>
                         <option v-for="user in staffList" :key="user" :value="user">{{ user }}</option>
                     </select>
-                    <i class="fa-solid fa-chevron-down absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none text-xl"></i>
-                </div>
-            </div>
-
-            <div class="mb-5 relative">
-                <label class="text-xs font-bold text-slate-400 block mb-1 uppercase tracking-wider">搜尋藥品</label>
-                <div class="relative">
-                    <input v-model="searchQuery" @input="onSearchInput" placeholder="輸入關鍵字..." class="huge-control">
-                    <button v-if="searchQuery" @click="resetForm" class="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300">
-                        <i class="fa-solid fa-circle-xmark text-2xl"></i>
-                    </button>
-                </div>
-                <div v-if="suggestions.length > 0" class="absolute z-50 w-full bg-white shadow-2xl rounded-2xl mt-1 border border-slate-100 max-h-60 overflow-y-auto">
-                    <div v-for="s in suggestions" :key="s.c" @click="selectDrug(s)" class="p-5 border-b border-slate-50 dropdown-item cursor-pointer">
-                        <div class="text-[10px] font-mono text-blue-500 font-bold tracking-widest uppercase">{{ s.c }}</div>
-                        <div class="text-xl font-black text-slate-700">{{ s.n }}</div>
-                    </div>
-                </div>
-            </div>
-
-            <div v-if="form.name" class="bg-blue-50 p-6 rounded-2xl mb-6 border-l-8 border-l-blue-500 shadow-inner">
-                <p class="text-[10px] text-blue-400 font-bold uppercase mb-1">已選定藥品代碼：{{ form.code }}</p>
-                <p class="font-black text-blue-800 leading-tight text-xl">{{ form.name }}</p>
-            </div>
-
-            <div class="mb-8 bg-slate-50 p-5 rounded-3xl border border-slate-100 shadow-inner">
-                <label class="text-xs font-bold text-blue-600 block mb-4 uppercase tracking-widest text-center">撥補數量 (算式如 3*14)</label>
-                
-                <div class="flex gap-2 mb-5">
-                    <button @click="addOp('+')" class="op-btn"><i class="fa-solid fa-plus"></i></button>
-                    <button @click="addOp('-')" class="op-btn"><i class="fa-solid fa-minus"></i></button>
-                    <button @click="addOp('*')" class="op-btn"><i class="fa-solid fa-times"></i></button>
-                    <button @click="addOp('(')" class="op-btn font-black text-xl">(</button>
-                    <button @click="addOp(')')" class="op-btn font-black text-xl">)</button>
                 </div>
 
-                <div class="flex items-center justify-between gap-3">
-                    <button @click="form.qtyStr = ''" class="w-14 h-14 text-red-500 font-black text-2xl shrink-0">AC</button>
-                    <input v-model="form.qtyStr" type="text" inputmode="decimal" placeholder="0" 
-                        class="min-w-0 flex-1 text-center text-4xl font-black bg-transparent outline-none text-blue-700">
-                    <button @click="calculateQty" class="w-14 h-14 bg-blue-600 text-white rounded-xl shadow-lg shrink-0 flex items-center justify-center active:scale-90 transition-transform">
-                        <i class="fa-solid fa-calculator text-xl"></i>
-                    </button>
-                </div>
-            </div>
-
-            <button @click="submitRecord" class="w-full bg-blue-600 text-white py-6 rounded-2xl font-black text-xl shadow-lg active:scale-95 transition-all">
-                <i class="fa-solid fa-paper-plane mr-2"></i>
-                {{ editingId ? '確認修正紀錄' : '確認提交撥補' }}
-            </button>
-        </div>
-
-        <div class="flex justify-between items-center mb-4 px-2">
-            <h3 class="text-slate-400 text-xs font-bold flex items-center gap-2 uppercase tracking-widest">
-                <i class="fa-solid fa-history"></i> 近期撥補紀錄
-            </h3>
-            <button v-if="selectedIds.length > 0" @click="deleteSelected" class="text-[10px] bg-red-500 text-white px-3 py-1.5 rounded-lg font-bold shadow">
-                刪除勾選 ({{ selectedIds.length }})
-            </button>
-        </div>
-
-        <div class="space-y-3 pb-10">
-            <div v-for="log in history" :key="log.id" 
-                @click="toggleSelect(log.id)"
-                :class="['record-card bg-white p-5 rounded-2xl shadow-sm border-2 flex justify-between items-center', selectedIds.includes(log.id) ? 'border-blue-500 bg-blue-50' : 'border-slate-100']">
-                <div class="flex items-center gap-4 min-w-0">
-                    <div class="w-6 h-6 rounded border-2 flex items-center justify-center shrink-0" 
-                        :class="selectedIds.includes(log.id) ? 'bg-blue-500 border-blue-500' : 'border-slate-200 bg-white'">
-                        <i v-if="selectedIds.includes(log.id)" class="fa-solid fa-check text-white text-[10px]"></i>
-                    </div>
-                    <div class="min-w-0">
-                        <div class="flex items-center gap-2 mb-1">
-                            <span class="text-[9px] font-black bg-slate-200 text-slate-600 px-2 py-0.5 rounded uppercase">{{ log.user }}</span>
-                            <span class="text-[10px] text-slate-400 font-mono">{{ log.time }}</span>
+                <div class="mb-5 relative">
+                    <label class="font-bold text-slate-500 block mb-1">搜尋藥品</label>
+                    <input v-model="searchQuery" @input="onSearchInput" placeholder="輸入關鍵字..." class="w-full bg-slate-100 p-4 rounded-xl font-black text-xl border-2 border-slate-300 huge-control">
+                    <div v-if="suggestions.length > 0" class="absolute z-50 w-full bg-white shadow-2xl rounded-xl mt-2 border-2 border-slate-800 max-h-60 overflow-y-auto">
+                        <div v-for="s in suggestions" :key="s.c" @click="selectDrug(s)" class="p-4 border-b border-slate-100 hover:bg-blue-50 cursor-pointer">
+                            <div class="text-blue-600 font-bold text-sm">{{ s.c }}</div>
+                            <div class="text-xl font-black text-slate-800">{{ s.n }}</div>
                         </div>
-                        <p class="font-black text-slate-800 truncate text-base">[{{ log.code }}] {{ log.name }}</p>
                     </div>
                 </div>
-                <div class="flex items-center gap-4 ml-4 shrink-0">
-                    <div class="bg-blue-50 text-blue-600 font-black px-4 py-2 rounded-xl text-xl">+{{ log.qty }}</div>
-                    <button @click.stop="editRecord(log)" class="text-blue-300 hover:text-blue-500 p-2"><i class="fa-solid fa-pen-to-square text-lg"></i></button>
+
+                <div v-if="form.name" class="bg-blue-700 p-5 rounded-xl mb-6 border-2 border-slate-800">
+                    <p class="font-black text-white text-xl">已選：[{{ form.code }}] {{ form.name }}</p>
                 </div>
-            </div>
+
+                <div class="mb-8 bg-slate-200 p-5 rounded-[2rem] border-2 border-slate-800">
+                    <div class="bg-white p-4 rounded-xl border-2 border-slate-800 mb-4 shadow-inner">
+                        <div class="text-right text-5xl font-black text-slate-900 overflow-x-auto h-16 leading-relaxed">
+                            {{ form.qtyStr || '0' }}
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-4 gap-3">
+                        <button @click="form.qtyStr = ''" class="calc-btn btn-ac col-span-2">AC 清除</button>
+                        <button @click="addOp('/')" class="calc-btn btn-op">÷</button>
+                        <button @click="addOp('*')" class="calc-btn btn-op">×</button>
+
+                        <button @click="addNum('7')" class="calc-btn btn-num">7</button>
+                        <button @click="addNum('8')" class="calc-btn btn-num">8</button>
+                        <button @click="addNum('9')" class="calc-btn btn-num">9</button>
+                        <button @click="addOp('-')" class="calc-btn btn-op">-</button>
+
+                        <button @click="addNum('4')" class="calc-btn btn-num">4</button>
+                        <button @click="addNum('5')" class="calc-btn btn-num">5</button>
+                        <button @click="addNum('6')" class="calc-btn btn-num">6</button>
+                        <button @click="addOp('+')" class="calc-btn btn-op">+</button>
+
+                        <button @click="addNum('1')" class="calc-btn btn-num">1</button>
+                        <button @click="addNum('2')" class="calc-btn btn-num">2</button>
+                        <button @click="addNum('3')" class="calc-btn btn-num">3</button>
+                        <button @click="calculateQty" class="calc-btn btn-equal row-span-2 h-auto text-5xl">=</button>
+
+                        <button @click="addNum('0')" class="calc-btn btn-num col-span-2">0</button>
+                        <button @click="addNum('.')" class="calc-btn btn-num">.</button>
+                    </div>
+                </div>
+
+                <button @click="submitRecord" class="w-full bg-emerald-600 text-white py-6 rounded-2xl font-black text-3xl border-4 border-slate-800 shadow-[6px_6px_0px_0px_rgba(0,0,0,0.2)] active:shadow-none active:translate-x-1 active:translate-y-1">
+                    {{ editingId ? '儲存修改' : '確認提交' }}
+                </button>
+            </section>
+
+            <section class="pb-10">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-black text-xl text-slate-600">近期 20 筆撥補</h3>
+                    <input type="date" v-model="filterDate" class="p-2 border-2 border-slate-800 rounded-lg font-bold text-sm">
+                </div>
+
+                <div class="space-y-4">
+                    <div v-for="log in history" :key="log.id" @click="toggleSelect(log.id)"
+                        :class="['record-card bg-white p-4 rounded-xl shadow border-2 border-slate-300 flex justify-between items-center cursor-pointer', selectedIds.includes(log.id) ? 'selected' : '']">
+                        <div class="min-w-0">
+                            <div class="text-[0.8em] font-bold text-slate-400 mb-1">
+                                <span class="bg-slate-700 text-white px-2 py-0.5 rounded">{{ log.user }}</span> {{ log.time }}
+                            </div>
+                            <p class="font-black text-slate-900 truncate text-xl">[{{ log.code }}] {{ log.name }}</p>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div class="bg-blue-600 text-white font-black px-4 py-2 rounded-lg text-2xl">+{{ log.qty }}</div>
+                        </div>
+                    </div>
+                </div>
+                <button @click="exportByDate" class="w-full mt-6 bg-slate-800 text-white py-4 rounded-xl font-black text-xl">匯出 Excel 報表</button>
+            </section>
         </div>
 
-        <div v-if="showManager" class="fixed inset-0 z-[60] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-sm">
-            <div class="bg-white w-full max-w-sm rounded-[2rem] p-8 shadow-2xl flex flex-col max-h-[75vh]">
-                <div class="flex justify-between items-center mb-6 border-b pb-4">
-                    <h2 class="font-black text-xl text-slate-800">人員名單管理</h2>
-                    <button @click="showManager = false" class="text-slate-400 text-3xl">&times;</button>
+        <div v-if="showManager" class="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/70 backdrop-blur-sm">
+            <div class="bg-white w-full max-w-md rounded-3xl p-8 border-4 border-slate-800 shadow-2xl">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="font-black text-2xl">名單管理</h2>
+                    <button @click="showManager = false" class="text-4xl">&times;</button>
                 </div>
                 <div class="flex gap-2 mb-6">
-                    <input v-model="newStaffName" @keyup.enter="addStaff" placeholder="輸入姓名" class="flex-1 bg-slate-50 p-4 rounded-xl outline-none border border-slate-100 font-bold">
-                    <button @click="addStaff" class="bg-blue-600 text-white px-5 rounded-xl font-bold">新增</button>
+                    <input v-model="newStaffName" @keyup.enter="addStaff" placeholder="輸入姓名" class="flex-1 bg-slate-100 p-4 rounded-xl border-2 border-slate-300 font-bold">
+                    <button @click="addStaff" class="bg-blue-600 text-white px-6 rounded-xl font-black">新增</button>
                 </div>
-                <div class="overflow-y-auto space-y-3 no-scrollbar">
-                    <div v-for="(name, idx) in staffList" :key="idx" class="flex justify-between items-center bg-slate-50 p-4 rounded-xl border border-slate-100">
-                        <span class="font-bold text-slate-700 text-lg">{{ name }}</span>
-                        <button @click="removeStaff(idx)" class="text-red-300 hover:text-red-500 text-xl"><i class="fa-solid fa-trash-can"></i></button>
+                <div class="max-h-60 overflow-y-auto space-y-3">
+                    <div v-for="(name, idx) in staffList" :key="idx" class="flex justify-between items-center bg-slate-50 p-4 rounded-xl border-2 border-slate-200">
+                        <span class="font-black text-xl">{{ name }}</span>
+                        <button @click="removeStaff(idx)" class="text-red-500 text-2xl p-2"><i class="fa-solid fa-trash-can"></i></button>
                     </div>
                 </div>
             </div>
@@ -168,8 +166,8 @@
       appId: "1:751378148626:web:5a2d2be1c5f905657457cb"
     };
 
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
+    const fbApp = initializeApp(firebaseConfig);
+    const db = getDatabase(fbApp);
 
     createApp({
         setup() {
@@ -183,10 +181,12 @@
             const staffList = ref([]);
             const showManager = ref(false);
             const newStaffName = ref('');
+            const baseFontSize = ref(1.1);
+            const filterDate = ref(new Date().toISOString().split('T')[0]);
 
             onMounted(() => {
                 onValue(dbRef(db, "warehouse"), s => warehouse.value = s.val() ? Object.values(s.val()) : []);
-                onValue(query(dbRef(db, "transfer_logs"), limitToLast(30)), s => {
+                onValue(query(dbRef(db, "transfer_logs"), limitToLast(20)), s => {
                     history.value = s.val() ? Object.entries(s.val()).map(([id, v]) => ({ id, ...v })).reverse() : [];
                 });
                 onValue(dbRef(db, "staff_list"), s => { if (s.val()) staffList.value = s.val(); });
@@ -194,14 +194,29 @@
                 if (params.get('code')) selectDrug({ c: params.get('code'), n: params.get('name') });
             });
 
-            const addOp = (op) => { form.value.qtyStr += op; };
+            const goBack = () => { window.location.href = 'search.html'; };
+            const changeFontSize = (delta) => {
+                baseFontSize.value = Math.max(0.8, Math.min(2.0, baseFontSize.value + delta));
+                document.documentElement.style.setProperty('--base-size', `${baseFontSize.value}rem`);
+            };
+
+            const addNum = (n) => { form.value.qtyStr += n; };
+            const addOp = (op) => { 
+                const lastChar = form.value.qtyStr.slice(-1);
+                if (['+','-','*','/'].includes(lastChar)) {
+                    form.value.qtyStr = form.value.qtyStr.slice(0, -1) + op;
+                } else if (form.value.qtyStr !== '') {
+                    form.value.qtyStr += op;
+                }
+            };
 
             const calculateQty = () => {
                 if (!form.value.qtyStr) return;
                 try {
                     const sanitized = form.value.qtyStr.replace(/[^0-9+\-*/().]/g, '');
-                    form.value.qtyStr = Math.round(eval(sanitized)).toString();
-                } catch { alert("算式錯誤！"); }
+                    const result = eval(sanitized);
+                    form.value.qtyStr = (Math.round(result * 100) / 100).toString();
+                } catch { alert("算式錯誤！"); form.value.qtyStr = ''; }
             };
 
             const onSearchInput = () => {
@@ -216,22 +231,21 @@
             const submitRecord = async () => {
                 calculateQty();
                 const qty = Number(form.value.qtyStr);
-                if (!form.value.user || !form.value.name || !qty) return alert("資料不完整！");
-                const data = { time: new Date().toLocaleString(), user: form.value.user, code: form.value.code, name: form.value.name, qty: qty };
+                if (!form.value.user || !form.value.name || isNaN(qty)) return alert("請填妥資料");
+                const data = { 
+                    time: new Date().toLocaleString('zh-TW', { hour12: false }), 
+                    user: form.value.user, 
+                    code: form.value.code, 
+                    name: form.value.name, 
+                    qty: qty 
+                };
                 if (editingId.value) {
                     await update(dbRef(db, `transfer_logs/${editingId.value}`), data);
                     editingId.value = null;
                 } else {
                     await push(dbRef(db, "transfer_logs"), data);
                 }
-                form.value.qtyStr = '';
-                alert("完成！");
-            };
-
-            const editRecord = (log) => {
-                form.value = { user: log.user, code: log.code, name: log.name, qtyStr: log.qty.toString() };
-                editingId.value = log.id; searchQuery.value = log.name;
-                window.scrollTo({ top: 0, behavior: 'smooth' });
+                form.value.qtyStr = ''; alert("提交成功！");
             };
 
             const toggleSelect = (id) => {
@@ -239,26 +253,20 @@
                 if (i > -1) selectedIds.value.splice(i, 1); else selectedIds.value.push(id);
             };
 
-            const deleteSelected = async () => {
-                if (confirm(`確定刪除？`)) {
-                    await Promise.all(selectedIds.value.map(id => remove(dbRef(db, `transfer_logs/${id}`))));
-                    selectedIds.value = [];
-                }
-            };
-
-            const exportData = () => {
-                const data = history.value.map(l => ({ '日期': l.time, '人員': l.user, '代碼': l.code, '藥名': l.name, '數量': l.qty }));
-                const ws = XLSX.utils.json_to_sheet(data);
+            const exportByDate = () => {
+                const target = filterDate.value.replace(/-/g, '/');
+                const filtered = history.value.filter(l => l.time.includes(target));
+                if (filtered.length === 0) return alert("當日無紀錄");
+                const ws = XLSX.utils.json_to_sheet(filtered.map(l => ({ '日期': l.time, '人員': l.user, '代碼': l.code, '名稱': l.name, '數量': l.qty })));
                 const wb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(wb, ws, "Data");
-                XLSX.writeFile(wb, "撥補紀錄.xlsx");
+                XLSX.utils.book_append_sheet(wb, ws, "Log");
+                XLSX.writeFile(wb, `撥補紀錄_${filterDate.value}.xlsx`);
             };
 
             const addStaff = () => { if (newStaffName.value.trim()) { staffList.value.push(newStaffName.value.trim()); set(dbRef(db, "staff_list"), staffList.value); newStaffName.value = ''; } };
-            const removeStaff = (idx) => { if (confirm("刪除？")) { staffList.value.splice(idx, 1); set(dbRef(db, "staff_list"), staffList.value); } };
-            const resetForm = () => { searchQuery.value = ''; form.value.name = ''; suggestions.value = []; editingId.value = null; };
+            const removeStaff = (idx) => { if (confirm("確定刪除？")) { staffList.value.splice(idx, 1); set(dbRef(db, "staff_list"), staffList.value); } };
 
-            return { form, searchQuery, suggestions, history, staffList, onSearchInput, selectDrug, calculateQty, submitRecord, editRecord, selectedIds, toggleSelect, deleteSelected, exportData, showManager, newStaffName, addStaff, removeStaff, resetForm, editingId, addOp };
+            return { form, searchQuery, suggestions, history, staffList, onSearchInput, selectDrug, calculateQty, submitRecord, selectedIds, toggleSelect, goBack, filterDate, exportByDate, addNum, addOp, changeFontSize, showManager, newStaffName, addStaff, removeStaff, editingId };
         }
     }).mount('#app');
 </script>
