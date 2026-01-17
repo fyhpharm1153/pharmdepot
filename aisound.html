@@ -3,174 +3,182 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>藥袋語音助手</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://unpkg.com/html5-qrcode"></script>
+    <title>藥品撥補紀錄系統 v1.6.13</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
-        :root { --med-teal: #00897b; --med-dark: #004d40; }
-        body { background-color: #f0f4f3; font-family: "Microsoft JhengHei", sans-serif; }
-        .app-header { background: var(--med-teal); color: white; padding: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        
-        /* 掃描容器：圓角且隱藏溢出 */
-        #scanner-wrapper {
-            position: relative;
-            width: 100%;
-            max-width: 450px;
-            aspect-ratio: 1 / 1;
-            margin: 20px auto;
-            border: 4px solid white;
-            border-radius: 24px;
-            overflow: hidden;
-            background: #000;
-            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
-        }
-        #reader { width: 100%; height: 100%; }
-
-        /* 啟動按鈕：解決瀏覽器安全限制 */
-        #start-btn {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 100;
-            padding: 15px 30px;
-            font-size: 1.2rem;
-            border-radius: 50px;
-        }
-
-        .result-card {
-            background: white;
-            border-radius: 20px;
-            padding: 20px;
-            margin: -40px 15px 20px;
-            position: relative;
-            z-index: 20;
-            display: none;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            animation: slideUp 0.4s ease-out;
-        }
-        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-        
-        .label { color: #888; font-size: 0.9rem; }
-        .value { color: var(--med-dark); font-weight: bold; font-size: 1.3rem; }
+        :root { --base-size: 16px; }
+        [v-cloak] { display: none; }
+        body { background-color: #f1f5f9; font-size: var(--base-size); transition: font-size 0.2s ease; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .huge-control { @apply w-full bg-slate-50 p-4 rounded-2xl font-black text-[1.2em] text-slate-700 border-2 border-transparent focus:border-blue-400 outline-none transition-all; }
+        .route-btn { @apply bg-white border border-slate-200 text-slate-600 font-bold py-2 px-3 rounded-xl text-[0.85em] active:bg-blue-600 active:text-white transition-all shadow-sm; }
+        .font-btn { @apply w-10 h-10 rounded-full border border-slate-200 bg-white flex items-center justify-center text-slate-600 font-bold active:bg-blue-600 active:text-white transition-all shadow-sm; }
+        .op-btn { @apply bg-white border border-slate-200 text-blue-600 font-black py-3 rounded-xl shadow-sm active:bg-blue-600 active:text-white transition-all text-[1.1em] flex-1 flex items-center justify-center; }
     </style>
 </head>
-<body>
-
-<div class="app-header text-center">
-    <h4 class="mb-0">豐原醫院 藥袋掃描助手</h4>
-</div>
-
-<div class="container-fluid">
-    <div id="scanner-wrapper">
-        <div id="reader"></div>
-        <button id="start-btn" class="btn btn-primary shadow" onclick="startScanner()">點擊啟動相機</button>
-    </div>
-
-    <div id="resultCard" class="result-card">
-        <div class="text-center mb-3">
-            <span class="badge rounded-pill bg-success px-3">解析成功</span>
-        </div>
-        <div class="row text-center">
-            <div class="col-6 mb-3">
-                <div class="label">每次數量</div>
-                <div id="res-qty" class="value">-</div>
+<body class="p-4 pb-12">
+    <div id="app" class="max-w-md mx-auto" v-cloak>
+        <div class="flex justify-between items-center mb-6">
+            <div class="flex items-center gap-2">
+                <a href="search.html" class="bg-white w-10 h-10 rounded-xl shadow-sm flex items-center justify-center text-slate-500">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </a>
+                <h1 class="text-[1.2em] font-black text-slate-800">藥品撥補</h1>
             </div>
-            <div class="col-6 mb-3">
-                <div class="label">途徑</div>
-                <div id="res-route" class="value">-</div>
-            </div>
-            <div class="col-12 mb-3">
-                <div class="label">服用頻次</div>
-                <div id="res-freq" class="value">-</div>
+            <div class="flex items-center gap-2">
+                <button @click="changeFont(-2)" class="font-btn">A-</button>
+                <button @click="changeFont(2)" class="font-btn">A+</button>
+                <button @click="showManager = true" class="bg-white w-10 h-10 rounded-xl shadow-sm flex items-center justify-center text-slate-400">
+                    <i class="fa-solid fa-user-gear"></i>
+                </button>
             </div>
         </div>
-        <button class="btn btn-outline-secondary w-100 mt-2" onclick="replayAudio()">🔊 重複朗讀</button>
-    </div>
-</div>
 
-<script>
-    const sigMap = { 'QDPC': '每日一次，飯後服用', 'BID': '每日二次', 'TID': '每日三次', 'HS': '睡前服用', 'QD': '每日一次' };
-    const routeMap = { 'PO': '口服', 'EXT': '外用', 'SL': '舌下含服' };
-    
-    let html5QrCode;
-    let lastText = "";
-
-    // 1. 初始化掃描器 (預設環境鏡頭)
-    function startScanner() {
-        document.getElementById('start-btn').style.display = 'none';
-        html5QrCode = new Html5Qrcode("reader");
-        
-        const config = { 
-            fps: 20,          // 提高掃描幀率，辨識更快
-            qrbox: { width: 250, height: 250 },
-            aspectRatio: 1.0
-        };
-
-        // 強制使用後置鏡頭 { facingMode: "environment" }
-        html5QrCode.start(
-            { facingMode: "environment" }, 
-            config, 
-            onScanSuccess
-        ).catch(err => {
-            alert("相機啟動失敗，請確認是否允許權限");
-            document.getElementById('start-btn').style.display = 'block';
-        });
-
-        // 預熱語音引擎（部分瀏覽器需要）
-        const msg = new SpeechSynthesisUtterance("");
-        window.speechSynthesis.speak(msg);
-    }
-
-    // 2. 辨識成功邏輯
-    function onScanSuccess(decodedText) {
-        // 防止重覆掃描同一個碼
-        if (decodedText === lastText) return;
-        
-        const parts = decodedText.split(';');
-        if (parts.length >= 6) {
-            lastText = decodedText;
+        <div class="bg-white p-6 rounded-[2rem] shadow-xl border border-slate-100 mb-8">
             
-            const qty = parts[3];
-            const freq = sigMap[parts[4]] || parts[4];
-            const route = routeMap[parts[5]] || parts[5];
+            <div class="mb-5">
+                <label class="text-[0.7em] font-bold text-slate-400 block mb-1 uppercase tracking-wider">撥補人員</label>
+                <select v-model="form.user" class="huge-control appearance-none">
+                    <option value="" disabled>請選擇人員...</option>
+                    <option v-for="user in staffList" :key="user" :value="user">{{ user }}</option>
+                </select>
+            </div>
 
-            // UI 更新
-            document.getElementById('res-qty').innerText = qty + " 單位";
-            document.getElementById('res-freq').innerText = freq;
-            document.getElementById('res-route').innerText = route;
-            document.getElementById('resultCard').style.display = 'block';
+            <div class="mb-5 relative">
+                <label class="text-[0.7em] font-bold text-slate-400 block mb-1 uppercase tracking-wider">搜尋藥品</label>
+                <input v-model="searchQuery" @input="onSearchInput" placeholder="輸入關鍵字..." class="huge-control">
+                <div v-if="suggestions.length > 0" class="absolute z-50 w-full bg-white shadow-2xl rounded-2xl mt-1 border border-slate-100 max-h-60 overflow-y-auto">
+                    <div v-for="s in suggestions" :key="s.c" @click="selectDrug(s)" class="p-4 border-b border-slate-50 active:bg-slate-100">
+                        <div class="text-[0.7em] font-mono text-blue-500 font-bold">{{ s.c }}</div>
+                        <div class="text-[1em] font-black text-slate-700">{{ s.n }}</div>
+                    </div>
+                </div>
+            </div>
 
-            // 語音組合
-            const speechText = `你好，這個藥每次服用 ${qty} 單位，時間是 ${freq}，用 ${route} 的方式服用。`;
-            speak(speechText);
+            <div class="mb-5">
+                <label class="text-[0.7em] font-bold text-slate-400 block mb-2 uppercase tracking-wider">給藥途徑</label>
+                
+                <div class="space-y-3 mb-3">
+                    <div class="flex flex-wrap gap-1.5">
+                        <span class="w-full text-[0.6em] font-bold text-slate-300">內服</span>
+                        <button v-for="r in routes.oral" @click="form.route = r" class="route-btn">{{ r }}</button>
+                    </div>
+                    <div class="flex flex-wrap gap-1.5">
+                        <span class="w-full text-[0.6em] font-bold text-slate-300">注射</span>
+                        <button v-for="r in routes.inj" @click="form.route = r" class="route-btn">{{ r }}</button>
+                    </div>
+                    <div class="flex flex-wrap gap-1.5">
+                        <span class="w-full text-[0.6em] font-bold text-slate-300">外用與其他</span>
+                        <button v-for="r in routes.other" @click="form.route = r" class="route-btn">{{ r }}</button>
+                    </div>
+                </div>
+                <input v-model="form.route" placeholder="或手動輸入途徑" class="huge-control">
+            </div>
 
-            // 5秒後重設辨識紀錄，允許掃描下一袋藥
-            setTimeout(() => { lastText = ""; }, 5000);
+            <div class="mb-8 bg-slate-50 p-5 rounded-3xl border border-slate-100 shadow-inner">
+                <label class="text-[0.7em] font-bold text-blue-600 block mb-4 uppercase tracking-widest text-center">撥補數量</label>
+                <div class="flex gap-2 mb-5">
+                    <button @click="addOp('+')" class="op-btn">+</button>
+                    <button @click="addOp('-')" class="op-btn">-</button>
+                    <button @click="addOp('*')" class="op-btn">×</button>
+                    <button @click="addOp('(')" class="op-btn">(</button>
+                    <button @click="addOp(')')" class="op-btn">)</button>
+                </div>
+                <div class="flex items-center justify-between gap-3">
+                    <button @click="form.qtyStr = ''" class="w-14 h-14 text-red-500 font-black text-[1.5em]">AC</button>
+                    <input v-model="form.qtyStr" type="text" inputmode="decimal" placeholder="0" class="min-w-0 flex-1 text-center text-[2.5em] font-black bg-transparent outline-none text-blue-700">
+                    <button @click="calculateQty" class="w-14 h-14 bg-blue-600 text-white rounded-xl shadow-lg flex items-center justify-center">
+                        <i class="fa-solid fa-calculator"></i>
+                    </button>
+                </div>
+            </div>
+
+            <button @click="submitRecord" class="w-full bg-blue-600 text-white py-5 rounded-2xl font-black text-[1.2em] shadow-lg active:scale-95 transition-all">
+                確認提交撥補
+            </button>
+        </div>
+
+        <footer class="mt-8 text-center pb-10 opacity-30">
+            <p class="text-[0.6em] font-mono">System Version 1.6.13 (20260117)</p>
+        </footer>
+    </div>
+
+<script type="module">
+    import { createApp, ref, onMounted } from "https://unpkg.com/vue@3/dist/vue.esm-browser.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getDatabase, ref as dbRef, push, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDZuNztwb9aLG1RqeDOyrj6KJrPhwBFi9M",
+      authDomain: "fyh-pharmacy-inventory.firebaseapp.com",
+      databaseURL: "https://fyh-pharmacy-inventory-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "fyh-pharmacy-inventory",
+      storageBucket: "fyh-pharmacy-inventory.firebasestorage.app",
+      messagingSenderId: "751378148626",
+      appId: "1:751378148626:web:5a2d2be1c5f905657457cb"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    createApp({
+        setup() {
+            const form = ref({ user: '', code: '', name: '', route: '', qtyStr: '' });
+            const searchQuery = ref('');
+            const warehouse = ref([]);
+            const suggestions = ref([]);
+            const staffList = ref([]);
+            const fontSize = ref(16);
+
+            // 分類途徑資料
+            const routes = {
+                oral: ['口服', '舌下', '嚼碎'],
+                inj: ['靜脈注射', '肌肉注射', '皮下注射', '皮內注射'],
+                other: ['外用', '吸入', '點眼', '點耳', '點鼻', '塞劑', '陰道塞劑', '透析液']
+            };
+
+            onMounted(() => {
+                const savedSize = localStorage.getItem('fyh-font-size');
+                if (savedSize) { fontSize.value = parseInt(savedSize); applyFont(); }
+                onValue(dbRef(db, "warehouse"), s => warehouse.value = s.val() ? Object.values(s.val()) : []);
+                onValue(dbRef(db, "staff_list"), s => staffList.value = s.val() || []);
+                const params = new URLSearchParams(window.location.search);
+                if (params.get('code')) {
+                    form.value.code = params.get('code');
+                    form.value.name = params.get('name');
+                    searchQuery.value = params.get('name');
+                }
+            });
+
+            const changeFont = (delta) => { fontSize.value += delta; applyFont(); localStorage.setItem('fyh-font-size', fontSize.value); };
+            const applyFont = () => { document.documentElement.style.setProperty('--base-size', `${fontSize.value}px`); };
+            const onSearchInput = () => {
+                const k = searchQuery.value.trim().toLowerCase();
+                suggestions.value = k ? warehouse.value.filter(i => (i.n?.toLowerCase().includes(k) || i.c?.toLowerCase().includes(k))).slice(0, 10) : [];
+            };
+            const selectDrug = (drug) => { form.value.code = drug.c; form.value.name = drug.n; searchQuery.value = drug.n; suggestions.value = []; };
+            const addOp = (op) => { form.value.qtyStr += op; };
+            const calculateQty = () => { try { form.value.qtyStr = Math.round(eval(form.value.qtyStr.replace(/[^0-9+\-*/().]/g, ''))).toString(); } catch { } };
+            const submitRecord = async () => {
+                calculateQty();
+                if (!form.value.user || !form.value.name || !form.value.qtyStr) return alert("資料不完整！");
+                await push(dbRef(db, "transfer_logs"), { 
+                    time: new Date().toLocaleString(), 
+                    user: form.value.user, 
+                    code: form.value.code, 
+                    name: form.value.name, 
+                    route: form.value.route,
+                    qty: Number(form.value.qtyStr) 
+                });
+                alert("撥補成功！");
+                form.value.qtyStr = '';
+            };
+
+            return { form, searchQuery, suggestions, staffList, routes, onSearchInput, selectDrug, addOp, calculateQty, submitRecord, changeFont };
         }
-    }
-
-    // 3. 真人語音優化
-    function speak(text) {
-        window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(text);
-        
-        // 尋找高品質中文語音
-        const voices = window.speechSynthesis.getVoices();
-        const preferredVoice = voices.find(v => v.lang.includes('zh-TW') && (v.name.includes('Google') || v.name.includes('Premium'))) 
-                              || voices.find(v => v.lang.includes('zh-TW'));
-        
-        if (preferredVoice) utterance.voice = preferredVoice;
-        utterance.lang = 'zh-TW';
-        utterance.rate = 0.85;  // 慢速更清晰
-        utterance.pitch = 1.1;   // 提高音調增加親和力
-        window.speechSynthesis.speak(utterance);
-    }
-
-    function replayAudio() {
-        if (lastText) onScanSuccess(lastText);
-    }
+    }).mount('#app');
 </script>
-
 </body>
 </html>
