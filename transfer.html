@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>藥品撥補系統 - 稽核強化版</title>
+    <title>藥品撥補系統 - 自動帶入強化版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -23,8 +23,6 @@
         .record-card { border-left: 8px solid #cbd5e1; }
         .nav-btn { @apply bg-white border-2 border-slate-800 rounded-xl flex items-center justify-center shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[1px] active:translate-y-[1px]; }
         .modal-overlay { @apply fixed inset-0 z-[150] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm; }
-        
-        /* 修正顯示框：隱藏滾動條但保持捲動功能 */
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
@@ -49,7 +47,7 @@
             
             <section class="bg-white p-6 rounded-[2rem] border-2 border-slate-800 shadow-xl space-y-5">
                 <div>
-                    <label class="font-bold text-slate-500 block mb-1 text-lg">撥補人員 (預設值班人員)</label>
+                    <label class="font-bold text-slate-500 block mb-1 text-lg">撥補人員</label>
                     <select v-model="form.user" class="w-full bg-slate-100 p-4 rounded-xl font-black text-xl border-2 border-slate-300">
                         <option value="值班人員">值班人員</option>
                         <option v-for="user in staffList" :key="user" :value="user">{{ user }}</option>
@@ -126,30 +124,15 @@
                         <i class="fa-solid fa-file-excel mr-2"></i>匯出報表
                     </button>
                     <button @click="showDeletedAudit = !showDeletedAudit" :class="showDeletedAudit ? 'bg-red-600 text-white' : 'bg-white text-red-600'" class="py-4 rounded-xl font-black text-lg border-2 border-red-600 shadow-md transition-colors">
-                        <i class="fa-solid fa-clock-rotate-left mr-2"></i>{{ showDeletedAudit ? '關閉紀錄' : '查看刪除痕跡' }}
+                        <i class="fa-solid fa-clock-rotate-left mr-2"></i>{{ showDeletedAudit ? '關閉紀錄' : '查看刪除' }}
                     </button>
-                </div>
-
-                <div v-if="showDeletedAudit" class="bg-red-50 p-4 rounded-2xl border-2 border-red-200 space-y-3 mt-4 animate-fade-in">
-                    <h4 class="text-red-700 font-black text-lg"><i class="fa-solid fa-triangle-exclamation mr-2"></i>最近 10 筆刪除稽核</h4>
-                    <div v-if="deletedHistory.length === 0" class="text-red-400 font-bold text-center py-4">目前尚無刪除紀錄</div>
-                    <div v-for="dLog in deletedHistory" :key="dLog.id" class="bg-white p-3 rounded-lg border border-red-100 text-sm shadow-sm relative overflow-hidden">
-                        <div class="absolute top-0 right-0 bg-red-600 text-white px-2 py-0.5 text-[10px] font-black uppercase">Deleted</div>
-                        <div class="font-black text-red-600 mb-1">
-                            刪除人員：{{ dLog.deleted_by }} <br>
-                            刪除時間：{{ dLog.deleted_at }}
-                        </div>
-                        <div class="text-slate-500 border-t pt-1 border-dashed mt-1 italic">
-                            原本資料：[{{ dLog.original_record?.code }}] {{ dLog.original_record?.name }} (+{{ dLog.original_record?.qty }})
-                        </div>
-                    </div>
                 </div>
             </section>
         </div>
 
         <div v-if="deletingItem" class="modal-overlay">
             <div class="bg-white w-full max-w-md rounded-3xl p-8 border-4 border-slate-800 shadow-2xl">
-                <h2 class="text-2xl font-black text-red-600 mb-4 text-center italic underline">！！！ 刪除確認 ！！！</h2>
+                <h2 class="text-2xl font-black text-red-600 mb-4 text-center">刪除確認</h2>
                 <div class="bg-slate-100 p-4 rounded-xl mb-6 border-2 border-slate-200">
                     <p class="text-lg font-bold text-slate-700">準備移除：</p>
                     <p class="text-xl font-black">{{ deletingItem.name }} ({{ deletingItem.qty }})</p>
@@ -162,7 +145,7 @@
                 </select>
                 <div class="grid grid-cols-2 gap-4">
                     <button @click="deletingItem = null" class="bg-slate-200 py-4 rounded-xl font-black text-xl border-2 border-slate-300">取消</button>
-                    <button @click="confirmDelete" :disabled="!deleteExecutor" class="bg-red-600 text-white py-4 rounded-xl font-black text-xl border-2 border-slate-800 disabled:opacity-50">確認刪除</button>
+                    <button @click="confirmDelete" :disabled="!deleteExecutor" class="bg-red-600 text-white py-4 rounded-xl font-black text-xl border-2 border-slate-800">確認</button>
                 </div>
             </div>
         </div>
@@ -223,6 +206,7 @@
             const deleteExecutor = ref('');
 
             onMounted(() => {
+                // 讀取 Firebase 基礎資料
                 onValue(dbRef(db, "warehouse"), s => warehouse.value = s.val() ? Object.values(s.val()) : []);
                 onValue(query(dbRef(db, "transfer_logs"), limitToLast(20)), s => {
                     history.value = s.val() ? Object.entries(s.val()).map(([id, v]) => ({ id, ...v })).reverse() : [];
@@ -231,6 +215,16 @@
                     deletedHistory.value = s.val() ? Object.entries(s.val()).map(([id, v]) => ({ id, ...v })).reverse() : [];
                 });
                 onValue(dbRef(db, "staff_list"), s => { if (s.val()) staffList.value = s.val(); });
+
+                // 解析網址參數並自動帶入藥品
+                const params = new URLSearchParams(window.location.search);
+                const pCode = params.get('code');
+                const pName = params.get('name');
+                if (pCode && pName) {
+                    form.value.code = pCode;
+                    form.value.name = pName;
+                    searchQuery.value = pName; 
+                }
             });
 
             const goBack = () => { window.location.href = 'search.html'; };
@@ -251,7 +245,6 @@
                     const s = form.value.qtyStr.replace(/[^0-9+\-*/().]/g, '');
                     const f = ['+','-','*','/'].includes(s.slice(-1)) ? s.slice(0,-1) : s;
                     const res = eval(f);
-                    // 修正：限制小數點位數，避免長數字溢出
                     form.value.qtyStr = (Math.round(res * 100) / 100).toString();
                 } catch { form.value.qtyStr = 'ERROR'; setTimeout(() => form.value.qtyStr = '', 1000); }
             };
@@ -292,17 +285,15 @@
                 await push(dbRef(db, "deleted_logs"), info);
                 await remove(dbRef(db, `transfer_logs/${deletingItem.value.id}`));
                 deletingItem.value = null;
-                alert("刪除成功，稽核紀錄已存檔");
+                alert("刪除成功");
             };
 
             const exportByDate = async () => {
-                const dateObj = new Date(filterDate.value);
-                const y = dateObj.getFullYear(), m = dateObj.getMonth() + 1, d = dateObj.getDate();
-                const targetPattern = `${y}/${m}/${d}`;
                 const snapshot = await get(dbRef(db, "transfer_logs"));
                 if (!snapshot.exists()) return alert("無資料");
-                const all = Object.values(snapshot.val());
-                const filtered = all.filter(l => l.time && (l.time.includes(`${y}/${m < 10 ? '0'+m : m}/${d < 10 ? '0'+d : d}`) || l.time.includes(targetPattern)));
+                const dateObj = new Date(filterDate.value);
+                const target = `${dateObj.getFullYear()}/${(dateObj.getMonth()+1).toString().padStart(2,'0')}/${dateObj.getDate().toString().padStart(2,'0')}`;
+                const filtered = Object.values(snapshot.val()).filter(l => l.time && l.time.includes(target));
                 if (filtered.length === 0) return alert("該日無紀錄");
                 const ws = XLSX.utils.json_to_sheet(filtered.map(l => ({ '日期': l.time, '人員': l.user, '代碼': l.code, '名稱': l.name, '數量': l.qty })));
                 const wb = XLSX.utils.book_new();
