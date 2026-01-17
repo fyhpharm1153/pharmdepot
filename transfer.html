@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="zh-TW" style="font-size: 1.1rem;">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -7,12 +7,12 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
     <style>
         [v-cloak] { display: none; }
-        :root { --base-size: 1.1rem; }
-        body { background-color: #f1f5f9; font-size: var(--base-size); transition: font-size 0.2s; }
+        body { background-color: #f1f5f9; transition: all 0.2s; }
         
-        /* 強化版計算機按鈕：粗黑框與深陰影 */
+        /* 強化版計算機按鈕 */
         .calc-btn { 
             @apply flex items-center justify-center text-3xl font-black rounded-xl border-2 border-slate-800 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all active:shadow-none active:translate-x-[2px] active:translate-y-[2px];
             height: 75px;
@@ -35,12 +35,12 @@
         <header class="flex justify-between items-center mb-6 gap-4 bg-white p-4 rounded-2xl border-2 border-slate-800 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.1)]">
             <div class="flex items-center gap-3">
                 <button @click="goBack" class="nav-btn w-12 h-12 text-xl"><i class="fa-solid fa-arrow-left"></i></button>
-                <h1 class="text-2xl font-black">藥品撥補</h1>
+                <h1 class="text-2xl font-black">藥品撥補系統</h1>
             </div>
             
             <div class="flex gap-2">
-                <button @click="changeFontSize(-0.1)" class="nav-btn px-3 py-1 font-bold text-sm">A-</button>
-                <button @click="changeFontSize(0.1)" class="nav-btn px-3 py-1 font-bold text-lg">A+</button>
+                <button @click="changeFontSize(-0.1)" class="nav-btn px-4 py-1 font-bold text-sm">A-</button>
+                <button @click="changeFontSize(0.1)" class="nav-btn px-4 py-1 font-bold text-lg">A+</button>
                 <button @click="showManager = true" class="nav-btn w-12 h-12 bg-slate-800 text-white"><i class="fa-solid fa-cog"></i></button>
             </div>
         </header>
@@ -51,14 +51,15 @@
                 <div>
                     <label class="font-bold text-slate-500 block mb-1 text-lg">撥補人員</label>
                     <select v-model="form.user" class="w-full bg-slate-100 p-4 rounded-xl font-black text-xl border-2 border-slate-300">
-                        <option value="" disabled>點擊選擇...</option>
+                        <option value="" disabled>請點擊選擇人員...</option>
                         <option v-for="user in staffList" :key="user" :value="user">{{ user }}</option>
                     </select>
                 </div>
 
                 <div class="relative">
                     <label class="font-bold text-slate-500 block mb-1 text-lg">搜尋藥品</label>
-                    <input v-model="searchQuery" @input="onSearchInput" placeholder="輸入關鍵字..." class="w-full bg-slate-100 p-4 rounded-xl font-black text-xl border-2 border-slate-300 huge-control">
+                    <input v-model="searchQuery" @input="onSearchInput" placeholder="輸入藥品關鍵字或代碼..." class="w-full bg-slate-100 p-4 rounded-xl font-black text-xl border-2 border-slate-300 huge-control">
+                    
                     <div v-if="suggestions.length > 0" class="absolute z-50 w-full bg-white shadow-2xl rounded-xl mt-2 border-2 border-slate-800 max-h-60 overflow-y-auto">
                         <div v-for="s in suggestions" :key="s.c" @click="selectDrug(s)" class="p-4 border-b border-slate-100 hover:bg-blue-50 cursor-pointer">
                             <div class="text-blue-600 font-bold text-sm">{{ s.c }}</div>
@@ -104,20 +105,19 @@
                 </div>
 
                 <button @click="submitRecord" class="w-full bg-emerald-600 text-white py-6 rounded-2xl font-black text-3xl border-4 border-slate-800 shadow-[6px_6px_0px_0px_rgba(0,0,0,0.2)] active:shadow-none active:translate-x-1 active:translate-y-1">
-                    {{ editingId ? '儲存修改' : '確認提交' }}
+                    確認提交
                 </button>
             </section>
 
             <section class="space-y-4">
                 <div class="flex justify-between items-center bg-white p-4 rounded-xl border-2 border-slate-800 shadow-md">
-                    <h3 class="font-black text-xl text-slate-600">近期 20 筆紀錄</h3>
-                    <input type="date" v-model="filterDate" class="p-2 border-2 border-slate-800 rounded-lg font-bold text-sm">
+                    <h3 class="font-black text-xl text-slate-600">最近 20 筆紀錄</h3>
+                    <input type="date" v-model="filterDate" class="p-2 border-2 border-slate-800 rounded-lg font-bold">
                 </div>
 
-                <div class="max-h-[800px] overflow-y-auto space-y-4 pr-2">
-                    <div v-for="log in history" :key="log.id"
-                        :class="['record-card bg-white p-4 rounded-xl shadow border-2 border-slate-300 flex justify-between items-center transition-colors', selectedIds.includes(log.id) ? 'selected border-blue-500' : '']">
-                        <div class="min-w-0 flex-1" @click="toggleSelect(log.id)">
+                <div class="max-h-[600px] overflow-y-auto space-y-4 pr-2">
+                    <div v-for="log in history" :key="log.id" class="record-card bg-white p-4 rounded-xl shadow border-2 border-slate-300 flex justify-between items-center">
+                        <div class="min-w-0 flex-1">
                             <div class="text-[0.8em] font-bold text-slate-400 mb-1">
                                 <span class="bg-slate-700 text-white px-2 py-0.5 rounded mr-1">{{ log.user }}</span> {{ log.time }}
                             </div>
@@ -125,8 +125,8 @@
                         </div>
                         <div class="flex items-center gap-4">
                             <div class="bg-blue-600 text-white font-black px-4 py-2 rounded-lg text-2xl">+{{ log.qty }}</div>
-                            <button @click.stop="deleteRecord(log.id)" class="bg-red-100 text-red-600 w-12 h-12 rounded-lg flex items-center justify-center border-2 border-red-200 hover:bg-red-200 transition-colors">
-                                <i class="fa-solid fa-trash-can text-xl"></i>
+                            <button @click="deleteRecord(log.id)" class="bg-red-100 text-red-600 w-12 h-12 rounded-lg flex items-center justify-center border-2 border-red-200">
+                                <i class="fa-solid fa-trash-can"></i>
                             </button>
                         </div>
                     </div>
@@ -141,7 +141,7 @@
         <div v-if="showManager" class="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/70 backdrop-blur-sm">
             <div class="bg-white w-full max-w-md rounded-3xl p-8 border-4 border-slate-800 shadow-2xl">
                 <div class="flex justify-between items-center mb-6">
-                    <h2 class="font-black text-2xl">名單管理</h2>
+                    <h2 class="font-black text-2xl">人員名單管理</h2>
                     <button @click="showManager = false" class="text-4xl">&times;</button>
                 </div>
                 <div class="flex gap-2 mb-6">
@@ -161,8 +161,9 @@
 <script type="module">
     import { createApp, ref, onMounted } from "https://unpkg.com/vue@3/dist/vue.esm-browser.js";
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getDatabase, ref as dbRef, push, remove, query, limitToLast, onValue, update, set } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+    import { getDatabase, ref as dbRef, push, remove, query, limitToLast, onValue, set, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
+    // Firebase 配置
     const firebaseConfig = {
       apiKey: "AIzaSyDZuNztwb9aLG1RqeDOyrj6KJrPhwBFi9M",
       authDomain: "fyh-pharmacy-inventory.firebaseapp.com",
@@ -179,12 +180,10 @@
     createApp({
         setup() {
             const form = ref({ user: '', code: '', name: '', qtyStr: '' });
-            const editingId = ref(null);
             const searchQuery = ref('');
             const warehouse = ref([]);
             const suggestions = ref([]);
             const history = ref([]);
-            const selectedIds = ref([]);
             const staffList = ref([]);
             const showManager = ref(false);
             const newStaffName = ref('');
@@ -192,19 +191,22 @@
             const filterDate = ref(new Date().toISOString().split('T')[0]);
 
             onMounted(() => {
+                // 載入藥品清單
                 onValue(dbRef(db, "warehouse"), s => warehouse.value = s.val() ? Object.values(s.val()) : []);
+                // 監聽最近紀錄 (20筆)
                 onValue(query(dbRef(db, "transfer_logs"), limitToLast(20)), s => {
                     history.value = s.val() ? Object.entries(s.val()).map(([id, v]) => ({ id, ...v })).reverse() : [];
                 });
+                // 載入人員名單
                 onValue(dbRef(db, "staff_list"), s => { if (s.val()) staffList.value = s.val(); });
-                const params = new URLSearchParams(window.location.search);
-                if (params.get('code')) selectDrug({ c: params.get('code'), n: params.get('name') });
             });
 
             const goBack = () => { window.location.href = 'search.html'; };
+            
+            // 修正：控制 HTML 根元素的 font-size
             const changeFontSize = (delta) => {
                 baseFontSize.value = Math.max(0.8, Math.min(2.0, baseFontSize.value + delta));
-                document.documentElement.style.setProperty('--base-size', `${baseFontSize.value}rem`);
+                document.documentElement.style.fontSize = `${baseFontSize.value}rem`;
             };
 
             const addNum = (n) => { form.value.qtyStr += n; };
@@ -220,25 +222,40 @@
             const calculateQty = () => {
                 if (!form.value.qtyStr) return;
                 try {
+                    // 安全過濾
                     const sanitized = form.value.qtyStr.replace(/[^0-9+\-*/().]/g, '');
-                    const result = eval(sanitized);
+                    // 如果最後一個字元是運算子則去掉
+                    const finalStr = ['+','-','*','/'].includes(sanitized.slice(-1)) ? sanitized.slice(0, -1) : sanitized;
+                    const result = eval(finalStr);
                     form.value.qtyStr = (Math.round(result * 100) / 100).toString();
-                } catch { alert("算式錯誤！"); form.value.qtyStr = ''; }
+                } catch { 
+                    alert("算式錯誤！"); 
+                    form.value.qtyStr = ''; 
+                }
             };
 
             const onSearchInput = () => {
                 const k = searchQuery.value.trim().toLowerCase();
-                suggestions.value = k ? warehouse.value.filter(i => (i.n?.toLowerCase().includes(k) || i.c?.toLowerCase().includes(k))).slice(0, 10) : [];
+                suggestions.value = k ? warehouse.value.filter(i => (
+                    (i.n && i.n.toLowerCase().includes(k)) || 
+                    (i.c && i.c.toLowerCase().includes(k))
+                )).slice(0, 10) : [];
             };
 
             const selectDrug = (drug) => {
-                form.value.code = drug.c; form.value.name = drug.n; searchQuery.value = drug.n; suggestions.value = [];
+                form.value.code = drug.c; 
+                form.value.name = drug.n; 
+                searchQuery.value = drug.n; 
+                suggestions.value = [];
             };
 
             const submitRecord = async () => {
                 calculateQty();
                 const qty = Number(form.value.qtyStr);
-                if (!form.value.user || !form.value.name || isNaN(qty) || qty === 0) return alert("請填妥資料及數量");
+                if (!form.value.user || !form.value.name || isNaN(qty) || qty === 0) {
+                    return alert("請檢查：1.撥補人員 2.選擇藥品 3.撥補數量");
+                }
+                
                 const data = { 
                     time: new Date().toLocaleString('zh-TW', { hour12: false }), 
                     user: form.value.user, 
@@ -246,45 +263,84 @@
                     name: form.value.name, 
                     qty: qty 
                 };
-                if (editingId.value) {
-                    await update(dbRef(db, `transfer_logs/${editingId.value}`), data);
-                    editingId.value = null;
-                } else {
+
+                try {
                     await push(dbRef(db, "transfer_logs"), data);
+                    form.value.qtyStr = '';
+                    alert("提交成功！");
+                } catch (e) {
+                    alert("提交失敗：" + e.message);
                 }
-                form.value.qtyStr = ''; alert("提交成功！");
             };
 
-            // 刪除單筆紀錄功能
             const deleteRecord = async (id) => {
-                if(confirm("確定要刪除這筆撥補紀錄嗎？")) {
-                    try {
-                        await remove(dbRef(db, `transfer_logs/${id}`));
-                    } catch (e) {
-                        alert("刪除失敗: " + e.message);
-                    }
+                if(confirm("確定要刪除這筆紀錄嗎？")) {
+                    await remove(dbRef(db, `transfer_logs/${id}`));
                 }
             };
 
-            const toggleSelect = (id) => {
-                const i = selectedIds.value.indexOf(id);
-                if (i > -1) selectedIds.value.splice(i, 1); else selectedIds.value.push(id);
+            // 修正：Excel 匯出邏輯，確保抓取當天所有資料
+            const exportByDate = async () => {
+                if (!filterDate.value) return alert("請先選擇日期");
+                
+                // 將 2026-01-17 轉為 2026/01/17 或 2026/1/17 的格式
+                const dateObj = new Date(filterDate.value);
+                const y = dateObj.getFullYear();
+                const m = dateObj.getMonth() + 1;
+                const d = dateObj.getDate();
+                const targetPattern = `${y}/${m}/${d}`; // 這是 toLocaleString 常見格式
+
+                try {
+                    // 重新抓取完整資料庫內容，而不只是 history 裡的 20 筆
+                    const snapshot = await get(dbRef(db, "transfer_logs"));
+                    if (!snapshot.exists()) return alert("資料庫查無任何紀錄");
+
+                    const allLogs = Object.values(snapshot.val());
+                    const filtered = allLogs.filter(l => l.time && l.time.includes(`${y}/${m < 10 ? '0'+m : m}/${d < 10 ? '0'+d : d}`) || l.time.includes(targetPattern));
+
+                    if (filtered.length === 0) {
+                        return alert(`日期 ${filterDate.value} 查無紀錄，請確認該日是否有進行撥補。`);
+                    }
+
+                    const ws = XLSX.utils.json_to_sheet(filtered.map(l => ({
+                        '日期時間': l.time,
+                        '撥補人員': l.user,
+                        '藥品代碼': l.code,
+                        '藥品名稱': l.name,
+                        '撥補數量': l.qty
+                    })));
+
+                    const wb = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(wb, ws, "撥補明細");
+                    XLSX.writeFile(wb, `藥品撥補紀錄_${filterDate.value}.xlsx`);
+                } catch (error) {
+                    console.error(error);
+                    alert("匯出過程發生錯誤");
+                }
             };
 
-            const exportByDate = () => {
-                const target = filterDate.value.replace(/-/g, '/');
-                const filtered = history.value.filter(l => l.time.includes(target));
-                if (filtered.length === 0) return alert("當日無紀錄");
-                const ws = XLSX.utils.json_to_sheet(filtered.map(l => ({ '日期': l.time, '人員': l.user, '代碼': l.code, '名稱': l.name, '數量': l.qty })));
-                const wb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(wb, ws, "Log");
-                XLSX.writeFile(wb, `撥補紀錄_${filterDate.value}.xlsx`);
+            const addStaff = () => { 
+                if (newStaffName.value.trim()) { 
+                    staffList.value.push(newStaffName.value.trim()); 
+                    set(dbRef(db, "staff_list"), staffList.value); 
+                    newStaffName.value = ''; 
+                } 
+            };
+            
+            const removeStaff = (idx) => { 
+                if (confirm("確定移除此人員？")) { 
+                    staffList.value.splice(idx, 1); 
+                    set(dbRef(db, "staff_list"), staffList.value); 
+                } 
             };
 
-            const addStaff = () => { if (newStaffName.value.trim()) { staffList.value.push(newStaffName.value.trim()); set(dbRef(db, "staff_list"), staffList.value); newStaffName.value = ''; } };
-            const removeStaff = (idx) => { if (confirm("確定刪除？")) { staffList.value.splice(idx, 1); set(dbRef(db, "staff_list"), staffList.value); } };
-
-            return { form, searchQuery, suggestions, history, staffList, onSearchInput, selectDrug, calculateQty, submitRecord, deleteRecord, selectedIds, toggleSelect, goBack, filterDate, exportByDate, addNum, addOp, changeFontSize, showManager, newStaffName, addStaff, removeStaff, editingId };
+            return { 
+                form, searchQuery, suggestions, history, staffList, 
+                onSearchInput, selectDrug, calculateQty, submitRecord, 
+                deleteRecord, goBack, filterDate, exportByDate, 
+                addNum, addOp, changeFontSize, showManager, 
+                newStaffName, addStaff, removeStaff 
+            };
         }
     }).mount('#app');
 </script>
