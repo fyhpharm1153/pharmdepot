@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>藥品撥補系統 - 批次管理版</title>
+    <title>藥品撥補系統 - 穩定修復版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
-    <style>
+    <style type="text/tailwindcss">
         [v-cloak] { display: none; }
         body { background-color: #f1f5f9; transition: all 0.2s; }
         .calc-btn { 
@@ -20,37 +20,28 @@
         .btn-ac { @apply bg-red-500 text-white; }
         .btn-equal { @apply bg-blue-600 text-white; }
         .btn-sign { @apply bg-slate-500 text-white; }
-        .huge-control:focus { outline: 4px solid #fbbf24; }
-        .record-card { border-left: 8px solid #cbd5e1; transition: background-color 0.2s; }
+        .record-card { border-left: 8px solid #cbd5e1; }
         .record-card.selected { @apply bg-blue-50 border-blue-400; }
         .nav-btn { @apply bg-white border-2 border-slate-800 rounded-xl flex items-center justify-center shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[1px] active:translate-y-[1px]; }
         .modal-overlay { @apply fixed inset-0 z-[150] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm; }
-        
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        
-        /* 加大 Checkbox 尺寸 */
         input[type="checkbox"] { transform: scale(1.5); cursor: pointer; }
     </style>
 </head>
 <body class="p-4 pb-20">
     <div id="app" class="max-w-7xl mx-auto" v-cloak>
-        
         <header class="flex justify-between items-center mb-6 gap-4 bg-white p-4 rounded-2xl border-2 border-slate-800 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.1)]">
             <div class="flex items-center gap-3">
                 <button @click="goBack" class="nav-btn w-12 h-12 text-xl"><i class="fa-solid fa-arrow-left"></i></button>
                 <h1 class="text-2xl font-black">藥品撥補系統</h1>
             </div>
-            
             <div class="flex gap-2">
-                <button @click="changeFontSize(-0.1)" class="nav-btn px-4 py-1 font-bold text-sm">A-</button>
-                <button @click="changeFontSize(0.1)" class="nav-btn px-4 py-1 font-bold text-lg">A+</button>
+                <button @click="changeFontSize(-0.1)" class="nav-btn px-4 py-1 font-bold">A-</button>
+                <button @click="changeFontSize(0.1)" class="nav-btn px-4 py-1 font-bold">A+</button>
                 <button @click="showManager = true" class="nav-btn w-12 h-12 bg-slate-800 text-white"><i class="fa-solid fa-cog"></i></button>
             </div>
         </header>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-            
             <section class="bg-white p-6 rounded-[2rem] border-2 border-slate-800 shadow-xl space-y-5">
                 <div>
                     <label class="font-bold text-slate-500 block mb-1 text-lg">撥補人員</label>
@@ -63,17 +54,15 @@
                 <div class="relative">
                     <label class="font-bold text-slate-500 block mb-1 text-lg">搜尋藥品</label>
                     <div class="relative flex items-center">
-                        <input v-model="searchQuery" @input="onSearchInput" placeholder="搜尋藥品名稱或代碼..." 
-                               class="w-full bg-slate-100 p-4 pr-14 rounded-xl font-black text-xl border-2 border-slate-300 huge-control">
+                        <input v-model="searchQuery" @input="onSearchInput" placeholder="搜尋代碼或名稱..." class="w-full bg-slate-100 p-4 pr-14 rounded-xl font-black text-xl border-2 border-slate-300">
                         <button v-if="searchQuery" @click="clearSearch" class="absolute right-4 text-slate-400 hover:text-red-500">
                             <i class="fa-solid fa-circle-xmark text-2xl"></i>
                         </button>
                     </div>
-                    
                     <div v-if="suggestions.length > 0" class="absolute z-50 w-full bg-white shadow-2xl rounded-xl mt-2 border-2 border-slate-800 max-h-60 overflow-y-auto">
                         <div v-for="s in suggestions" :key="s.c" @click="selectDrug(s)" class="p-4 border-b border-slate-100 hover:bg-blue-50 cursor-pointer">
                             <div class="text-blue-600 font-bold text-sm">{{ s.c }}</div>
-                            <div class="text-xl font-black text-slate-800">{{ s.n }}</div>
+                            <div class="text-xl font-black">{{ s.n }}</div>
                         </div>
                     </div>
                 </div>
@@ -83,33 +72,28 @@
                 </div>
 
                 <div class="bg-slate-200 p-5 rounded-[2rem] border-2 border-slate-800">
-                    <div class="bg-white p-4 rounded-xl border-2 border-slate-800 mb-4 shadow-inner overflow-hidden">
-                        <div class="text-right text-4xl md:text-5xl font-black text-slate-900 whitespace-nowrap overflow-x-auto no-scrollbar py-2" style="min-height: 1.5em;">
+                    <div class="bg-white p-4 rounded-xl border-2 border-slate-800 mb-4 shadow-inner">
+                        <div class="text-right text-4xl md:text-5xl font-black text-slate-900 overflow-x-auto py-2">
                             {{ form.qtyStr || '0' }}
                         </div>
                     </div>
-                    
                     <div class="grid grid-cols-4 gap-3">
                         <button @click="form.qtyStr = ''" class="calc-btn btn-ac col-span-2">AC</button>
                         <button @click="toggleSign" class="calc-btn btn-sign">+/-</button>
                         <button @click="addOp('/')" class="calc-btn btn-op">÷</button>
-                        
                         <button v-for="n in ['7','8','9']" @click="addNum(n)" class="calc-btn btn-num">{{n}}</button>
                         <button @click="addOp('*')" class="calc-btn btn-op">×</button>
-                        
                         <button v-for="n in ['4','5','6']" @click="addNum(n)" class="calc-btn btn-num">{{n}}</button>
                         <button @click="addOp('-')" class="calc-btn btn-op">-</button>
-                        
                         <button v-for="n in ['1','2','3']" @click="addNum(n)" class="calc-btn btn-num">{{n}}</button>
                         <button @click="addOp('+')" class="calc-btn btn-op">+</button>
-                        
                         <button @click="addNum('0')" class="calc-btn btn-num col-span-2">0</button>
                         <button @click="addNum('.')" class="calc-btn btn-num">.</button>
                         <button @click="calculateQty" class="calc-btn btn-equal text-5xl">=</button>
                     </div>
                 </div>
 
-                <button @click="submitRecord" class="w-full bg-emerald-600 text-white py-6 rounded-2xl font-black text-3xl border-4 border-slate-800 shadow-[6px_6px_0px_0px_rgba(0,0,0,0.2)] active:shadow-none active:translate-x-1">
+                <button @click="submitRecord" class="w-full bg-emerald-600 text-white py-6 rounded-2xl font-black text-3xl border-4 border-slate-800 shadow-[6px_6px_0px_0px_rgba(0,0,0,0.2)]">
                     確認提交
                 </button>
             </section>
@@ -120,50 +104,42 @@
                         <h3 class="font-black text-xl text-slate-600">最近紀錄</h3>
                         <input type="date" v-model="filterDate" class="p-2 border-2 border-slate-800 rounded-lg font-bold">
                     </div>
-                    
-                    <div class="flex items-center justify-between bg-slate-50 p-2 rounded-lg border border-slate-200">
-                        <label class="flex items-center gap-2 cursor-pointer font-bold text-slate-600 ml-2">
+                    <div class="flex items-center justify-between bg-slate-50 p-2 rounded-lg border">
+                        <label class="flex items-center gap-2 cursor-pointer font-bold ml-2">
                             <input type="checkbox" :checked="isAllSelected" @change="toggleSelectAll"> 全選
                         </label>
-                        <button v-if="selectedIds.length > 0" @click="batchDelete" 
-                                class="bg-red-600 text-white px-4 py-2 rounded-lg font-black text-sm shadow-md animate-bounce">
-                            <i class="fa-solid fa-trash-can mr-1"></i> 刪除選中 ({{ selectedIds.length }})
+                        <button v-if="selectedIds.length > 0" @click="batchDelete" class="bg-red-600 text-white px-4 py-2 rounded-lg font-black text-sm">
+                            刪除勾選 ({{ selectedIds.length }})
                         </button>
                     </div>
                 </div>
 
-                <div class="max-h-[500px] overflow-y-auto space-y-4 pr-2 no-scrollbar">
-                    <div v-for="log in history" :key="log.id" 
-                         :class="['record-card bg-white p-4 rounded-xl shadow border-2 border-slate-300 flex items-center gap-4', { 'selected': selectedIds.includes(log.id) }]">
-                        
+                <div class="max-h-[500px] overflow-y-auto space-y-4 pr-2">
+                    <div v-for="log in history" :key="log.id" :class="['record-card bg-white p-4 rounded-xl shadow border-2 border-slate-300 flex items-center gap-4', { 'selected': selectedIds.includes(log.id) }]">
                         <input type="checkbox" :value="log.id" v-model="selectedIds">
-
-                        <div class="min-w-0 flex-1">
-                            <div class="text-[0.8em] font-bold text-slate-400 mb-1">
-                                <span class="bg-slate-700 text-white px-2 py-0.5 rounded mr-1">{{ log.user }}</span> {{ log.time }}
+                        <div class="flex-1">
+                            <div class="text-[0.8em] font-bold text-slate-400">
+                                <span class="bg-slate-700 text-white px-2 py-0.5 rounded">{{ log.user }}</span> {{ log.time }}
                             </div>
-                            <p class="font-black text-slate-900 truncate text-xl">[{{ log.code }}] {{ log.name }}</p>
+                            <p class="font-black text-slate-900 text-xl">[{{ log.code }}] {{ log.name }}</p>
                         </div>
-                        <div class="flex items-center gap-4">
+                        <div class="flex items-center gap-3">
                             <div :class="log.qty > 0 ? 'bg-blue-600' : 'bg-orange-600'" class="text-white font-black px-4 py-2 rounded-lg text-2xl">
                                 {{ log.qty > 0 ? '+' : '' }}{{ log.qty }}
                             </div>
-                            <button @click="deleteSingle(log)" class="bg-red-100 text-red-600 w-12 h-12 rounded-lg flex items-center justify-center border-2 border-red-200">
+                            <button @click="deleteSingle(log)" class="bg-red-100 text-red-600 w-12 h-12 rounded-lg flex items-center justify-center">
                                 <i class="fa-solid fa-trash-can"></i>
                             </button>
                         </div>
                     </div>
-                    <div v-if="history.length === 0" class="text-center py-10 text-slate-400 italic font-bold">
-                        今日尚無紀錄
-                    </div>
                 </div>
 
                 <div class="grid grid-cols-2 gap-3">
-                    <button @click="exportByDate" class="bg-slate-800 text-white py-4 rounded-xl font-black text-lg border-2 border-slate-900 shadow-md">
+                    <button @click="exportByDate" class="bg-slate-800 text-white py-4 rounded-xl font-black">
                         <i class="fa-solid fa-file-excel mr-2"></i>匯出報表
                     </button>
-                    <button @click="showDeletedAudit = !showDeletedAudit" :class="showDeletedAudit ? 'bg-red-600 text-white' : 'bg-white text-red-600'" class="py-4 rounded-xl font-black text-lg border-2 border-red-600 shadow-md transition-colors">
-                        <i class="fa-solid fa-clock-rotate-left mr-2"></i>{{ showDeletedAudit ? '關閉紀錄' : '查看刪除' }}
+                    <button @click="showDeletedAudit = !showDeletedAudit" :class="showDeletedAudit ? 'bg-red-600 text-white' : 'bg-white text-red-600'" class="py-4 rounded-xl font-black border-2 border-red-600">
+                        稽核紀錄
                     </button>
                 </div>
             </section>
@@ -176,13 +152,13 @@
                     <button @click="showManager = false" class="text-4xl">&times;</button>
                 </div>
                 <div class="flex gap-2 mb-6">
-                    <input v-model="newStaffName" @keyup.enter="addStaff" placeholder="輸入姓名" class="flex-1 bg-slate-100 p-4 rounded-xl border-2 border-slate-300 font-bold">
-                    <button @click="addStaff" class="bg-blue-600 text-white px-6 rounded-xl font-black text-base">新增</button>
+                    <input v-model="newStaffName" @keyup.enter="addStaff" placeholder="輸入姓名" class="flex-1 p-4 rounded-xl border-2">
+                    <button @click="addStaff" class="bg-blue-600 text-white px-6 rounded-xl font-black">新增</button>
                 </div>
-                <div class="max-h-60 overflow-y-auto space-y-3">
-                    <div v-for="(name, idx) in staffList" :key="idx" class="flex justify-between items-center bg-slate-50 p-4 rounded-xl border-2 border-slate-200">
-                        <span class="font-black text-xl">{{ name }}</span>
-                        <button @click="removeStaff(idx)" class="text-red-500 text-2xl p-2"><i class="fa-solid fa-trash-can"></i></button>
+                <div class="max-h-60 overflow-y-auto space-y-2">
+                    <div v-for="(name, idx) in staffList" :key="idx" class="flex justify-between p-3 border-b">
+                        <span class="font-bold">{{ name }}</span>
+                        <button @click="removeStaff(idx)" class="text-red-500"><i class="fa-solid fa-trash"></i></button>
                     </div>
                 </div>
             </div>
@@ -220,13 +196,11 @@
             const newStaffName = ref('');
             const baseFontSize = ref(1.1);
             const filterDate = ref(new Date().toISOString().split('T')[0]);
-            
-            // 批次選擇
             const selectedIds = ref([]);
 
             onMounted(() => {
                 onValue(dbRef(db, "warehouse"), s => warehouse.value = s.val() ? Object.values(s.val()) : []);
-                onValue(query(dbRef(db, "transfer_logs"), limitToLast(30)), s => {
+                onValue(query(dbRef(db, "transfer_logs"), limitToLast(50)), s => {
                     history.value = s.val() ? Object.entries(s.val()).map(([id, v]) => ({ id, ...v })).reverse() : [];
                 });
                 onValue(dbRef(db, "staff_list"), s => { if (s.val()) staffList.value = s.val(); });
@@ -239,64 +213,26 @@
                 }
             });
 
-            // 批次邏輯
-            const isAllSelected = computed(() => {
-                return history.value.length > 0 && selectedIds.value.length === history.value.length;
-            });
-
-            const toggleSelectAll = () => {
-                if (isAllSelected.value) selectedIds.value = [];
-                else selectedIds.value = history.value.map(log => log.id);
-            };
-
-            // 單筆直接刪除 (取消彈窗)
-            const deleteSingle = async (log) => {
-                const info = {
-                    deleted_at: new Date().toLocaleString('zh-TW', { hour12: false }),
-                    deleted_by: form.value.user,
-                    original_record: { ...log }
-                };
-                await push(dbRef(db, "deleted_logs"), info);
-                await remove(dbRef(db, `transfer_logs/${log.id}`));
-            };
-
-            // 批次刪除
-            const batchDelete = async () => {
-                if (confirm(`確定要刪除選中的 ${selectedIds.value.length} 筆紀錄嗎？`)) {
-                    const logsToDelete = history.value.filter(log => selectedIds.value.includes(log.id));
-                    
-                    for (const log of logsToDelete) {
-                        const info = {
-                            deleted_at: new Date().toLocaleString('zh-TW', { hour12: false }),
-                            deleted_by: form.value.user,
-                            original_record: { ...log }
-                        };
-                        await push(dbRef(db, "deleted_logs"), info);
-                        await remove(dbRef(db, `transfer_logs/${log.id}`));
-                    }
-                    selectedIds.value = [];
-                }
-            };
-
-            const goBack = () => { window.location.href = 'search.html'; };
+            const isAllSelected = computed(() => history.value.length > 0 && selectedIds.value.length === history.value.length);
+            const toggleSelectAll = () => { selectedIds.value = isAllSelected.value ? [] : history.value.map(l => l.id); };
             const clearSearch = () => { searchQuery.value = ''; suggestions.value = []; };
             const toggleSign = () => {
                 if (form.value.qtyStr.startsWith('-')) form.value.qtyStr = form.value.qtyStr.substring(1);
-                else form.value.qtyStr = '-' + form.value.qtyStr;
+                else if (form.value.qtyStr) form.value.qtyStr = '-' + form.value.qtyStr;
             };
 
             const calculateQty = () => {
                 try {
-                    const s = form.value.qtyStr.replace(/[^0-9+\-*/().]/g, '');
-                    const f = ['+','-','*','/'].includes(s.slice(-1)) ? s.slice(0,-1) : s;
-                    const res = eval(f);
+                    let s = form.value.qtyStr.replace(/[^0-9+\-*/().]/g, '');
+                    if (['+','-','*','/'].includes(s.slice(-1))) s = s.slice(0,-1);
+                    const res = eval(s);
                     form.value.qtyStr = (Math.round(res * 100) / 100).toString();
-                } catch { form.value.qtyStr = 'ERROR'; setTimeout(() => form.value.qtyStr = '', 1000); }
+                } catch { form.value.qtyStr = ''; }
             };
 
             const onSearchInput = () => {
                 const k = searchQuery.value.trim().toLowerCase();
-                suggestions.value = k ? warehouse.value.filter(i => (i.n?.toLowerCase().includes(k) || i.c?.toLowerCase().includes(k))).slice(0, 10) : [];
+                suggestions.value = k ? warehouse.value.filter(i => i.n?.toLowerCase().includes(k) || i.c?.toLowerCase().includes(k)).slice(0, 10) : [];
             };
 
             const selectDrug = (drug) => {
@@ -306,7 +242,8 @@
             const submitRecord = async () => {
                 calculateQty();
                 const qty = Number(form.value.qtyStr);
-                if (!form.value.user || !form.name || isNaN(qty) || qty === 0) return alert("請檢查藥品與數量");
+                // 修正 2: 這裡必須使用 form.value.name
+                if (!form.value.user || !form.value.name || isNaN(qty) || qty === 0) return alert("請檢查藥品與數量");
                 const data = { 
                     time: new Date().toLocaleString('zh-TW', { hour12: false }), 
                     user: form.value.user, code: form.value.code, name: form.value.name, qty: qty 
@@ -315,24 +252,44 @@
                 form.value.qtyStr = '';
             };
 
+            const deleteSingle = async (log) => {
+                const info = { dTime: new Date().toLocaleString(), by: form.value.user, old: log };
+                await push(dbRef(db, "deleted_logs"), info);
+                await remove(dbRef(db, `transfer_logs/${log.id}`));
+            };
+
+            const batchDelete = async () => {
+                if (!confirm(`確定刪除 ${selectedIds.value.length} 筆？`)) return;
+                for (const id of selectedIds.value) {
+                    const log = history.value.find(l => l.id === id);
+                    if (log) await deleteSingle(log);
+                }
+                selectedIds.value = [];
+            };
+
             const exportByDate = async () => {
                 const snapshot = await get(dbRef(db, "transfer_logs"));
                 if (!snapshot.exists()) return alert("無資料");
                 const d = new Date(filterDate.value);
-                const target = `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`;
-                const filtered = Object.values(snapshot.val()).filter(l => l.time && l.time.split(' ')[0].split('/').map(Number).join('/') === target);
-                if (filtered.length === 0) return alert("該日無紀錄");
-                const ws = XLSX.utils.json_to_sheet(filtered.map(l => ({ '時間': l.time, '人員': l.user, '代碼': l.code, '名稱': l.name, '數量': l.qty })));
+                const target = `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;
+                const filtered = Object.values(snapshot.val()).filter(l => {
+                    if (!l.time) return false;
+                    const logDate = l.time.split(' ')[0].split('/').map(Number).join('/');
+                    return logDate === target;
+                });
+                if (filtered.length === 0) return alert("無紀錄");
+                const ws = XLSX.utils.json_to_sheet(filtered.map(l => ({ '日期時間': l.time, '人員': l.user, '代碼': l.code, '名稱': l.name, '數量': l.qty })));
                 const wb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(wb, ws, "撥補");
+                XLSX.utils.book_append_sheet(wb, ws, "撥補紀錄");
                 XLSX.writeFile(wb, `撥補紀錄_${filterDate.value}.xlsx`);
             };
 
-            const addStaff = () => { if (newStaffName.value.trim()) { staffList.value.push(newStaffName.value.trim()); set(dbRef(db, "staff_list"), staffList.value); newStaffName.value = ''; } };
-            const removeStaff = (idx) => { if (confirm("移除？")) { staffList.value.splice(idx, 1); set(dbRef(db, "staff_list"), staffList.value); } };
+            const goBack = () => { window.location.href = 'search.html'; };
             const changeFontSize = (delta) => { baseFontSize.value += delta; document.documentElement.style.fontSize = `${baseFontSize.value}rem`; };
+            const addStaff = () => { if (newStaffName.value.trim()) { staffList.value.push(newStaffName.value.trim()); set(dbRef(db, "staff_list"), staffList.value); newStaffName.value = ''; } };
+            const removeStaff = (idx) => staffList.value.splice(idx, 1) && set(dbRef(db, "staff_list"), staffList.value);
 
-            return { form, searchQuery, suggestions, history, staffList, onSearchInput, selectDrug, calculateQty, submitRecord, goBack, filterDate, exportByDate, addNum: (n) => form.value.qtyStr += n, addOp, toggleSign, changeFontSize, showManager, newStaffName, addStaff, removeStaff, showDeletedAudit, clearSearch, selectedIds, isAllSelected, toggleSelectAll, deleteSingle, batchDelete };
+            return { form, searchQuery, suggestions, history, staffList, onSearchInput, selectDrug, calculateQty, submitRecord, goBack, filterDate, exportByDate, addNum: (n) => form.value.qtyStr += n, addOp: (op) => form.value.qtyStr += op, toggleSign, changeFontSize, showManager, newStaffName, addStaff, removeStaff, showDeletedAudit, clearSearch, selectedIds, isAllSelected, toggleSelectAll, deleteSingle, batchDelete };
         }
     }).mount('#app');
 </script>
