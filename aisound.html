@@ -3,90 +3,108 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>藥袋多語語音助手</title>
+    <title>藥袋語音系統 - 豐原醫院修正版</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        :root { --med-teal: #00796b; }
-        body { background-color: #f1f3f4; font-family: sans-serif; }
+        :root { --med-teal: #00796b; --med-dark: #004d40; }
+        body { background-color: #f1f3f4; font-family: "PingFang TC", sans-serif; }
         .app-header { background: var(--med-teal); color: white; padding: 15px; text-align: center; }
-        .container-box { max-width: 500px; margin: auto; padding: 15px; }
-        #reader { width: 100%; border-radius: 20px; overflow: hidden; background: #000; }
-        .result-card { background: white; border-radius: 20px; padding: 20px; margin-top: 20px; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+
+        /* 掃描區域與方框 */
+        #scanner-wrapper {
+            position: relative; width: 100%; max-width: 450px; aspect-ratio: 1 / 1;
+            margin: 10px auto; background: #000; overflow: hidden; border-radius: 20px;
+        }
+        .scan-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 10;
+            background: rgba(0, 0, 0, 0.4);
+            -webkit-mask: radial-gradient(circle, transparent 125px, black 125px);
+            mask: radial-gradient(circle, transparent 125px, black 125px);
+        }
+        .scan-box {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 250px; height: 250px; border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 15px; z-index: 11; pointer-events: none;
+        }
+        .scan-box::before, .scan-box::after { content: ""; position: absolute; width: 30px; height: 30px; border: 4px solid #00ffcc; }
+        .corner-tl { top: -2px; left: -2px; border-right: none; border-bottom: none; border-top-left-radius: 12px; }
+        .corner-tr { top: -2px; right: -2px; border-left: none; border-bottom: none; border-top-right-radius: 12px; }
+        .corner-bl { bottom: -2px; left: -2px; border-right: none; border-top: none; border-bottom-left-radius: 12px; }
+        .corner-br { bottom: -2px; right: -2px; border-left: none; border-top: none; border-bottom-right-radius: 12px; }
+
+        .lang-selector { background: white; border-radius: 15px; padding: 15px; margin: 10px; }
+        .result-card {
+            background: white; border-radius: 20px; padding: 25px; margin: 10px;
+            display: none; box-shadow: 0 10px 30px rgba(0,0,0,0.1); border-top: 5px solid var(--med-teal);
+        }
         .label { color: #666; font-size: 0.85rem; }
-        .value { color: #004d40; font-weight: bold; font-size: 1.3rem; }
+        .value { color: var(--med-dark); font-weight: bold; font-size: 1.4rem; }
+        #start-btn { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 100; }
     </style>
 </head>
 <body>
 
-<div class="app-header"><h5>藥袋語音輔助 (多語版)</h5></div>
+<div class="app-header"><h5>藥袋語音掃描系統</h5></div>
 
-<div class="container-box">
-    <div class="card p-3 mb-3">
-        <label class="label mb-2">選擇語音語言 (Language):</label>
-        <select id="langSelect" class="form-select form-select-lg">
-            <option value="zh-TW">中文 (國語)</option>
-            <option value="nan-TW" selected>台語 (英文拼音模擬)</option>
-            <option value="en-US">English (英文)</option>
-            <option value="vi-VN">Tiếng Việt (越南文)</option>
-            <option value="id-ID">Bahasa Indonesia (印尼文)</option>
-            <option value="th-TH">ภาษาไทย (泰文)</option>
-        </select>
-    </div>
+<div class="lang-selector">
+    <label class="label mb-2">請選擇語言 (Select Language):</label>
+    <select id="langSelect" class="form-select form-select-lg">
+        <option value="zh-TW">中文 (國語)</option>
+        <option value="nan-TW" selected>台語 (英文拼音模擬)</option>
+        <option value="vi-VN">Tiếng Việt (越南文)</option>
+        <option value="id-ID">Bahasa Indonesia (印尼文)</option>
+        <option value="th-TH">ภาษาไทย (泰文)</option>
+        <option value="en-US">English (英文)</option>
+    </select>
+</div>
 
+<div id="scanner-wrapper">
     <div id="reader"></div>
-    <div class="text-center mt-3">
-        <button id="start-btn" class="btn btn-primary px-5 py-2 rounded-pill" onclick="startScanner()">啟動掃描器</button>
+    <div class="scan-overlay"></div>
+    <div class="scan-box">
+        <div class="corner-tl"></div><div class="corner-tr"></div>
+        <div class="corner-bl"></div><div class="corner-br"></div>
     </div>
+    <button id="start-btn" class="btn btn-primary btn-lg px-4" onclick="startScanner()">點擊啟動相機</button>
+</div>
 
-    <div id="resultCard" class="result-card">
-        <div class="mb-3">
-            <div class="label">服用途徑 (Route)</div>
-            <div id="res-route" class="value">-</div>
-        </div>
-        <div>
-            <div class="label">服用時間 (Frequency)</div>
-            <div id="res-freq" class="value">-</div>
-        </div>
-        <button class="btn btn-outline-secondary w-100 mt-3" onclick="replayAudio()">🔊 重新播放</button>
+<div id="resultCard" class="result-card">
+    <div class="mb-3">
+        <div class="label">服用途徑 (Route)</div>
+        <div id="res-route" class="value">-</div>
     </div>
+    <div>
+        <div class="label">服用時間 (Frequency)</div>
+        <div id="res-freq" class="value">-</div>
+    </div>
+    <button class="btn btn-outline-secondary w-100 mt-4" onclick="replayAudio()">🔊 重新播放</button>
 </div>
 
 <script>
-    // 拼音對照表
     const translations = {
-        'zh-TW': {
-            lang: 'zh-TW', welcome: '您好，這個藥', use: '方式是',
-            'QDPC': { display: '每日一次，飯後服用', speech: '每日一次，飯後服用' },
-            'PO': { display: '口服', speech: '口服' }
-        },
-        'nan-TW': { 
-            lang: 'en-US', // 使用英文引擎來讀拼音
-            welcome: 'Li-ho, Jiy-kuan yo-ah', // 哩厚，這款藥仔
-            use: 'chi-ah h-ah shi',            // 食法是
-            'QDPC': { display: '逐工一改，食飽才食', speech: 'Tak-kang chit-kai, chiah-pah chiah chiah' },
-            'BID': { display: '逐工兩改', speech: 'Tak-kang n-ng kai' },
-            'TID': { display: '逐工三改', speech: 'Tak-kang sha-ah kai' },
-            'HS': { display: '欲愛睏前食', speech: 'Beh-khun shin chiah' },
-            'PO': { display: '用食的', speech: 'yong chiah eh' },
-            'EXT': { display: '外用', speech: 'guah-yong eh' }
-        },
-        'en-US': {
-            lang: 'en-US', welcome: 'Hello, this medicine', use: 'Take it by',
-            'QDPC': { display: 'Once daily after meals', speech: 'Once daily after meals' },
-            'PO': { display: 'Oral', speech: 'Oral' }
-        }
+        'zh-TW': { engine: 'zh', welcome: '您好，這個藥', use: '方式是', 'QDPC': { d: '每日一次，飯後服用', s: '每日一次，飯後服用' }, 'PO': { d: '口服', s: '口服' } },
+        'nan-TW': { engine: 'en', welcome: 'Li-ho, Jiy-kuan yo-ah', use: 'chi-ah h-ah shi', 'QDPC': { d: '逐工一改，食飽才食', s: 'Tak-kang chit-kai, chiah-pah chiah chiah' }, 'BID': { d: '逐工兩改', s: 'Tak-kang n-ng kai' }, 'PO': { d: '用食的', s: 'yong chiah eh' } },
+        'vi-VN': { engine: 'vi', welcome: 'Xin chào, thuốc này', use: 'cách dùng là', 'QDPC': { d: 'Mỗi ngày một lần sau khi ăn', s: 'Mỗi ngày một lần sau khi ăn' }, 'PO': { d: 'Đường uống', s: 'Đường uống' } },
+        'id-ID': { engine: 'id', welcome: 'Halo, obat ini', use: 'cara pakainya', 'QDPC': { d: 'Sekali sehari setelah makan', s: 'Sekali sehari setelah makan' }, 'PO': { d: 'Diminum', s: 'Diminum' } },
+        'th-TH': { engine: 'th', welcome: 'สวัสดีค่ะ ยาตัวนี้', use: 'วิธีการคือ', 'QDPC': { d: 'วันละหนึ่งครั้ง หลังอาหาร', s: 'วันละหนึ่งครั้ง หลังอาหาร' }, 'PO': { d: 'รับประทาน', s: 'รับประทาน' } },
+        'en-US': { engine: 'en', welcome: 'Hello, this medicine', use: 'way to use is', 'QDPC': { d: 'Once daily after meals', s: 'Once daily after meals' }, 'PO': { d: 'Oral', s: 'Oral' } }
     };
 
     let html5QrCode;
     let lastText = "";
-    let speechQueue = { text: "", lang: "" };
+    let currentSpeech = { text: "", lang: "" };
 
     function startScanner() {
         document.getElementById('start-btn').style.display = 'none';
         html5QrCode = new Html5Qrcode("reader");
-        html5QrCode.start({ facingMode: "environment" }, { fps: 20, qrbox: 250 }, onScanSuccess);
-        window.speechSynthesis.speak(new SpeechSynthesisUtterance(""));
+        html5QrCode.start({ facingMode: "environment" }, { fps: 20, qrbox: { width: 250, height: 250 } }, onScanSuccess);
+        
+        // 關鍵：啟動時先載入語音包（修正 iOS/Chrome 不發聲或語音跑掉的問題）
+        window.speechSynthesis.getVoices();
+        const silence = new SpeechSynthesisUtterance("");
+        window.speechSynthesis.speak(silence);
     }
 
     function onScanSuccess(decodedText) {
@@ -97,34 +115,47 @@
             const langKey = document.getElementById('langSelect').value;
             const dict = translations[langKey] || translations['zh-TW'];
 
-            const freqObj = dict[parts[4]] || { display: parts[4], speech: parts[4] };
-            const routeObj = dict[parts[5]] || { display: parts[5], speech: parts[5] };
+            const freq = dict[parts[4]] || { d: parts[4], s: parts[4] };
+            const route = dict[parts[5]] || { d: parts[5], s: parts[5] };
 
-            document.getElementById('res-freq').innerText = freqObj.display;
-            document.getElementById('res-route').innerText = routeObj.display;
+            document.getElementById('res-freq').innerText = freq.d;
+            document.getElementById('res-route').innerText = route.d;
             document.getElementById('resultCard').style.display = 'block';
 
-            // 組合語音
-            const speechText = `${dict['welcome']}, ${freqObj.speech}, ${dict['use']}, ${routeObj.speech}`;
-            speechQueue = { text: speechText, lang: dict.lang };
+            currentSpeech.text = `${dict.welcome}, ${freq.s}, ${dict.use}, ${route.s}`;
+            currentSpeech.lang = dict.engine; // 傳送引擎關鍵字 (zh, en, vi...)
             
-            speak(speechQueue.text, speechQueue.lang);
+            speak(currentSpeech.text, currentSpeech.lang);
             setTimeout(() => { lastText = ""; }, 5000);
         }
     }
 
-    function speak(text, lang) {
+    function speak(text, engineKey) {
         window.speechSynthesis.cancel();
         const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = lang;
-        utterance.rate = 0.75; // 拼音讀法建議語速更慢一點
-        utterance.pitch = 1.0;
+        
+        // 強制搜尋匹配的語音引擎
+        const voices = window.speechSynthesis.getVoices();
+        const targetVoice = voices.find(v => v.lang.toLowerCase().startsWith(engineKey.toLowerCase()));
+        
+        if (targetVoice) {
+            utterance.voice = targetVoice;
+            utterance.lang = targetVoice.lang;
+        } else {
+            // 如果找不到特定引擎，至少設定語系代碼
+            utterance.lang = engineKey === 'en' ? 'en-US' : (engineKey === 'zh' ? 'zh-TW' : engineKey);
+        }
+
+        utterance.rate = (engineKey === 'en') ? 0.75 : 0.85; // 英文拼音讀台語時放慢
         window.speechSynthesis.speak(utterance);
     }
 
     function replayAudio() {
-        if (speechQueue.text) speak(speechQueue.text, speechQueue.lang);
+        if (currentSpeech.text) speak(currentSpeech.text, currentSpeech.lang);
     }
+
+    // 解決 Chrome 語音載入延遲的監聽
+    window.speechSynthesis.onvoiceschanged = () => { window.speechSynthesis.getVoices(); };
 </script>
 </body>
 </html>
