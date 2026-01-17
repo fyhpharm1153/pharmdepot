@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>藥品撥補系統 - 撥補/退回強化版</title>
+    <title>藥品撥補系統 - 搜尋優化版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -58,7 +58,15 @@
 
                 <div class="relative">
                     <label class="font-bold text-slate-500 block mb-1 text-lg">搜尋藥品</label>
-                    <input v-model="searchQuery" @input="onSearchInput" placeholder="搜尋藥品名稱或代碼..." class="w-full bg-slate-100 p-4 rounded-xl font-black text-xl border-2 border-slate-300 huge-control">
+                    <div class="relative flex items-center">
+                        <input v-model="searchQuery" @input="onSearchInput" placeholder="搜尋藥品名稱或代碼..." 
+                               class="w-full bg-slate-100 p-4 pr-14 rounded-xl font-black text-xl border-2 border-slate-300 huge-control">
+                        <button v-if="searchQuery" @click="clearSearch" 
+                                class="absolute right-4 text-slate-400 hover:text-red-500 transition-colors">
+                            <i class="fa-solid fa-circle-xmark text-2xl"></i>
+                        </button>
+                    </div>
+                    
                     <div v-if="suggestions.length > 0" class="absolute z-50 w-full bg-white shadow-2xl rounded-xl mt-2 border-2 border-slate-800 max-h-60 overflow-y-auto">
                         <div v-for="s in suggestions" :key="s.c" @click="selectDrug(s)" class="p-4 border-b border-slate-100 hover:bg-blue-50 cursor-pointer">
                             <div class="text-blue-600 font-bold text-sm">{{ s.c }}</div>
@@ -235,6 +243,13 @@
             });
 
             const goBack = () => { window.location.href = 'search.html'; };
+            
+            // 新增清除搜尋功能
+            const clearSearch = () => {
+                searchQuery.value = '';
+                suggestions.value = [];
+            };
+
             const changeFontSize = (delta) => {
                 baseFontSize.value = Math.max(0.8, Math.min(2.0, baseFontSize.value + delta));
                 document.documentElement.style.fontSize = `${baseFontSize.value}rem`;
@@ -247,7 +262,6 @@
                 else if (form.value.qtyStr) form.value.qtyStr += op;
             };
             
-            // 新增正負號切換功能
             const toggleSign = () => {
                 if (form.value.qtyStr.startsWith('-')) {
                     form.value.qtyStr = form.value.qtyStr.substring(1);
@@ -258,7 +272,6 @@
 
             const calculateQty = () => {
                 try {
-                    // 修正正則表達式，允許開頭負號
                     const s = form.value.qtyStr.replace(/[^0-9+\-*/().]/g, '');
                     const f = ['+','-','*','/'].includes(s.slice(-1)) ? s.slice(0,-1) : s;
                     const res = eval(f);
@@ -278,7 +291,6 @@
             const submitRecord = async () => {
                 calculateQty();
                 const qty = Number(form.value.qtyStr);
-                // 修改檢查：qty 只要不是 0 即可 (允許正負數)
                 if (!form.value.user || !form.value.name || isNaN(qty) || qty === 0) return alert("請檢查藥品與數量");
                 const data = { 
                     time: new Date().toLocaleString('zh-TW', { hour12: false }), 
@@ -315,10 +327,9 @@
                 const m = d.getMonth() + 1;
                 const day = d.getDate();
                 
-                // 改進的日期過濾邏輯：相容 2026/1/17 與 2026/01/17 格式
                 const filtered = Object.values(snapshot.val()).filter(l => {
                     if (!l.time) return false;
-                    const logDate = l.time.split(' ')[0]; // 取得 "2026/1/17" 部分
+                    const logDate = l.time.split(' ')[0]; 
                     const parts = logDate.split('/');
                     return parts[0] == y && parts[1] == m && parts[2] == day;
                 });
@@ -341,7 +352,7 @@
             const addStaff = () => { if (newStaffName.value.trim()) { staffList.value.push(newStaffName.value.trim()); set(dbRef(db, "staff_list"), staffList.value); newStaffName.value = ''; } };
             const removeStaff = (idx) => { if (confirm("移除？")) { staffList.value.splice(idx, 1); set(dbRef(db, "staff_list"), staffList.value); } };
 
-            return { form, searchQuery, suggestions, history, staffList, onSearchInput, selectDrug, calculateQty, submitRecord, goBack, filterDate, exportByDate, addNum, addOp, toggleSign, changeFontSize, showManager, newStaffName, addStaff, removeStaff, deletingItem, deleteExecutor, prepareDelete, confirmDelete, deletedHistory, showDeletedAudit };
+            return { form, searchQuery, suggestions, history, staffList, onSearchInput, selectDrug, calculateQty, submitRecord, goBack, filterDate, exportByDate, addNum, addOp, toggleSign, changeFontSize, showManager, newStaffName, addStaff, removeStaff, deletingItem, deleteExecutor, prepareDelete, confirmDelete, deletedHistory, showDeletedAudit, clearSearch };
         }
     }).mount('#app');
 </script>
