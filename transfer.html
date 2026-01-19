@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>藥品撥補系統 - 穩定修復版</title>
+    <title>藥品撥補系統 - 智慧記憶版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -17,7 +17,8 @@
         }
         .btn-num { @apply bg-white text-slate-900; }
         .btn-op { @apply bg-orange-400 text-white; }
-        .btn-ac { @apply bg-red-500 text-white; }
+        .btn-ac { @apply bg-red-600 text-white; }
+        .btn-del { @apply bg-red-400 text-white; }
         .btn-equal { @apply bg-blue-600 text-white; }
         .btn-sign { @apply bg-slate-500 text-white; }
         .record-card { border-left: 8px solid #cbd5e1; }
@@ -25,6 +26,9 @@
         .nav-btn { @apply bg-white border-2 border-slate-800 rounded-xl flex items-center justify-center shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[1px] active:translate-y-[1px]; }
         .modal-overlay { @apply fixed inset-0 z-[150] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm; }
         input[type="checkbox"] { transform: scale(1.5); cursor: pointer; }
+        
+        .calc-container { transition: all 0.3s ease-in-out; max-height: 1000px; overflow: hidden; }
+        .calc-container.hidden-calc { max-height: 0; opacity: 0; margin-top: 0; }
     </style>
 </head>
 <body class="p-4 pb-20">
@@ -44,8 +48,8 @@
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
             <section class="bg-white p-6 rounded-[2rem] border-2 border-slate-800 shadow-xl space-y-5">
                 <div>
-                    <label class="font-bold text-slate-500 block mb-1 text-lg">撥補人員</label>
-                    <select v-model="form.user" class="w-full bg-slate-100 p-4 rounded-xl font-black text-xl border-2 border-slate-300">
+                    <label class="font-bold text-slate-500 block mb-1 text-lg">撥補人員 <span class="text-xs text-blue-500 font-normal ml-2">已啟用自動記憶</span></label>
+                    <select v-model="form.user" @change="saveUserPreference" class="w-full bg-slate-100 p-4 rounded-xl font-black text-xl border-2 border-slate-300">
                         <option value="值班人員">值班人員</option>
                         <option v-for="user in staffList" :key="user" :value="user">{{ user }}</option>
                     </select>
@@ -54,7 +58,7 @@
                 <div class="relative">
                     <label class="font-bold text-slate-500 block mb-1 text-lg">搜尋藥品</label>
                     <div class="relative flex items-center">
-                        <input v-model="searchQuery" @input="onSearchInput" placeholder="搜尋代碼或名稱..." class="w-full bg-slate-100 p-4 pr-14 rounded-xl font-black text-xl border-2 border-slate-300">
+                        <input v-model="searchQuery" @input="onSearchInput" placeholder="搜尋代碼或名稱..." class="w-full bg-slate-100 p-4 pr-14 rounded-xl font-black text-xl border-2 border-slate-300 outline-none focus:border-blue-500">
                         <button v-if="searchQuery" @click="clearSearch" class="absolute right-4 text-slate-400 hover:text-red-500">
                             <i class="fa-solid fa-circle-xmark text-2xl"></i>
                         </button>
@@ -72,24 +76,39 @@
                 </div>
 
                 <div class="bg-slate-200 p-5 rounded-[2rem] border-2 border-slate-800">
-                    <div class="bg-white p-4 rounded-xl border-2 border-slate-800 mb-4 shadow-inner">
-                        <div class="text-right text-4xl md:text-5xl font-black text-slate-900 overflow-x-auto py-2">
+                    <div class="flex justify-between items-end mb-4">
+                        <label class="font-black text-slate-600 text-lg ml-2">撥補數量</label>
+                        <button @click="showCalc = !showCalc" class="flex items-center gap-2 bg-white px-3 py-1 rounded-lg border-2 border-slate-800 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-sm font-bold active:shadow-none active:translate-x-[1px]">
+                            <i class="fa-solid" :class="showCalc ? 'fa-keyboard' : 'fa-calculator'"></i>
+                            {{ showCalc ? '隱藏計算機' : '顯示計算機' }}
+                        </button>
+                    </div>
+
+                    <div class="bg-white p-4 rounded-xl border-2 border-slate-800 mb-4 shadow-inner relative">
+                        <div class="text-right text-4xl md:text-5xl font-black text-slate-900 overflow-x-auto py-2 min-h-[1.5em]">
                             {{ form.qtyStr || '0' }}
                         </div>
+                        <div v-if="!showCalc" class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 text-[10px] font-bold pointer-events-none">
+                            支援鍵盤 (Esc:清除 / Back:退格)
+                        </div>
                     </div>
-                    <div class="grid grid-cols-4 gap-3">
-                        <button @click="form.qtyStr = ''" class="calc-btn btn-ac col-span-2">AC</button>
-                        <button @click="toggleSign" class="calc-btn btn-sign">+/-</button>
-                        <button @click="addOp('/')" class="calc-btn btn-op">÷</button>
-                        <button v-for="n in ['7','8','9']" @click="addNum(n)" class="calc-btn btn-num">{{n}}</button>
-                        <button @click="addOp('*')" class="calc-btn btn-op">×</button>
-                        <button v-for="n in ['4','5','6']" @click="addNum(n)" class="calc-btn btn-num">{{n}}</button>
-                        <button @click="addOp('-')" class="calc-btn btn-op">-</button>
-                        <button v-for="n in ['1','2','3']" @click="addNum(n)" class="calc-btn btn-num">{{n}}</button>
-                        <button @click="addOp('+')" class="calc-btn btn-op">+</button>
-                        <button @click="addNum('0')" class="calc-btn btn-num col-span-2">0</button>
-                        <button @click="addNum('.')" class="calc-btn btn-num">.</button>
-                        <button @click="calculateQty" class="calc-btn btn-equal text-5xl">=</button>
+
+                    <div :class="['calc-container', { 'hidden-calc': !showCalc }]">
+                        <div class="grid grid-cols-4 gap-3">
+                            <button @click="form.qtyStr = ''" class="calc-btn btn-ac">AC</button>
+                            <button @click="deleteLast" class="calc-btn btn-del"><i class="fa-solid fa-delete-left"></i></button>
+                            <button @click="toggleSign" class="calc-btn btn-sign">+/-</button>
+                            <button @click="addOp('/')" class="calc-btn btn-op">÷</button>
+                            <button v-for="n in ['7','8','9']" @click="addNum(n)" class="calc-btn btn-num">{{n}}</button>
+                            <button @click="addOp('*')" class="calc-btn btn-op">×</button>
+                            <button v-for="n in ['4','5','6']" @click="addNum(n)" class="calc-btn btn-num">{{n}}</button>
+                            <button @click="addOp('-')" class="calc-btn btn-op">-</button>
+                            <button v-for="n in ['1','2','3']" @click="addNum(n)" class="calc-btn btn-num">{{n}}</button>
+                            <button @click="addOp('+')" class="calc-btn btn-op">+</button>
+                            <button @click="addNum('0')" class="calc-btn btn-num col-span-2">0</button>
+                            <button @click="addNum('.')" class="calc-btn btn-num">.</button>
+                            <button @click="calculateQty" class="calc-btn btn-equal text-5xl">=</button>
+                        </div>
                     </div>
                 </div>
 
@@ -114,7 +133,7 @@
                     </div>
                 </div>
 
-                <div class="max-h-[500px] overflow-y-auto space-y-4 pr-2">
+                <div class="max-h-[600px] overflow-y-auto space-y-4 pr-2">
                     <div v-for="log in history" :key="log.id" :class="['record-card bg-white p-4 rounded-xl shadow border-2 border-slate-300 flex items-center gap-4', { 'selected': selectedIds.includes(log.id) }]">
                         <input type="checkbox" :value="log.id" v-model="selectedIds">
                         <div class="flex-1">
@@ -166,7 +185,7 @@
     </div>
 
 <script type="module">
-    import { createApp, ref, computed, onMounted } from "https://unpkg.com/vue@3/dist/vue.esm-browser.js";
+    import { createApp, ref, computed, onMounted, onUnmounted } from "https://unpkg.com/vue@3/dist/vue.esm-browser.js";
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getDatabase, ref as dbRef, push, remove, query, limitToLast, onValue, set, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
@@ -192,42 +211,79 @@
             const history = ref([]);
             const staffList = ref([]);
             const showManager = ref(false);
+            const showCalc = ref(true);
             const showDeletedAudit = ref(false);
             const newStaffName = ref('');
             const baseFontSize = ref(1.1);
             const filterDate = ref(new Date().toISOString().split('T')[0]);
             const selectedIds = ref([]);
 
+            const deleteLast = () => {
+                const s = form.value.qtyStr.toString();
+                form.value.qtyStr = s.length > 0 ? s.slice(0, -1) : '';
+            };
+
+            const handleKeyboard = (e) => {
+                if (['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
+                const key = e.key;
+                if (/[0-9]/.test(key)) addNum(key);
+                else if (['+', '-', '*', '/'].includes(key)) addOp(key);
+                else if (key === '.') addNum('.');
+                else if (key === 'Enter' || key === '=') { e.preventDefault(); calculateQty(); }
+                else if (key === 'Backspace') { e.preventDefault(); deleteLast(); }
+                else if (key === 'Delete' || key === 'Escape') { e.preventDefault(); form.value.qtyStr = ''; }
+            };
+
+            // 記憶功能：儲存人員選擇
+            const saveUserPreference = () => {
+                localStorage.setItem('preferred_user', form.value.user);
+            };
+
             onMounted(() => {
                 onValue(dbRef(db, "warehouse"), s => warehouse.value = s.val() ? Object.values(s.val()) : []);
                 onValue(query(dbRef(db, "transfer_logs"), limitToLast(50)), s => {
                     history.value = s.val() ? Object.entries(s.val()).map(([id, v]) => ({ id, ...v })).reverse() : [];
                 });
-                onValue(dbRef(db, "staff_list"), s => { if (s.val()) staffList.value = s.val(); });
-
+                onValue(dbRef(db, "staff_list"), s => { 
+                    if (s.val()) {
+                        staffList.value = s.val();
+                        // 記憶功能：在名單載入後，嘗試恢復上次的人員選擇
+                        const savedUser = localStorage.getItem('preferred_user');
+                        if (savedUser && (staffList.value.includes(savedUser) || savedUser === '值班人員')) {
+                            form.value.user = savedUser;
+                        }
+                    }
+                });
+                window.addEventListener('keydown', handleKeyboard);
+                
                 const params = new URLSearchParams(window.location.search);
-                if (params.get('code') && params.get('name')) {
+                if (params.get('code')) {
                     form.value.code = params.get('code');
                     form.value.name = params.get('name');
-                    searchQuery.value = params.get('name'); 
+                    searchQuery.value = params.get('name');
                 }
             });
+
+            onUnmounted(() => window.removeEventListener('keydown', handleKeyboard));
 
             const isAllSelected = computed(() => history.value.length > 0 && selectedIds.value.length === history.value.length);
             const toggleSelectAll = () => { selectedIds.value = isAllSelected.value ? [] : history.value.map(l => l.id); };
             const clearSearch = () => { searchQuery.value = ''; suggestions.value = []; };
             const toggleSign = () => {
-                if (form.value.qtyStr.startsWith('-')) form.value.qtyStr = form.value.qtyStr.substring(1);
-                else if (form.value.qtyStr) form.value.qtyStr = '-' + form.value.qtyStr;
+                let s = form.value.qtyStr.toString();
+                form.value.qtyStr = s.startsWith('-') ? s.substring(1) : (s && s !== '0' ? '-' + s : s);
             };
 
             const calculateQty = () => {
                 try {
-                    let s = form.value.qtyStr.replace(/[^0-9+\-*/().]/g, '');
+                    let s = form.value.qtyStr.toString().replace(/[^0-9+\-*/().]/g, '');
                     if (['+','-','*','/'].includes(s.slice(-1))) s = s.slice(0,-1);
+                    if (!s) return;
                     const res = eval(s);
                     form.value.qtyStr = (Math.round(res * 100) / 100).toString();
-                } catch { form.value.qtyStr = ''; }
+                } catch { 
+                    form.value.qtyStr = '';
+                }
             };
 
             const onSearchInput = () => {
@@ -242,7 +298,6 @@
             const submitRecord = async () => {
                 calculateQty();
                 const qty = Number(form.value.qtyStr);
-                // 修正 2: 這裡必須使用 form.value.name
                 if (!form.value.user || !form.value.name || isNaN(qty) || qty === 0) return alert("請檢查藥品與數量");
                 const data = { 
                     time: new Date().toLocaleString('zh-TW', { hour12: false }), 
@@ -250,9 +305,11 @@
                 };
                 await push(dbRef(db, "transfer_logs"), data);
                 form.value.qtyStr = '';
+                alert("提交成功！");
             };
 
             const deleteSingle = async (log) => {
+                if(!confirm("確定要刪除這筆紀錄嗎？")) return;
                 const info = { dTime: new Date().toLocaleString(), by: form.value.user, old: log };
                 await push(dbRef(db, "deleted_logs"), info);
                 await remove(dbRef(db, `transfer_logs/${log.id}`));
@@ -262,7 +319,11 @@
                 if (!confirm(`確定刪除 ${selectedIds.value.length} 筆？`)) return;
                 for (const id of selectedIds.value) {
                     const log = history.value.find(l => l.id === id);
-                    if (log) await deleteSingle(log);
+                    if (log) {
+                        const info = { dTime: new Date().toLocaleString(), by: form.value.user, old: log };
+                        await push(dbRef(db, "deleted_logs"), info);
+                        await remove(dbRef(db, `transfer_logs/${id}`));
+                    }
                 }
                 selectedIds.value = [];
             };
@@ -289,7 +350,17 @@
             const addStaff = () => { if (newStaffName.value.trim()) { staffList.value.push(newStaffName.value.trim()); set(dbRef(db, "staff_list"), staffList.value); newStaffName.value = ''; } };
             const removeStaff = (idx) => staffList.value.splice(idx, 1) && set(dbRef(db, "staff_list"), staffList.value);
 
-            return { form, searchQuery, suggestions, history, staffList, onSearchInput, selectDrug, calculateQty, submitRecord, goBack, filterDate, exportByDate, addNum: (n) => form.value.qtyStr += n, addOp: (op) => form.value.qtyStr += op, toggleSign, changeFontSize, showManager, newStaffName, addStaff, removeStaff, showDeletedAudit, clearSearch, selectedIds, isAllSelected, toggleSelectAll, deleteSingle, batchDelete };
+            const addNum = (n) => form.value.qtyStr = (form.value.qtyStr === '0' ? n : form.value.qtyStr + n);
+            const addOp = (op) => form.value.qtyStr += op;
+
+            return { 
+                form, searchQuery, suggestions, history, staffList, onSearchInput, selectDrug, 
+                calculateQty, submitRecord, goBack, filterDate, exportByDate, 
+                addNum, addOp, toggleSign, changeFontSize, 
+                showManager, newStaffName, addStaff, removeStaff, 
+                showDeletedAudit, clearSearch, selectedIds, isAllSelected, toggleSelectAll, 
+                deleteSingle, batchDelete, showCalc, deleteLast, saveUserPreference 
+            };
         }
     }).mount('#app');
 </script>
