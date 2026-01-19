@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>藥劑科-儲位查詢與撥補導引 v1.7.1</title>
+    <title>藥劑科-儲位查詢與撥補導引 v1.7.2</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -17,7 +17,6 @@
         }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        
         .results-grid {
             display: grid;
             grid-template-columns: repeat(1, minmax(0, 1fr));
@@ -28,7 +27,6 @@
                 grid-template-columns: repeat(2, minmax(0, 1fr));
             }
         }
-
         .result-card:active { transform: scale(0.99); }
         .edit-input { @apply border-2 border-blue-400 rounded px-1 py-0.5 w-full text-center font-bold text-blue-800 bg-white; }
         .font-btn { @apply w-10 h-10 rounded-full border border-slate-200 bg-white flex items-center justify-center text-slate-600 font-bold active:bg-blue-600 active:text-white transition-all shadow-sm; }
@@ -64,7 +62,7 @@
                 </div>
             </div>
         </div>
-        
+
         <div class="flex gap-2 mt-4 overflow-x-auto no-scrollbar py-1">
             <button v-for="cat in categories" :key="cat" @click="selectedCat = cat"
                 :class="selectedCat === cat ? 'bg-blue-500 text-white shadow-md' : 'bg-white text-slate-500 border border-slate-200'"
@@ -81,9 +79,7 @@
 
     <div v-if="filteredResults.length > 0" class="results-grid pb-10">
         <div v-for="(item, index) in filteredResults" :key="item.key + index" class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 relative">
-            
             <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
-                
                 <div class="flex-1 cursor-pointer" @click="handleItemClick(item)">
                     <div class="text-[0.6em] font-mono font-bold text-slate-400 mb-1 flex items-center gap-1">
                         {{ item.code }}
@@ -97,12 +93,12 @@
 
                 <div class="flex items-center justify-end gap-2 shrink-0">
                     <div class="flex gap-1">
-                        <div :class="item.zone === '藥庫' ? 'bg-amber-50 border-amber-200 text-amber-800' : (item.isNewDrug ? 'bg-purple-50 border-purple-200 text-purple-800' : 'bg-blue-50 border-blue-200 text-blue-800')"
+                        <div :class="item.zone === '藥庫' ? 'bg-amber-50 border-amber-200 text-amber-800' : (item.isNewDrug ? 'bg-purple-50 border-purple-200 text-purple-800' : 'bg-blue-50 border-blue-200 text-blue-800')" 
                              class="w-24 h-20 flex flex-col justify-center items-center border rounded-xl shadow-sm text-center">
                             <span class="text-[0.6em] font-bold opacity-60 mb-0.5 uppercase tracking-tighter">區域</span>
                             <span class="text-[0.85em] font-black leading-tight">{{ getDisplayZone(item.zone) }}</span>
                         </div>
-                        <div :class="item.zone === '藥庫' ? 'bg-orange-50 border-orange-200 text-orange-800' : (item.isNewDrug ? 'bg-fuchsia-50 border-fuchsia-200 text-fuchsia-800' : 'bg-red-50 border-red-200 text-red-800')"
+                        <div :class="item.zone === '藥庫' ? 'bg-orange-50 border-orange-200 text-orange-800' : (item.isNewDrug ? 'bg-fuchsia-50 border-fuchsia-200 text-fuchsia-800' : 'bg-red-50 border-red-200 text-red-800')" 
                              class="w-24 h-20 flex flex-col justify-center items-center border rounded-xl shadow-sm">
                             <span class="text-[0.6em] font-bold opacity-60 mb-0.5 uppercase tracking-tighter">儲位</span>
                             <span class="text-[1.2em] font-black tracking-tighter">{{ item.shelf || '無' }}</span>
@@ -114,18 +110,16 @@
                         <button v-else @click.stop="saveEdit(item.key)" class="text-green-500 p-2"><i class="fa-solid fa-check-circle text-xl"></i></button>
                     </div>
                 </div>
-
             </div>
         </div>
     </div>
-    
     <div v-else class="text-center py-20 text-slate-400">
         <i class="fa-solid fa-box-open text-4xl mb-4 opacity-20"></i>
         <p class="text-[1em]">{{ keyword ? '查無相關藥品' : '請輸入關鍵字搜尋' }}</p>
     </div>
 
     <footer class="mt-8 text-center pb-10 opacity-30">
-        <p class="text-[0.6em] font-mono">System Version 1.7.1.Integrated</p>
+        <p class="text-[0.6em] font-mono">System Version 1.7.2.QuickJump</p>
     </footer>
 </div>
 
@@ -169,6 +163,18 @@
             };
 
             onMounted(() => {
+                // --- 新增：讀取網址參數邏輯 ---
+                const urlParams = new URLSearchParams(window.location.search);
+                const catParam = urlParams.get('cat');
+                if (catParam && categories.includes(catParam)) {
+                    selectedCat.value = catParam;
+                }
+                const queryParam = urlParams.get('q');
+                if (queryParam) {
+                    keyword.value = queryParam;
+                }
+                // --------------------------
+
                 const savedFont = localStorage.getItem('fyh-font-size');
                 if (savedFont) {
                     currentFontSize.value = parseInt(savedFont);
