@@ -28,7 +28,11 @@
             }
         }
         .result-card:active { transform: scale(0.99); }
-        .edit-input { @apply border-2 border-blue-400 rounded px-1 py-0.5 w-full text-center font-bold text-blue-800 bg-white; }
+        /* 修正編輯輸入框樣式 */
+        .edit-input { 
+            @apply border-2 border-blue-400 rounded px-1 py-0.5 w-full text-center font-bold text-blue-800 bg-white;
+            outline: none;
+        }
         .font-btn { @apply w-10 h-10 rounded-full border border-slate-200 bg-white flex items-center justify-center text-slate-600 font-bold active:bg-blue-600 active:text-white transition-all shadow-sm; }
     </style>
 </head>
@@ -96,23 +100,35 @@
                         <div :class="item.zone === '藥庫' ? 'bg-amber-50 border-amber-200 text-amber-800' : (item.isNewDrug ? 'bg-purple-50 border-purple-200 text-purple-800' : 'bg-blue-50 border-blue-200 text-blue-800')" 
                              class="w-24 h-20 flex flex-col justify-center items-center border rounded-xl shadow-sm text-center">
                             <span class="text-[0.6em] font-bold opacity-60 mb-0.5 uppercase tracking-tighter">區域</span>
-                            <span class="text-[0.85em] font-black leading-tight">{{ getDisplayZone(item.zone) }}</span>
+                            <template v-if="editingKey !== item.key">
+                                <span class="text-[0.85em] font-black leading-tight">{{ getDisplayZone(item.zone) }}</span>
+                            </template>
+                            <input v-else v-model="editData.zone" class="edit-input text-[0.8em]" @click.stop>
                         </div>
+
                         <div :class="item.zone === '藥庫' ? 'bg-orange-50 border-orange-200 text-orange-800' : (item.isNewDrug ? 'bg-fuchsia-50 border-fuchsia-200 text-fuchsia-800' : 'bg-red-50 border-red-200 text-red-800')" 
                              class="w-24 h-20 flex flex-col justify-center items-center border rounded-xl shadow-sm">
                             <span class="text-[0.6em] font-bold opacity-60 mb-0.5 uppercase tracking-tighter">儲位</span>
-                            <span class="text-[1.2em] font-black tracking-tighter">{{ item.shelf || '無' }}</span>
+                            <template v-if="editingKey !== item.key">
+                                <span class="text-[1.2em] font-black tracking-tighter">{{ item.shelf || '無' }}</span>
+                            </template>
+                            <input v-else v-model="editData.shelf" class="edit-input text-[1em]" @click.stop>
                         </div>
                     </div>
                     
                     <div class="flex flex-col gap-2" v-if="!item.isNewDrug">
-                        <button v-if="editingKey !== item.key" @click.stop="startEdit(item)" class="text-slate-300 hover:text-blue-500 p-2"><i class="fa-solid fa-pen-to-square"></i></button>
-                        <button v-else @click.stop="saveEdit(item.key)" class="text-green-500 p-2"><i class="fa-solid fa-check-circle text-xl"></i></button>
+                        <button v-if="editingKey !== item.key" @click.stop="startEdit(item)" class="text-slate-300 hover:text-blue-500 p-2">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                        </button>
+                        <button v-else @click.stop="saveEdit(item.key)" class="text-green-500 p-2">
+                            <i class="fa-solid fa-check-circle text-xl"></i>
+                        </button>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+    
     <div v-else class="text-center py-20 text-slate-400">
         <i class="fa-solid fa-box-open text-4xl mb-4 opacity-20"></i>
         <p class="text-[1em]">{{ keyword ? '查無相關藥品' : '請輸入關鍵字搜尋' }}</p>
@@ -163,7 +179,6 @@
             };
 
             onMounted(() => {
-                // --- 新增：讀取網址參數邏輯 ---
                 const urlParams = new URLSearchParams(window.location.search);
                 const catParam = urlParams.get('cat');
                 if (catParam && categories.includes(catParam)) {
@@ -173,7 +188,6 @@
                 if (queryParam) {
                     keyword.value = queryParam;
                 }
-                // --------------------------
 
                 const savedFont = localStorage.getItem('fyh-font-size');
                 if (savedFont) {
@@ -233,6 +247,9 @@
             };
 
             const handleItemClick = (item) => {
+                // 如果正在編輯，點擊卡片不應跳轉
+                if (editingKey.value === item.key) return;
+                
                 if (item.isNewDrug) {
                     window.location.href = 'newdrugstatus.html';
                 } else {
