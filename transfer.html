@@ -186,24 +186,6 @@
             </section>
         </div>
 
-        <section v-if="pendingER.length > 0" class="mt-12 bg-indigo-50 p-8 rounded-[3rem] border-4 border-indigo-800 shadow-2xl">
-            <div class="flex items-center gap-4 mb-6 text-indigo-900 font-black text-3xl">
-                <i class="fa-solid fa-truck-medical"></i>
-                <h2>急診領藥待處理 ({{ pendingER.length }})</h2>
-                <span class="text-sm font-bold bg-indigo-200 px-3 py-1 rounded-full">大小夜專用</span>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div v-for="log in pendingER" :key="log.id" @click="openEditModal(log)" class="er-pulse bg-white p-6 rounded-2xl shadow-lg flex items-center justify-between border-2 border-indigo-200 cursor-pointer">
-                    <div>
-                        <div class="text-sm font-bold text-indigo-500 mb-1">{{ log.time }}</div>
-                        <p class="font-black text-slate-900 text-2xl">[{{ log.code }}] {{ log.name }}</p>
-                        <div class="mt-2 inline-block bg-yellow-400 text-blue-900 px-3 py-0.5 rounded-full text-sm font-black border-2 border-blue-900">儲位：{{ log.shelf || '無' }}</div>
-                    </div>
-                    <div class="bg-indigo-600 text-white font-black px-8 py-4 rounded-xl text-2xl shadow-lg">領藥</div>
-                </div>
-            </div>
-        </section>
-
         <div v-if="editingLog" class="modal-overlay">
             <div class="bg-white w-full max-w-md rounded-[2.5rem] p-6 border-4 border-slate-800 shadow-2xl">
                 <div class="flex justify-between items-start mb-4 border-b-2 pb-2">
@@ -223,15 +205,6 @@
                 </div>
             </div>
         </div>
-
-        <div v-if="showManager" class="modal-overlay">
-            <div class="bg-white w-full max-w-md rounded-3xl p-8 border-4 border-slate-800 shadow-2xl">
-                <div class="flex justify-between items-center mb-6"><h2 class="font-black text-2xl">人員管理</h2><button @click="showManager = false" class="text-4xl font-black text-slate-400">&times;</button></div>
-                <div class="flex gap-2 mb-6"><input v-model="newStaffName" @keyup.enter="addStaff" placeholder="輸入姓名" class="flex-1 p-4 rounded-xl border-2 font-bold outline-none"><button @click="addStaff" class="bg-blue-600 text-white px-6 rounded-xl font-black active:scale-95">新增</button></div>
-                <div class="max-h-60 overflow-y-auto space-y-2 border-t pt-4"><div v-for="(name, idx) in staffList" :key="idx" class="flex justify-between p-4 bg-slate-50 rounded-xl border"><span class="font-bold text-slate-700 text-lg">{{ name }}</span><button @click="removeStaff(idx)" class="text-red-500"><i class="fa-solid fa-trash"></i></button></div></div>
-            </div>
-        </div>
-
     </div>
 
 <script type="module">
@@ -257,8 +230,6 @@
             const form = ref({ user: '值班人員', code: '', name: '', shelf: '', qtyStr: '', isUrgent: false, isER: false, isSuperUrgent: false });
             const searchQuery = ref('');
             const warehouseList = ref([]);
-            const suggestions = ref([]);
-            const highlightIndex = ref(-1);
             const history = ref([]);
             const staffList = ref([]);
             const showManager = ref(false);
@@ -266,97 +237,105 @@
             const editingLog = ref(null);
             const editQtyStr = ref('');
             const filterDate = ref(new Date().toISOString().split('T')[0]);
-            const baseFontSize = ref(1.1);
             const searchInput = ref(null);
             const qtyDisplay = ref(null);
+            const suggestions = ref([]);
+            const highlightIndex = ref(-1);
+            const baseFontSize = ref(1.1);
             const newStaffName = ref('');
-            let reminderTimer = null;
 
-            // 一般急領提醒 (女聲)
-            const speakReminder = () => {
+            // ⚠️ 獨立計時器
+            let superTimer = null;
+            let normalTimer = null;
+
+            // 🔊 超急領提醒 (男聲, 5秒)
+            const speakSuperReminder = () => {
                 if ('speechSynthesis' in window) {
                     window.speechSynthesis.cancel();
-                    const utter = new SpeechSynthesisUtterance("有急領，請領藥");
+                    const utter = new SpeechSynthesisUtterance("超急領快領藥");
                     utter.lang = 'zh-TW';
-                    utter.volume = 1.0;
-                    utter.pitch = 1.2;
+                    utter.pitch = 0.8; 
                     window.speechSynthesis.speak(utter);
                 }
             };
 
-            // 超急領語音 (模擬男聲)
-            const speakSuperUrgent = (name, qty) => {
+            // 🔊 急領提醒 (女聲, 20秒)
+            const speakNormalReminder = () => {
                 if ('speechSynthesis' in window) {
                     window.speechSynthesis.cancel();
-                    const utter = new SpeechSynthesisUtterance(`超急領。${name}。數量：${qty}`);
+                    const utter = new SpeechSynthesisUtterance("一般叫藥");
                     utter.lang = 'zh-TW';
-                    utter.volume = 1.0;
-                    utter.pitch = 0.8; // 低音頻模擬男生
-                    utter.rate = 0.9;  // 稍微慢一點較清晰
+                    utter.pitch = 1.2; 
                     window.speechSynthesis.speak(utter);
                 }
             };
 
             onMounted(() => {
-                onValue(dbRef(db, "warehouse"), s => {
-                    warehouseList.value = s.val() ? Object.values(s.val()).map(i => ({ c: i.c, n: i.n, s: i.s })) : [];
-                });
-
-                onValue(query(dbRef(db, "transfer_logs"), limitToLast(100)), s => {
-                    history.value = s.val() ? Object.entries(s.val()).map(([id, v]) => ({ id, ...v })).reverse() : [];
-                });
-
-                onValue(dbRef(db, "staff_list"), s => { 
-                    if(s.val()) staffList.value = s.val(); 
-                    const saved = localStorage.getItem('preferred_user');
-                    if (saved) form.value.user = saved;
-                });
+                onValue(dbRef(db, "warehouse"), s => { warehouseList.value = s.val() ? Object.values(s.val()).map(i => ({ c: i.c, n: i.n, s: i.s })) : []; });
+                onValue(query(dbRef(db, "transfer_logs"), limitToLast(100)), s => { history.value = s.val() ? Object.entries(s.val()).map(([id, v]) => ({ id, ...v })).reverse() : []; });
+                onValue(dbRef(db, "staff_list"), s => { if(s.val()) staffList.value = s.val(); });
                 window.addEventListener('keydown', handleKeyboard);
             });
 
-            onUnmounted(() => { window.removeEventListener('keydown', handleKeyboard); clearInterval(reminderTimer); });
+            onUnmounted(() => { 
+                window.removeEventListener('keydown', handleKeyboard); 
+                clearInterval(superTimer); 
+                clearInterval(normalTimer); 
+            });
 
-            // 待處理急領包含 超急領 與 一般急領
             const pendingUrgent = computed(() => history.value.filter(l => (l.isUrgent || l.isSuperUrgent) && !l.processed));
+            const pendingSuper = computed(() => history.value.filter(l => l.isSuperUrgent && !l.processed));
+            const pendingNormal = computed(() => history.value.filter(l => l.isUrgent && !l.isSuperUrgent && !l.processed));
             const pendingER = computed(() => history.value.filter(l => l.isER && !l.processed));
             const filteredHistory = computed(() => history.value.filter(l => (!l.isUrgent && !l.isER && !l.isSuperUrgent) || l.processed).slice(0, 20));
 
-            watch(() => pendingUrgent.value.length, (newCount) => {
+            // 👁️ 監控 超急領 狀態
+            watch(() => pendingSuper.value.length, (newCount) => {
                 if (newCount > 0) {
-                    if (!reminderTimer) {
-                        speakReminder();
-                        reminderTimer = setInterval(speakReminder, 10000); 
+                    if (!superTimer) {
+                        speakSuperReminder();
+                        superTimer = setInterval(speakSuperReminder, 5000); 
                     }
                 } else {
-                    clearInterval(reminderTimer);
-                    reminderTimer = null;
+                    clearInterval(superTimer);
+                    superTimer = null;
                 }
             });
 
+            // 👁️ 監控 急領(一般叫藥) 狀態
+            watch(() => pendingNormal.value.length, (newCount) => {
+                if (newCount > 0) {
+                    if (!normalTimer) {
+                        // 如果現在沒有超急領在叫，才立刻叫第一次，避免疊音
+                        if (pendingSuper.value.length === 0) speakNormalReminder();
+                        normalTimer = setInterval(speakNormalReminder, 20000); 
+                    }
+                } else {
+                    clearInterval(normalTimer);
+                    normalTimer = null;
+                }
+            });
+
+            // 其餘邏輯保持不變
             const moveHighlight = (step) => {
                 if (suggestions.value.length === 0) return;
                 highlightIndex.value = (highlightIndex.value + step + suggestions.value.length) % suggestions.value.length;
                 nextTick(() => { const el = document.querySelector('.suggestion-item.highlighted'); if (el) el.scrollIntoView({ block: 'nearest' }); });
             };
-
             const confirmSelection = () => {
                 if (highlightIndex.value >= 0 && suggestions.value[highlightIndex.value]) selectDrug(suggestions.value[highlightIndex.value]);
                 else if (suggestions.value.length > 0) selectDrug(suggestions.value[0]);
             };
-
             const selectDrug = (d) => { 
                 form.value.code = d.c; form.value.name = d.n; form.value.shelf = d.s || '無'; 
                 searchQuery.value = d.n; suggestions.value = []; highlightIndex.value = -1;
                 nextTick(() => jumpToQty()); 
             };
-
             const jumpToQty = () => { if (qtyDisplay.value) qtyDisplay.value.focus(); };
-
             const addNum = (t, n) => {
                 if(t === 'form') form.value.qtyStr = (form.value.qtyStr === '0' ? n : form.value.qtyStr + n);
                 else editQtyStr.value = (editQtyStr.value === '0' ? n : editQtyStr.value + n);
             };
-
             const calculate = (t) => {
                 let s = t === 'form' ? form.value.qtyStr : editQtyStr.value;
                 if (!s) return;
@@ -367,7 +346,6 @@
                     if (t === 'form') form.value.qtyStr = rounded; else editQtyStr.value = rounded;
                 } catch { if (t === 'form') form.value.qtyStr = ''; else editQtyStr.value = ''; }
             };
-
             const handleKeyboard = (e) => {
                 if (document.activeElement.tagName === 'INPUT' && document.activeElement !== searchInput.value) return;
                 const target = editingLog.value ? 'edit' : 'form';
@@ -389,27 +367,19 @@
                     }
                 }
             };
-
             const submitRecord = async () => {
                 if(!form.value.name) return;
                 let q = 0;
-                // 超急領 需要計算數量
                 if(!form.value.isUrgent && !form.value.isER || form.value.isSuperUrgent) { 
                     calculate('form'); 
                     q = Number(form.value.qtyStr); 
                     if(!q && !form.value.isUrgent && !form.value.isER) return alert("請輸入數量"); 
                 }
-
-                // 如果是超急領，觸發男生語音
-                if (form.value.isSuperUrgent) {
-                    speakSuperUrgent(form.value.name, q);
-                }
-
                 await push(dbRef(db, "transfer_logs"), {
                     time: new Date().toLocaleString('zh-TW', { hour12: false }),
                     user: form.value.user, code: form.value.code, name: form.value.name, shelf: form.value.shelf,
                     qty: q, isUrgent: form.value.isUrgent, isER: form.value.isER, 
-                    isSuperUrgent: form.value.isSuperUrgent, // 新增屬性
+                    isSuperUrgent: form.value.isSuperUrgent,
                     processed: false
                 });
                 form.value.qtyStr = ''; form.value.name = ''; searchQuery.value = ''; form.value.isUrgent = false; form.value.isER = false; form.value.isSuperUrgent = false;
