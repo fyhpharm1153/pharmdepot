@@ -101,19 +101,23 @@
                         <p class="font-black text-white text-xl">已選：[{{ form.code }}] {{ form.name }}</p>
                         <span class="bg-yellow-400 text-blue-900 px-3 py-1 rounded-full font-black text-sm border-2 border-blue-900 shadow-md">儲位：{{ form.shelf || '無' }}</span>
                     </div>
-                    <div class="grid grid-cols-2 gap-3">
+                    <div class="grid grid-cols-3 gap-3">
                         <label class="flex items-center gap-3 bg-white/10 p-3 rounded-lg border border-white/20 cursor-pointer">
-                            <input type="checkbox" v-model="form.isUrgent" :disabled="form.isER" class="w-6 h-6">
+                            <input type="checkbox" v-model="form.isSuperUrgent" @change="if(form.isSuperUrgent){form.isUrgent=false;form.isER=false}" class="w-6 h-6">
+                            <span class="text-white font-black text-lg tracking-wider">⚡ 超急領</span>
+                        </label>
+                        <label class="flex items-center gap-3 bg-white/10 p-3 rounded-lg border border-white/20 cursor-pointer">
+                            <input type="checkbox" v-model="form.isUrgent" @change="if(form.isUrgent){form.isSuperUrgent=false;form.isER=false}" class="w-6 h-6">
                             <span class="text-white font-black text-lg tracking-wider">🚨 急領</span>
                         </label>
                         <label class="flex items-center gap-3 bg-white/10 p-3 rounded-lg border border-white/20 cursor-pointer">
-                            <input type="checkbox" v-model="form.isER" :disabled="form.isUrgent" class="w-6 h-6">
-                            <span class="text-white font-black text-lg tracking-wider">🚑 急診領藥</span>
+                            <input type="checkbox" v-model="form.isER" @change="if(form.isER){form.isSuperUrgent=false;form.isUrgent=false}" class="w-6 h-6">
+                            <span class="text-white font-black text-lg tracking-wider">🚑 急診</span>
                         </label>
                     </div>
                 </div>
 
-                <div v-if="!form.isUrgent && !form.isER" class="bg-slate-200 p-5 rounded-[2rem] border-2 border-slate-800">
+                <div v-if="(!form.isUrgent && !form.isER) || form.isSuperUrgent" class="bg-slate-200 p-5 rounded-[2rem] border-2 border-slate-800">
                     <div class="flex justify-between items-center mb-4 px-2">
                         <label class="font-black text-slate-600 text-lg">撥補數量</label>
                         <button @click="showCalc = !showCalc" class="flex items-center gap-2 bg-white px-3 py-1 rounded-lg border-2 border-slate-800 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-xs font-bold transition-all">
@@ -142,13 +146,17 @@
                     <div class="flex items-center gap-2 text-red-600 font-black text-2xl"><i class="fa-solid fa-bell animate-swing"></i><h3>急領待處理 ({{ pendingUrgent.length }})</h3></div>
                     <div v-for="log in pendingUrgent" :key="log.id" @click="openEditModal(log)" class="urgent-pulse bg-white p-5 rounded-2xl shadow-xl flex items-center gap-4 border-2">
                         <div class="flex-1">
-                            <div class="text-[0.8em] font-bold text-red-500 mb-1"><span class="bg-red-600 text-white px-2 py-0.5 rounded mr-2">急件</span>{{ log.time }}</div>
+                            <div class="text-[0.8em] font-bold text-red-500 mb-1">
+                                <span :class="log.isSuperUrgent ? 'bg-purple-600' : 'bg-red-600'" class="text-white px-2 py-0.5 rounded mr-2">{{ log.isSuperUrgent ? '⚡ 超急' : '急件' }}</span>
+                                {{ log.time }}
+                            </div>
                             <p class="font-black text-slate-900 text-2xl flex flex-wrap items-center gap-2">
                                 [{{ log.code }}] {{ log.name }}
                                 <span class="bg-yellow-400 text-blue-900 px-3 py-0.5 rounded-full text-sm border-2 border-blue-900 shadow-sm font-black">儲位：{{ log.shelf || '無' }}</span>
                             </p>
+                            <p v-if="log.isSuperUrgent" class="text-purple-700 font-black">數量：{{ log.qty }}</p>
                         </div>
-                        <div class="bg-red-600 text-white font-black px-6 py-3 rounded-xl text-2xl shadow-lg">處理</div>
+                        <div :class="log.isSuperUrgent ? 'bg-purple-600' : 'bg-red-600'" class="text-white font-black px-6 py-3 rounded-xl text-2xl shadow-lg">處理</div>
                     </div>
                 </div>
 
@@ -164,8 +172,8 @@
                             <p class="font-black text-slate-900 text-xl">[{{ log.code }}] {{ log.name }}</p>
                         </div>
                         <div class="flex items-center gap-3">
-                            <div @click="openEditModal(log)" :class="[log.isUrgent ? 'bg-yellow-400 text-slate-900 border-slate-800' : (log.isER ? 'bg-indigo-600 text-white' : (log.qty > 0 ? 'bg-blue-600 text-white' : 'bg-orange-600 text-white'))]" class="font-black px-4 py-2 rounded-lg text-2xl min-w-[90px] text-center border-2 cursor-pointer">
-                                {{ log.isER && !log.processed ? '🚑' : log.qty }}
+                            <div @click="openEditModal(log)" :class="[log.isSuperUrgent ? 'bg-purple-600 text-white border-slate-800' : (log.isUrgent ? 'bg-yellow-400 text-slate-900 border-slate-800' : (log.isER ? 'bg-indigo-600 text-white' : (log.qty > 0 ? 'bg-blue-600 text-white' : 'bg-orange-600 text-white')))]" class="font-black px-4 py-2 rounded-lg text-2xl min-w-[90px] text-center border-2 cursor-pointer">
+                                {{ (log.isER || (log.isUrgent && !log.isSuperUrgent)) && !log.processed ? (log.isER?'🚑':'🚨') : log.qty }}
                             </div>
                             <button @click.stop="deleteSingle(log)" class="bg-red-100 text-red-600 w-12 h-12 rounded-lg flex items-center justify-center"><i class="fa-solid fa-trash-can"></i></button>
                         </div>
@@ -199,7 +207,7 @@
         <div v-if="editingLog" class="modal-overlay">
             <div class="bg-white w-full max-w-md rounded-[2.5rem] p-6 border-4 border-slate-800 shadow-2xl">
                 <div class="flex justify-between items-start mb-4 border-b-2 pb-2">
-                    <div><h2 class="font-black text-2xl" :class="editingLog.isUrgent ? 'text-red-600' : (editingLog.isER ? 'text-indigo-700' : 'text-blue-700')">{{ editingLog.isUrgent && !editingLog.processed ? '🚨 處理急領' : (editingLog.isER && !editingLog.processed ? '🚑 急診發藥' : '📝 修改數量') }}</h2><p class="font-bold text-slate-600 text-sm mt-1">{{ editingLog.name }}</p></div>
+                    <div><h2 class="font-black text-2xl" :class="editingLog.isSuperUrgent ? 'text-purple-600' : (editingLog.isUrgent ? 'text-red-600' : (editingLog.isER ? 'text-indigo-700' : 'text-blue-700'))">{{ editingLog.isSuperUrgent ? '⚡ 處理超急領' : (editingLog.isUrgent && !editingLog.processed ? '🚨 處理急領' : (editingLog.isER && !editingLog.processed ? '🚑 急診發藥' : '📝 修改數量')) }}</h2><p class="font-bold text-slate-600 text-sm mt-1">{{ editingLog.name }}</p></div>
                     <button @click="editingLog = null" class="text-4xl font-black text-slate-400">&times;</button>
                 </div>
                 <div class="bg-slate-100 p-4 rounded-2xl border-2 border-slate-800 mb-4 text-right text-5xl font-black">{{ editQtyStr || '0' }}</div>
@@ -210,8 +218,8 @@
                     <button @click="calculate('edit')" class="calc-btn btn-equal text-4xl" style="height: 60px;">=</button>
                 </div>
                 <div class="grid grid-cols-2 gap-4 mt-8">
-                    <button v-if="(editingLog.isUrgent || editingLog.isER) && !editingLog.processed" @click="cancelUrgentIssuance" class="py-4 bg-slate-200 text-slate-600 rounded-xl font-black border-2 border-slate-400">取消發放(0)</button>
-                    <button @click="confirmEdit" class="py-4 bg-emerald-600 text-white rounded-xl font-black border-2 border-slate-800 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:scale-95" :class="(editingLog.isUrgent || editingLog.isER) && !editingLog.processed ? 'col-span-1' : 'col-span-2'">確認發放</button>
+                    <button v-if="(editingLog.isUrgent || editingLog.isER || editingLog.isSuperUrgent) && !editingLog.processed" @click="cancelUrgentIssuance" class="py-4 bg-slate-200 text-slate-600 rounded-xl font-black border-2 border-slate-400">取消發放(0)</button>
+                    <button @click="confirmEdit" class="py-4 bg-emerald-600 text-white rounded-xl font-black border-2 border-slate-800 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:scale-95" :class="(editingLog.isUrgent || editingLog.isER || editingLog.isSuperUrgent) && !editingLog.processed ? 'col-span-1' : 'col-span-2'">確認發放</button>
                 </div>
             </div>
         </div>
@@ -246,9 +254,9 @@
 
     createApp({
         setup() {
-            const form = ref({ user: '值班人員', code: '', name: '', shelf: '', qtyStr: '', isUrgent: false, isER: false });
+            const form = ref({ user: '值班人員', code: '', name: '', shelf: '', qtyStr: '', isUrgent: false, isER: false, isSuperUrgent: false });
             const searchQuery = ref('');
-            const warehouseList = ref([]); // 🚀 僅存放藥庫資料
+            const warehouseList = ref([]);
             const suggestions = ref([]);
             const highlightIndex = ref(-1);
             const history = ref([]);
@@ -264,6 +272,7 @@
             const newStaffName = ref('');
             let reminderTimer = null;
 
+            // 一般急領提醒 (女聲)
             const speakReminder = () => {
                 if ('speechSynthesis' in window) {
                     window.speechSynthesis.cancel();
@@ -275,34 +284,23 @@
                 }
             };
 
+            // 超急領語音 (模擬男聲)
+            const speakSuperUrgent = (name, qty) => {
+                if ('speechSynthesis' in window) {
+                    window.speechSynthesis.cancel();
+                    const utter = new SpeechSynthesisUtterance(`超急領。${name}。數量：${qty}`);
+                    utter.lang = 'zh-TW';
+                    utter.volume = 1.0;
+                    utter.pitch = 0.8; // 低音頻模擬男生
+                    utter.rate = 0.9;  // 稍微慢一點較清晰
+                    window.speechSynthesis.speak(utter);
+                }
+            };
+
             onMounted(() => {
-                // 🚀 核心：僅抓取 warehouse 資料庫
                 onValue(dbRef(db, "warehouse"), s => {
                     warehouseList.value = s.val() ? Object.values(s.val()).map(i => ({ c: i.c, n: i.n, s: i.s })) : [];
-                    
-                    // 處理 URL 帶入 (從 search.html 跳轉過來)
-                    const params = new URLSearchParams(window.location.search);
-                    const code = params.get('code');
-                    const type = params.get('type');
-                    if (code) {
-                        const drug = warehouseList.value.find(i => i.c === code);
-                        if (drug) {
-                            form.value.code = drug.c;
-                            form.value.name = drug.n;
-                            form.value.shelf = drug.s || '無';
-                            searchQuery.value = drug.n;
-                            if (type === 'urgent') form.value.isUrgent = true;
-                            if (type === 'er') form.value.isER = true;
-                            nextTick(() => jumpToQty());
-                        }
-                    }
                 });
-
-                setInterval(() => {
-                    if (!editingLog.value && !showManager.value && !searchQuery.value && !form.value.qtyStr) {
-                        location.reload();
-                    }
-                }, 60000);
 
                 onValue(query(dbRef(db, "transfer_logs"), limitToLast(100)), s => {
                     history.value = s.val() ? Object.entries(s.val()).map(([id, v]) => ({ id, ...v })).reverse() : [];
@@ -318,9 +316,10 @@
 
             onUnmounted(() => { window.removeEventListener('keydown', handleKeyboard); clearInterval(reminderTimer); });
 
-            const pendingUrgent = computed(() => history.value.filter(l => l.isUrgent && !l.processed));
+            // 待處理急領包含 超急領 與 一般急領
+            const pendingUrgent = computed(() => history.value.filter(l => (l.isUrgent || l.isSuperUrgent) && !l.processed));
             const pendingER = computed(() => history.value.filter(l => l.isER && !l.processed));
-            const filteredHistory = computed(() => history.value.filter(l => (!l.isUrgent && !l.isER) || l.processed).slice(0, 20));
+            const filteredHistory = computed(() => history.value.filter(l => (!l.isUrgent && !l.isER && !l.isSuperUrgent) || l.processed).slice(0, 20));
 
             watch(() => pendingUrgent.value.length, (newCount) => {
                 if (newCount > 0) {
@@ -373,14 +372,13 @@
                 if (document.activeElement.tagName === 'INPUT' && document.activeElement !== searchInput.value) return;
                 const target = editingLog.value ? 'edit' : 'form';
                 const key = e.key;
-
                 if (/[0-9]/.test(key)) { addNum(target, key); } 
                 else if (['+', '-', '*', '/'].includes(key)) { if (target === 'form') form.value.qtyStr += key; else editQtyStr.value += key; } 
                 else if (key === 'Enter') {
                     e.preventDefault();
                     let currentStr = target === 'form' ? form.value.qtyStr : editQtyStr.value;
                     if (/[+\-*/]/.test(currentStr)) calculate(target);
-                    else if (!editingLog.value && form.value.name && (form.value.qtyStr || form.value.isUrgent || form.value.isER)) submitRecord();
+                    else if (!editingLog.value && form.value.name && (form.value.qtyStr || form.value.isUrgent || form.value.isER || form.value.isSuperUrgent)) submitRecord();
                     else if (editingLog.value) confirmEdit();
                 } 
                 else if (key === 'Backspace') {
@@ -390,26 +388,31 @@
                         else editQtyStr.value = editQtyStr.value.slice(0, -1);
                     }
                 }
-                else if (key === 'Delete') {
-                    e.preventDefault();
-                    if(target === 'form') form.value.qtyStr = ''; else editQtyStr.value = '';
-                }
             };
 
             const submitRecord = async () => {
                 if(!form.value.name) return;
                 let q = 0;
-                if(!form.value.isUrgent && !form.value.isER) { 
+                // 超急領 需要計算數量
+                if(!form.value.isUrgent && !form.value.isER || form.value.isSuperUrgent) { 
                     calculate('form'); 
                     q = Number(form.value.qtyStr); 
-                    if(!q) return alert("請輸入數量"); 
+                    if(!q && !form.value.isUrgent && !form.value.isER) return alert("請輸入數量"); 
                 }
+
+                // 如果是超急領，觸發男生語音
+                if (form.value.isSuperUrgent) {
+                    speakSuperUrgent(form.value.name, q);
+                }
+
                 await push(dbRef(db, "transfer_logs"), {
                     time: new Date().toLocaleString('zh-TW', { hour12: false }),
                     user: form.value.user, code: form.value.code, name: form.value.name, shelf: form.value.shelf,
-                    qty: q, isUrgent: form.value.isUrgent, isER: form.value.isER, processed: false
+                    qty: q, isUrgent: form.value.isUrgent, isER: form.value.isER, 
+                    isSuperUrgent: form.value.isSuperUrgent, // 新增屬性
+                    processed: false
                 });
-                form.value.qtyStr = ''; form.value.name = ''; searchQuery.value = ''; form.value.isUrgent = false; form.value.isER = false;
+                form.value.qtyStr = ''; form.value.name = ''; searchQuery.value = ''; form.value.isUrgent = false; form.value.isER = false; form.value.isSuperUrgent = false;
                 nextTick(() => searchInput.value.focus());
             };
 
@@ -430,7 +433,6 @@
                 onSearchInput: () => {
                     highlightIndex.value = -1;
                     const k = searchQuery.value.toLowerCase().trim();
-                    // 🚀 搜尋範圍縮減為僅藥庫資料
                     suggestions.value = k ? warehouseList.value.filter(i => i.n?.toLowerCase().includes(k) || i.c?.toLowerCase().includes(k)).slice(0, 15) : [];
                 },
                 openEditModal: (log) => { editingLog.value = log; editQtyStr.value = log.qty.toString(); },
@@ -460,7 +462,7 @@
                         return lDate === target;
                     });
                     if (logs.length === 0) return alert("該日無撥補紀錄");
-                    const data = logs.map(l => ({ '時間': l.time, '人員': l.user, '代碼': l.code, '名稱': l.name, '數量': (l.isUrgent || l.isER) ? (l.processed ? l.qty : '待處') : l.qty, '備註': l.isUrgent ? '急領' : (l.isER ? '急診' : '一般') }));
+                    const data = logs.map(l => ({ '時間': l.time, '人員': l.user, '代碼': l.code, '名稱': l.name, '數量': (l.isUrgent || l.isER || l.isSuperUrgent) ? (l.processed ? l.qty : '待處') : l.qty, '備註': l.isSuperUrgent ? '超急領' : (l.isUrgent ? '急領' : (l.isER ? '急診' : '一般')) }));
                     const ws = XLSX.utils.json_to_sheet(data);
                     const wb = XLSX.utils.book_new();
                     XLSX.utils.book_append_sheet(wb, ws, "撥補報表");
