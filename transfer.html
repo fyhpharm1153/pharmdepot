@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>藥品撥補系統 - 藥庫資料版</title>
+    <title>藥品撥補系統 - 核心作業版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -25,9 +25,6 @@
         .suggestion-item.highlighted { 
             @apply bg-blue-600 text-white border-l-8 border-blue-900 scale-[1.01] z-10 font-black; 
         }
-        .suggestion-item.highlighted .text-blue-600 { @apply text-blue-200; }
-        .suggestion-item.highlighted .text-slate-800 { @apply text-white; }
-
         .record-card { border-left: 8px solid #cbd5e1; }
         .modal-overlay { @apply fixed inset-0 z-[150] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm; }
         .qty-display:focus { @apply border-blue-600 ring-4 ring-blue-200 outline-none bg-blue-50; }
@@ -35,8 +32,7 @@
         .push-notify { 
             @apply fixed left-4 top-1/2 -translate-y-1/2 z-[200];
             @apply bg-red-600 text-white p-4 rounded-full shadow-2xl flex items-center justify-center border-2 border-white cursor-pointer hover:bg-red-700 transition-all;
-            width: 70px;
-            height: 70px;
+            width: 70px; height: 70px;
         }
         .urgent-pulse { animation: pulse 1.2s infinite; @apply border-2 border-red-600 cursor-pointer; }
         @keyframes pulse { 0% { transform: scale(1); } 70% { transform: scale(1.02); } 100% { transform: scale(1); } }
@@ -74,18 +70,14 @@
                 <div class="relative">
                     <label class="font-bold text-slate-500 block mb-1 text-lg">搜尋藥品 <span class="text-xs text-amber-600 ml-2 font-normal">(僅限藥庫資料庫)</span></label>
                     <div class="relative flex items-center">
-                        <input v-model="searchQuery" ref="searchInput" 
-                            @input="onSearchInput" 
-                            @keydown.down.prevent="moveHighlight(1)" 
-                            @keydown.up.prevent="moveHighlight(-1)" 
-                            @keydown.enter.prevent="confirmSelection" 
-                            @keydown.tab.prevent="jumpToQty" 
+                        <input v-model="searchQuery" ref="searchInput" @input="onSearchInput" 
+                            @keydown.down.prevent="moveHighlight(1)" @keydown.up.prevent="moveHighlight(-1)" 
+                            @keydown.enter.prevent="confirmSelection" @keydown.tab.prevent="jumpToQty" 
                             placeholder="輸入代碼或名稱..." class="w-full bg-slate-100 p-4 rounded-xl font-black text-xl border-2 border-slate-300 outline-none focus:border-blue-600 transition-all">
                         <button v-if="searchQuery" @click="clearSearch" class="absolute right-4 text-slate-400 hover:text-red-500"><i class="fa-solid fa-circle-xmark text-2xl"></i></button>
                     </div>
                     <div v-if="suggestions.length > 0" class="absolute z-50 w-full bg-white shadow-2xl rounded-xl mt-2 border-2 border-slate-800 max-h-60 overflow-y-auto">
-                        <div v-for="(s, index) in suggestions" :key="s.c + index" 
-                            @click="selectDrug(s)" 
+                        <div v-for="(s, index) in suggestions" :key="s.c + index" @click="selectDrug(s)" 
                             :class="['suggestion-item p-4 border-b border-slate-100 flex justify-between items-center cursor-pointer transition-all', highlightIndex === index ? 'highlighted' : '']">
                             <div>
                                 <div class="text-blue-600 font-bold text-sm">{{ s.c }}</div>
@@ -120,16 +112,14 @@
                 <div v-if="(!form.isUrgent && !form.isER) || form.isSuperUrgent" class="bg-slate-200 p-5 rounded-[2rem] border-2 border-slate-800">
                     <div class="flex justify-between items-center mb-4 px-2">
                         <label class="font-black text-slate-600 text-lg">撥補數量</label>
-                        <button @click="showCalc = !showCalc" class="flex items-center gap-2 bg-white px-3 py-1 rounded-lg border-2 border-slate-800 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-xs font-bold transition-all">
+                        <button @click="showCalc = !showCalc" class="flex items-center gap-2 bg-white px-3 py-1 rounded-lg border-2 border-slate-800 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-xs font-bold">
                             <i class="fa-solid" :class="showCalc ? 'fa-eye-slash' : 'fa-calculator'"></i>
                             {{ showCalc ? '顯示計算機' : '隱藏計算機' }}
                         </button>
                     </div>
-
                     <div ref="qtyDisplay" tabindex="0" class="qty-display bg-white p-4 rounded-xl border-2 border-slate-800 mb-4 shadow-inner text-right text-4xl font-black text-slate-900 min-h-[1.5em] transition-all">
                         {{ form.qtyStr || '0' }}
                     </div>
-                    
                     <div v-show="showCalc" class="grid grid-cols-4 gap-3">
                         <button v-for="btn in ['AC','DEL','+/-','/','7','8','9','*','4','5','6','-','1','2','3','+']" @click="handleCalcClick('form', btn)" :class="getBtnClass(btn)">{{ getBtnLabel(btn) }}</button>
                         <button @click="addNum('form','0')" class="calc-btn btn-num col-span-2">0</button>
@@ -161,18 +151,18 @@
                 </div>
 
                 <div class="bg-white p-4 rounded-xl border-2 border-slate-800 shadow-md flex justify-between items-center">
-                    <h3 class="font-black text-xl text-slate-600">最近紀錄 <span class="text-xs font-normal opacity-60">(最近20筆)</span></h3>
+                    <h3 class="font-black text-xl text-slate-600">最近紀錄</h3>
                     <input type="date" v-model="filterDate" class="p-2 border-2 border-slate-800 rounded-lg font-bold">
                 </div>
 
-                <div class="max-h-[450px] overflow-y-auto space-y-4 pr-2 border-b-2 border-slate-200 pb-4">
+                <div class="max-h-[450px] overflow-y-auto space-y-4 pr-2">
                     <div v-for="log in filteredHistory" :key="log.id" class="record-card bg-white p-4 rounded-xl shadow border-2 border-slate-300 flex items-center gap-4">
                         <div class="flex-1">
                             <div class="text-[0.8em] font-bold text-slate-400"><span class="bg-slate-700 text-white px-2 py-0.5 rounded mr-2">{{ log.user }}</span>{{ log.time }}</div>
                             <p class="font-black text-slate-900 text-xl">[{{ log.code }}] {{ log.name }}</p>
                         </div>
                         <div class="flex items-center gap-3">
-                            <div @click="openEditModal(log)" :class="[log.isSuperUrgent ? 'bg-purple-600 text-white border-slate-800' : (log.isUrgent ? 'bg-yellow-400 text-slate-900 border-slate-800' : (log.isER ? 'bg-indigo-600 text-white' : (log.qty > 0 ? 'bg-blue-600 text-white' : 'bg-orange-600 text-white')))]" class="font-black px-4 py-2 rounded-lg text-2xl min-w-[90px] text-center border-2 cursor-pointer">
+                            <div @click="openEditModal(log)" :class="[log.isSuperUrgent ? 'bg-purple-600 text-white' : (log.isUrgent ? 'bg-yellow-400' : (log.isER ? 'bg-indigo-600 text-white' : 'bg-blue-600 text-white'))]" class="font-black px-4 py-2 rounded-lg text-2xl min-w-[90px] text-center border-2 cursor-pointer">
                                 {{ (log.isER || (log.isUrgent && !log.isSuperUrgent)) && !log.processed ? (log.isER?'🚑':'🚨') : log.qty }}
                             </div>
                             <button @click.stop="deleteSingle(log)" class="bg-red-100 text-red-600 w-12 h-12 rounded-lg flex items-center justify-center"><i class="fa-solid fa-trash-can"></i></button>
@@ -180,7 +170,7 @@
                     </div>
                 </div>
 
-                <button @click="exportByDate" class="w-full bg-slate-800 text-white py-5 rounded-2xl font-black text-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-y-1 transition-all">
+                <button @click="exportByDate" class="w-full bg-slate-800 text-white py-5 rounded-2xl font-black text-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
                     <i class="fa-solid fa-file-excel mr-2"></i>匯出該日報表 (.xlsx)
                 </button>
             </section>
@@ -201,10 +191,19 @@
                 </div>
                 <div class="grid grid-cols-2 gap-4 mt-8">
                     <button v-if="(editingLog.isUrgent || editingLog.isER || editingLog.isSuperUrgent) && !editingLog.processed" @click="cancelUrgentIssuance" class="py-4 bg-slate-200 text-slate-600 rounded-xl font-black border-2 border-slate-400">取消發放(0)</button>
-                    <button @click="confirmEdit" class="py-4 bg-emerald-600 text-white rounded-xl font-black border-2 border-slate-800 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:scale-95" :class="(editingLog.isUrgent || editingLog.isER || editingLog.isSuperUrgent) && !editingLog.processed ? 'col-span-1' : 'col-span-2'">確認發放</button>
+                    <button @click="confirmEdit" class="py-4 bg-emerald-600 text-white rounded-xl font-black border-2 border-slate-800 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]" :class="(editingLog.isUrgent || editingLog.isER || editingLog.isSuperUrgent) && !editingLog.processed ? 'col-span-1' : 'col-span-2'">確認發放</button>
                 </div>
             </div>
         </div>
+
+        <div v-if="showManager" class="modal-overlay">
+            <div class="bg-white w-full max-w-md rounded-3xl p-8 border-4 border-slate-800 shadow-2xl">
+                <div class="flex justify-between items-center mb-6"><h2 class="font-black text-2xl">人員管理</h2><button @click="showManager = false" class="text-4xl font-black text-slate-400">&times;</button></div>
+                <div class="flex gap-2 mb-6"><input v-model="newStaffName" @keyup.enter="addStaff" placeholder="輸入姓名" class="flex-1 p-4 rounded-xl border-2 font-bold outline-none"><button @click="addStaff" class="bg-blue-600 text-white px-6 rounded-xl font-black active:scale-95">新增</button></div>
+                <div class="max-h-60 overflow-y-auto space-y-2 border-t pt-4"><div v-for="(name, idx) in staffList" :key="idx" class="flex justify-between p-4 bg-slate-50 rounded-xl border"><span class="font-bold text-slate-700 text-lg">{{ name }}</span><button @click="removeStaff(idx)" class="text-red-500"><i class="fa-solid fa-trash"></i></button></div></div>
+            </div>
+        </div>
+
     </div>
 
 <script type="module">
@@ -244,7 +243,6 @@
             const baseFontSize = ref(1.1);
             const newStaffName = ref('');
 
-            // ⚠️ 獨立計時器
             let superTimer = null;
             let normalTimer = null;
 
@@ -253,8 +251,7 @@
                 if ('speechSynthesis' in window) {
                     window.speechSynthesis.cancel();
                     const utter = new SpeechSynthesisUtterance("超急領快領藥");
-                    utter.lang = 'zh-TW';
-                    utter.pitch = 0.8; 
+                    utter.lang = 'zh-TW'; utter.pitch = 0.8; utter.rate = 1.0;
                     window.speechSynthesis.speak(utter);
                 }
             };
@@ -264,59 +261,79 @@
                 if ('speechSynthesis' in window) {
                     window.speechSynthesis.cancel();
                     const utter = new SpeechSynthesisUtterance("一般叫藥");
-                    utter.lang = 'zh-TW';
-                    utter.pitch = 1.2; 
+                    utter.lang = 'zh-TW'; utter.pitch = 1.2;
+                    window.speechSynthesis.speak(utter);
+                }
+            };
+
+            // 🔊 提交時讀出 (男聲)
+            const speakSubmission = (name, qty) => {
+                if ('speechSynthesis' in window) {
+                    const utter = new SpeechSynthesisUtterance(`超急領。${name}。數量：${qty}`);
+                    utter.lang = 'zh-TW'; utter.pitch = 0.8; utter.rate = 0.9;
                     window.speechSynthesis.speak(utter);
                 }
             };
 
             onMounted(() => {
-                onValue(dbRef(db, "warehouse"), s => { warehouseList.value = s.val() ? Object.values(s.val()).map(i => ({ c: i.c, n: i.n, s: i.s })) : []; });
-                onValue(query(dbRef(db, "transfer_logs"), limitToLast(100)), s => { history.value = s.val() ? Object.entries(s.val()).map(([id, v]) => ({ id, ...v })).reverse() : []; });
+                // 🚀 核心：解析網址參數
+                const params = new URLSearchParams(window.location.search);
+                const pCode = params.get('code');
+                const pName = params.get('name');
+                const pType = params.get('type');
+                const pShelf = params.get('shelf');
+
+                if (pCode || pName) {
+                    form.value.code = pCode || '';
+                    form.value.name = pName || '';
+                    form.value.shelf = pShelf || '無';
+                    searchQuery.value = pName || pCode || '';
+                    
+                    if (pType === 'urgent') form.value.isUrgent = true;
+                    if (pType === 'er') form.value.isER = true;
+                    
+                    nextTick(() => jumpToQty());
+                }
+
+                onValue(dbRef(db, "warehouse"), s => {
+                    warehouseList.value = s.val() ? Object.values(s.val()).map(i => ({ c: i.c, n: i.n, s: i.s })) : [];
+                });
+
+                onValue(query(dbRef(db, "transfer_logs"), limitToLast(100)), s => {
+                    history.value = s.val() ? Object.entries(s.val()).map(([id, v]) => ({ id, ...v })).reverse() : [];
+                });
+
                 onValue(dbRef(db, "staff_list"), s => { if(s.val()) staffList.value = s.val(); });
                 window.addEventListener('keydown', handleKeyboard);
             });
 
             onUnmounted(() => { 
                 window.removeEventListener('keydown', handleKeyboard); 
-                clearInterval(superTimer); 
-                clearInterval(normalTimer); 
+                clearInterval(superTimer); clearInterval(normalTimer); 
             });
 
             const pendingUrgent = computed(() => history.value.filter(l => (l.isUrgent || l.isSuperUrgent) && !l.processed));
             const pendingSuper = computed(() => history.value.filter(l => l.isSuperUrgent && !l.processed));
             const pendingNormal = computed(() => history.value.filter(l => l.isUrgent && !l.isSuperUrgent && !l.processed));
-            const pendingER = computed(() => history.value.filter(l => l.isER && !l.processed));
             const filteredHistory = computed(() => history.value.filter(l => (!l.isUrgent && !l.isER && !l.isSuperUrgent) || l.processed).slice(0, 20));
 
-            // 👁️ 監控 超急領 狀態
+            // 監控 超急領 提醒
             watch(() => pendingSuper.value.length, (newCount) => {
                 if (newCount > 0) {
-                    if (!superTimer) {
-                        speakSuperReminder();
-                        superTimer = setInterval(speakSuperReminder, 5000); 
-                    }
-                } else {
-                    clearInterval(superTimer);
-                    superTimer = null;
-                }
+                    if (!superTimer) { speakSuperReminder(); superTimer = setInterval(speakSuperReminder, 5000); }
+                } else { clearInterval(superTimer); superTimer = null; }
             });
 
-            // 👁️ 監控 急領(一般叫藥) 狀態
+            // 監控 一般叫藥 提醒
             watch(() => pendingNormal.value.length, (newCount) => {
                 if (newCount > 0) {
                     if (!normalTimer) {
-                        // 如果現在沒有超急領在叫，才立刻叫第一次，避免疊音
                         if (pendingSuper.value.length === 0) speakNormalReminder();
                         normalTimer = setInterval(speakNormalReminder, 20000); 
                     }
-                } else {
-                    clearInterval(normalTimer);
-                    normalTimer = null;
-                }
+                } else { clearInterval(normalTimer); normalTimer = null; }
             });
 
-            // 其餘邏輯保持不變
             const moveHighlight = (step) => {
                 if (suggestions.value.length === 0) return;
                 highlightIndex.value = (highlightIndex.value + step + suggestions.value.length) % suggestions.value.length;
@@ -375,19 +392,21 @@
                     q = Number(form.value.qtyStr); 
                     if(!q && !form.value.isUrgent && !form.value.isER) return alert("請輸入數量"); 
                 }
+
+                if (form.value.isSuperUrgent) speakSubmission(form.value.name, q);
+
                 await push(dbRef(db, "transfer_logs"), {
                     time: new Date().toLocaleString('zh-TW', { hour12: false }),
                     user: form.value.user, code: form.value.code, name: form.value.name, shelf: form.value.shelf,
                     qty: q, isUrgent: form.value.isUrgent, isER: form.value.isER, 
-                    isSuperUrgent: form.value.isSuperUrgent,
-                    processed: false
+                    isSuperUrgent: form.value.isSuperUrgent, processed: false
                 });
                 form.value.qtyStr = ''; form.value.name = ''; searchQuery.value = ''; form.value.isUrgent = false; form.value.isER = false; form.value.isSuperUrgent = false;
                 nextTick(() => searchInput.value.focus());
             };
 
             return {
-                form, searchQuery, suggestions, highlightIndex, history, staffList, filterDate, editingLog, editQtyStr, pendingUrgent, pendingER, filteredHistory, searchInput, qtyDisplay, showManager, showCalc, newStaffName,
+                form, searchQuery, suggestions, highlightIndex, history, staffList, filterDate, editingLog, editQtyStr, pendingUrgent, filteredHistory, searchInput, qtyDisplay, showManager, showCalc, newStaffName,
                 moveHighlight, confirmSelection, selectDrug, jumpToQty, addNum, calculate, submitRecord,
                 handleCalcClick: (target, b) => {
                     if(b==='AC') (target==='form'?form.value.qtyStr='':editQtyStr.value='');
@@ -431,8 +450,7 @@
                         const lDate = l.time.split(' ')[0].split('/').map(Number).join('/');
                         return lDate === target;
                     });
-                    if (logs.length === 0) return alert("該日無撥補紀錄");
-                    const data = logs.map(l => ({ '時間': l.time, '人員': l.user, '代碼': l.code, '名稱': l.name, '數量': (l.isUrgent || l.isER || l.isSuperUrgent) ? (l.processed ? l.qty : '待處') : l.qty, '備註': l.isSuperUrgent ? '超急領' : (l.isUrgent ? '急領' : (l.isER ? '急診' : '一般')) }));
+                    const data = logs.map(l => ({ '時間': l.time, '人員': l.user, '代碼': l.code, '名稱': l.name, '數量': l.qty, '備註': l.isSuperUrgent ? '超急' : (l.isUrgent ? '急領' : (l.isER ? '急診' : '一般')) }));
                     const ws = XLSX.utils.json_to_sheet(data);
                     const wb = XLSX.utils.book_new();
                     XLSX.utils.book_append_sheet(wb, ws, "撥補報表");
