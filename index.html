@@ -1,147 +1,16 @@
-<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="藥劑科管理">
-    <title>藥劑科管理系統入口 v1.6.14</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/vue@3/dist/vue.esm-browser.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <style>
-        :root { --base-size: 16px; }
-        [v-cloak] { display: none; }
-        body { 
-            background-color: #f1f5f9; 
-            font-size: var(--base-size); 
-            transition: font-size 0.2s ease;
-        }
-        .nav-card { transition: all 0.2s ease; }
-        .nav-card:active { transform: scale(0.96); }
-        .responsive-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 0.75rem;
-        }
-        .font-btn { @apply w-10 h-10 rounded-full border border-slate-200 bg-white flex items-center justify-center text-slate-600 font-bold active:bg-blue-600 active:text-white transition-all shadow-sm; }
-        .stats-badge { @apply bg-white px-4 py-2 rounded-2xl border border-slate-200 shadow-sm flex flex-col items-center min-w-[120px]; }
-        
-        /* 彈窗動畫 */
-        .fade-enter-active, .fade-leave-active { transition: opacity 0.3s; }
-        .fade-enter-from, .fade-leave-to { opacity: 0; }
-    </style>
-</head>
-<body class="min-h-screen py-8 px-4">
-<div id="app" v-cloak class="max-w-4xl mx-auto">
-    <div class="flex justify-end items-center gap-3 mb-6">
-        <span class="text-[0.7em] font-bold text-slate-400 uppercase tracking-tighter">字體縮放</span>
-        <button @click="changeFont(-2)" class="font-btn">A-</button>
-        <button @click="changeFont(2)" class="font-btn">A+</button>
-    </div>
-
-    <header class="text-center mb-10">
-        <div class="inline-block bg-blue-600 p-5 rounded-[2rem] shadow-xl mb-4 text-white">
-            <i class="fa-solid fa-hospital text-4xl"></i>
-        </div>
-        <h1 class="text-[1.8em] font-black text-slate-800 tracking-tighter leading-tight">藥劑科管理系統</h1>
-        <p class="text-slate-500 text-[0.8em] mt-1 uppercase tracking-widest">Feng Yuan Hospital Pharmacy</p>
-    </header>
-
-    <section class="mb-10">
-        <h2 class="text-slate-400 text-[0.7em] font-black uppercase tracking-[0.2em] mb-4 flex items-center gap-2 px-2">
-            <i class="fa-solid fa-gears"></i> 一、行政管理與查詢
-        </h2>
-        <div class="responsive-grid">
-            <a href="https://amanhung.github.io/schedule/" target="_blank" class="nav-card bg-white p-5 rounded-[1.5rem] shadow-sm border border-slate-100 flex items-center gap-4 group hover:border-blue-400">
-                <div class="bg-indigo-50 w-14 h-14 rounded-2xl flex items-center justify-center text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
-                    <i class="fa-solid fa-calendar-check text-xl"></i>
-                </div>
-                <span class="font-bold text-slate-700 text-[1.1em]">線上排班系統</span>
-            </a>
-            <a href="https://fyhpharm1153.github.io/pharmdepot/newdrugstatus.html" target="_blank" class="nav-card bg-white p-5 rounded-[1.5rem] shadow-sm border border-slate-100 flex items-center gap-4 group hover:border-blue-400">
-                <div class="bg-blue-50 w-14 h-14 rounded-2xl flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                    <i class="fa-solid fa-flask-vial text-xl"></i>
-                </div>
-                <span class="font-bold text-slate-700 text-[1.1em]">114Q4 新藥進度</span>
-            </a>
-            <a href="https://amanhung.github.io/hospital-drug-search/" target="_blank" class="nav-card bg-white p-5 rounded-[1.5rem] shadow-sm border border-slate-100 flex items-center gap-4 group hover:border-blue-400">
-                <div class="bg-blue-50 w-14 h-14 rounded-2xl flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                    <i class="fa-solid fa-book-medical text-xl"></i>
-                </div>
-                <span class="font-bold text-slate-700 text-[1.1em]">院內處方集</span>
-            </a>
-            <a href="https://amanhung.github.io/Inventory/" target="_blank" class="nav-card bg-white p-5 rounded-[1.5rem] shadow-sm border border-slate-100 flex items-center gap-4 group hover:border-blue-400">
-                <div class="bg-blue-50 w-14 h-14 rounded-2xl flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                    <i class="fa-solid fa-list-check text-xl"></i>
-                </div>
-                <span class="font-bold text-slate-700 text-[1.1em]">盤點系統</span>
-            </a>
-            <a href="search.html" class="nav-card bg-white p-5 rounded-[1.5rem] shadow-sm border border-slate-100 flex items-center gap-4 group hover:border-emerald-400">
-                <div class="bg-emerald-50 w-14 h-14 rounded-2xl flex items-center justify-center text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
-                    <i class="fa-solid fa-magnifying-glass text-xl"></i>
-                </div>
-                <span class="font-bold text-slate-700 text-[1.1em]">儲位搜尋</span>
-            </a>
-            <a href="https://fyhpharm1153.github.io/pharmdepot/transfer.html" target="_blank" class="nav-card bg-white p-5 rounded-[1.5rem] shadow-sm border border-slate-100 flex items-center gap-4 group hover:border-sky-400">
-                <div class="bg-sky-50 w-14 h-14 rounded-2xl flex items-center justify-center text-sky-600 group-hover:bg-sky-600 group-hover:text-white transition-colors">
-                    <i class="fa-solid fa-truck-fast text-xl"></i>
-                </div>
-                <span class="font-bold text-slate-700 text-[1.1em]">撥補/急領</span>
-            </a>
-        </div>
-    </section>
-
-    <section class="mb-10">
-        <h2 class="text-slate-400 text-[0.7em] font-black uppercase tracking-[0.2em] mb-4 flex items-center gap-2 px-2">
-            <i class="fa-solid fa-clipboard-check"></i> 二、品質通報專區
-        </h2>
-        <div class="responsive-grid">
-            <a href="https://tinyurl.com/110fyhmissrx" target="_blank" class="nav-card bg-white p-5 rounded-[1.5rem] shadow-sm border border-slate-100 flex items-center gap-4 group hover:border-rose-400">
-                <div class="bg-rose-50 w-14 h-14 rounded-2xl flex items-center justify-center text-rose-600 group-hover:bg-rose-600 group-hover:text-white transition-colors">
-                    <i class="fa-solid fa-circle-question text-xl"></i>
-                </div>
-                <span class="font-bold text-slate-700 text-[1.1em]">疑義處方登記</span>
-            </a>
-            <a href="https://forms.gle/P8CAU19HgGF4CVEf9" target="_blank" class="nav-card bg-white p-5 rounded-[1.5rem] shadow-sm border border-slate-100 flex items-center gap-4 group hover:border-orange-400">
-                <div class="bg-orange-50 w-14 h-14 rounded-2xl flex items-center justify-center text-orange-600 group-hover:bg-orange-600 group-hover:text-white transition-colors">
-                    <i class="fa-solid fa-triangle-exclamation text-xl"></i>
-                </div>
-                <span class="font-bold text-slate-700 text-[1.1em]">調劑錯誤登記</span>
-            </a>
-        </div>
-    </section>
-
-    <section class="mb-10">
-        <h2 class="text-slate-400 text-[0.7em] font-black uppercase tracking-[0.2em] mb-4 flex items-center gap-2 px-2">
-            <i class="fa-solid fa-comment-medical"></i> 三、民眾藥務諮詢
-        </h2>
-        <div class="responsive-grid">
-            <a href="https://cw-chen122.github.io/wegovy-cal/" target="_blank" class="nav-card bg-white p-5 rounded-[1.5rem] shadow-sm border border-slate-100 flex items-center gap-4 group hover:border-blue-400">
-                <div class="bg-cyan-50 w-14 h-14 rounded-2xl flex items-center justify-center text-cyan-600 group-hover:bg-cyan-600 group-hover:text-white transition-colors">
-                    <i class="fa-solid fa-calculator text-xl"></i>
-                </div>
-                <span class="font-bold text-slate-700 text-[1.1em]">Wegovy 劑量換算器</span>
-            </a>
-            <a href="https://amanhung.github.io/Formulary/" target="_blank" class="nav-card bg-white p-5 rounded-[1.5rem] shadow-sm border border-slate-100 flex items-center gap-4 group hover:border-emerald-400">
-                <div class="bg-emerald-50 w-14 h-14 rounded-2xl flex items-center justify-center text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
-                    <i class="fa-solid fa-users text-xl"></i>
-                </div>
-                <span class="font-bold text-slate-700 text-[1.1em]">民眾藥品查詢</span>
-            </a>
-        </div>
-    </section>
-
-    <footer class="mt-16 text-center pb-12 border-t border-slate-200 pt-8">
+<footer class="mt-16 text-center pb-12 border-t border-slate-200 pt-8">
         <div class="flex justify-center gap-4 mb-6">
             <div class="stats-badge">
                 <span class="text-[0.6em] text-slate-400 font-bold uppercase tracking-wider">訪客總人數</span>
-                <span class="text-[1.2em] font-black text-blue-600" id="busuanzi_value_site_uv">--</span>
+                <span class="text-[1.2em] font-black text-blue-600" id="busuanzi_value_site_uv">
+                    <i class="fa-solid fa-spinner fa-spin text-xs text-slate-300"></i>
+                </span>
             </div>
             <div class="stats-badge">
                 <span class="text-[0.6em] text-slate-400 font-bold uppercase tracking-wider">總瀏覽次數</span>
-                <span class="text-[1.2em] font-black text-slate-700" id="busuanzi_value_site_pv">--</span>
+                <span class="text-[1.2em] font-black text-slate-700" id="busuanzi_value_site_pv">
+                    <i class="fa-solid fa-spinner fa-spin text-xs text-slate-300"></i>
+                </span>
             </div>
         </div>
 
@@ -150,84 +19,7 @@
         </button>
 
         <p class="text-slate-300 text-[0.6em] font-mono tracking-widest uppercase mb-1">Pharmacy Inventory System</p>
-        <p class="text-slate-400 text-[0.6em] font-bold italic">Version 1.6.14 (20260120)</p>
-        <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+        <p class="text-slate-400 text-[0.6em] font-bold italic">Version 1.6.15 (20260120)</p>
+        
+        <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
     </footer>
-
-    <transition name="fade">
-        <div v-if="showInstallGuide" class="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" @click="showInstallGuide = false"></div>
-            <div class="relative bg-white rounded-[2rem] shadow-2xl w-full max-w-sm overflow-hidden">
-                <div class="p-8 text-center">
-                    <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl">
-                        <i class="fa-solid fa-plus"></i>
-                    </div>
-                    <h3 class="text-xl font-black text-slate-800 mb-2">加入手機桌面</h3>
-                    <p class="text-slate-500 text-sm mb-6">將此系統設為桌面捷徑，<br>就像使用 App 一樣快速！</p>
-                    
-                    <div v-if="isIOS" class="space-y-4 text-left bg-slate-50 p-4 rounded-2xl">
-                        <div class="flex items-center gap-3 text-slate-700">
-                            <span class="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs">1</span>
-                            <span>點擊下方工具列的 <i class="fa-solid fa-arrow-up-from-bracket text-blue-500"></i> **「分享」**</span>
-                        </div>
-                        <div class="flex items-center gap-3 text-slate-700">
-                            <span class="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs">2</span>
-                            <span>選擇 **「加入主畫面」** <i class="fa-regular fa-square-plus text-slate-500"></i></span>
-                        </div>
-                    </div>
-
-                    <div v-else class="space-y-4 text-left bg-slate-50 p-4 rounded-2xl">
-                        <div class="flex items-center gap-3 text-slate-700">
-                            <span class="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs">1</span>
-                            <span>點擊瀏覽器右上角 <i class="fa-solid fa-ellipsis-vertical text-slate-500"></i> **「選單」**</span>
-                        </div>
-                        <div class="flex items-center gap-3 text-slate-700">
-                            <span class="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs">2</span>
-                            <span>選擇 **「安裝應用程式」** 或 **「新增至主畫面」**</span>
-                        </div>
-                    </div>
-
-                    <button @click="showInstallGuide = false" class="mt-8 w-full bg-slate-100 text-slate-600 py-3 rounded-xl font-bold">我知道了</button>
-                </div>
-            </div>
-        </div>
-    </transition>
-</div>
-
-<script type="module">
-    import { createApp, ref, onMounted, computed } from 'https://unpkg.com/vue@3/dist/vue.esm-browser.js';
-    createApp({
-        setup() {
-            const currentSize = ref(16);
-            const showInstallGuide = ref(false);
-
-            const isIOS = computed(() => {
-                return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-            });
-
-            onMounted(() => {
-                const saved = localStorage.getItem('fyh-font-size');
-                if (saved) {
-                    currentSize.value = parseInt(saved);
-                    applyFontSize();
-                }
-            });
-
-            const changeFont = (delta) => {
-                currentSize.value += delta;
-                if (currentSize.value < 12) currentSize.value = 12;
-                if (currentSize.value > 32) currentSize.value = 32;
-                applyFontSize();
-                localStorage.setItem('fyh-font-size', currentSize.value);
-            };
-
-            const applyFontSize = () => {
-                document.documentElement.style.setProperty('--base-size', `${currentSize.value}px`);
-            };
-
-            return { changeFont, showInstallGuide, isIOS };
-        }
-    }).mount('#app');
-</script>
-</body>
-</html>
