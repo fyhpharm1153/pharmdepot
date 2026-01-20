@@ -246,17 +246,26 @@
                 return z;
             };
 
-            const handleItemClick = (item) => {
-                // 如果正在編輯，點擊卡片不應跳轉
-                if (editingKey.value === item.key) return;
-                
-                if (item.isNewDrug) {
-                    window.location.href = 'newdrugstatus.html';
-                } else {
-                    const url = `transfer.html?code=${encodeURIComponent(item.code)}&name=${encodeURIComponent(item.name)}`;
-                    window.location.href = url;
-                }
-            };
+const handleItemClick = (item) => {
+    if (editingKey.value === item.key) return;
+    
+    if (item.isNewDrug) {
+        window.location.href = 'newdrugstatus.html';
+    } else {
+        // 🚀 根據 zoneCategoryMap 判斷類別
+        const category = zoneCategoryMap[item.zone];
+        let type = '';
+        if (category === '門診藥局' || category === '住院藥局') {
+            type = 'urgent';
+        } else if (category === '急診藥局') {
+            type = 'er';
+        }
+
+        // 🚀 將 type 參數傳給 transfer.html
+        const url = `transfer.html?code=${encodeURIComponent(item.code)}&name=${encodeURIComponent(item.name)}&type=${type}`;
+        window.location.href = url;
+    }
+};
 
             const startEdit = (item) => {
                 editingKey.value = item.key;
