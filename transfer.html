@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>藥品撥補系統 - 全功能專業版</title>
+    <title>藥品撥補系統 - 鍵盤導覽強化版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -22,30 +22,50 @@
         .btn-equal { @apply bg-blue-600 text-white; }
         .btn-sign { @apply bg-slate-500 text-white; }
         
+        /* 🚀 搜尋建議高亮樣式 */
+        .suggestion-item.highlighted { 
+            @apply bg-blue-100 border-l-8 border-blue-600 scale-[1.01] z-10;
+        }
+
+        .record-card { border-left: 8px solid #cbd5e1; }
+        .modal-overlay { @apply fixed inset-0 z-[150] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm; }
+        
+        .qty-display:focus {
+            @apply border-blue-600 ring-4 ring-blue-200 outline-none;
+        }
+
+        .push-notify {
+            @apply fixed top-4 left-1/2 -translate-x-1/2 z-[200] bg-red-600 text-white px-6 py-3 rounded-full font-black shadow-2xl flex items-center gap-3 border-2 border-white animate-bounce;
+        }
+
         .urgent-pulse {
             animation: pulse 1.2s infinite;
-            @apply border-2 border-red-600;
+            @apply border-2 border-red-600 cursor-pointer;
         }
         @keyframes pulse {
             0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
-            70% { transform: scale(1.02); box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); }
+            70% { transform: scale(1.02); box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
             100% { transform: scale(1); }
         }
-        .record-card { border-left: 8px solid #cbd5e1; }
-        .modal-overlay { @apply fixed inset-0 z-[150] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm; }
     </style>
 </head>
 <body class="p-4 pb-20">
     <div id="app" class="max-w-7xl mx-auto" v-cloak>
+        
+        <div v-if="pendingUrgent.length > 0" class="push-notify">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <span>有 {{ pendingUrgent.length }} 筆急領件尚未處理！</span>
+        </div>
+
         <header class="flex justify-between items-center mb-6 gap-4 bg-white p-4 rounded-2xl border-2 border-slate-800 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.1)]">
             <div class="flex items-center gap-3">
-                <button @click="goBack" class="w-12 h-12 border-2 border-slate-800 rounded-xl bg-white active:bg-slate-100 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"><i class="fa-solid fa-arrow-left"></i></button>
+                <button @click="goBack" class="w-12 h-12 border-2 border-slate-800 rounded-xl bg-white flex items-center justify-center shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"><i class="fa-solid fa-arrow-left"></i></button>
                 <h1 class="text-2xl font-black text-slate-800">藥品撥補系統</h1>
             </div>
             <div class="flex gap-2">
-                <button @click="changeFontSize(-0.1)" class="px-4 py-1 border-2 border-slate-800 rounded-xl font-bold bg-white shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">A-</button>
-                <button @click="changeFontSize(0.1)" class="px-4 py-1 border-2 border-slate-800 rounded-xl font-bold bg-white shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">A+</button>
-                <button @click="showManager = true" class="w-12 h-12 bg-slate-800 text-white border-2 border-slate-800 rounded-xl shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"><i class="fa-solid fa-cog"></i></button>
+                <button @click="changeFontSize(-0.1)" class="px-4 py-1 border-2 border-slate-800 rounded-xl font-bold bg-white">A-</button>
+                <button @click="changeFontSize(0.1)" class="px-4 py-1 border-2 border-slate-800 rounded-xl font-bold bg-white">A+</button>
+                <button @click="showManager = true" class="w-12 h-12 bg-slate-800 text-white border-2 border-slate-800 rounded-xl flex items-center justify-center shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"><i class="fa-solid fa-cog"></i></button>
             </div>
         </header>
 
@@ -53,42 +73,52 @@
             <section class="bg-white p-6 rounded-[2rem] border-2 border-slate-800 shadow-xl space-y-5">
                 <div>
                     <label class="font-bold text-slate-500 block mb-1 text-lg">撥補人員</label>
-                    <select v-model="form.user" class="w-full bg-slate-100 p-4 rounded-xl font-black text-xl border-2 border-slate-300">
+                    <select v-model="form.user" @change="saveUserPreference" class="w-full bg-slate-100 p-4 rounded-xl font-black text-xl border-2 border-slate-300">
                         <option value="值班人員">值班人員</option>
                         <option v-for="user in staffList" :key="user" :value="user">{{ user }}</option>
                     </select>
                 </div>
 
                 <div class="relative">
-                    <label class="font-bold text-slate-500 block mb-1 text-lg">搜尋藥品</label>
+                    <label class="font-bold text-slate-500 block mb-1 text-lg">搜尋藥品 <span class="text-xs text-blue-500 ml-2 font-normal">(上下鍵選取 / Enter 帶入)</span></label>
                     <div class="relative flex items-center">
-                        <input v-model="searchQuery" @input="onSearchInput" placeholder="搜尋代碼或名稱..." class="w-full bg-slate-100 p-4 rounded-xl font-black text-xl border-2 border-slate-300 outline-none">
-                        <button v-if="searchQuery" @click="clearSearch" class="absolute right-4 text-slate-400"><i class="fa-solid fa-circle-xmark text-2xl"></i></button>
+                        <input v-model="searchQuery" 
+                               ref="searchInput"
+                               @input="onSearchInput" 
+                               @keydown.down.prevent="moveHighlight(1)" 
+                               @keydown.up.prevent="moveHighlight(-1)" 
+                               @keydown.enter.prevent="confirmSelection"
+                               @keydown.tab.prevent="jumpToQty"
+                               placeholder="搜尋代碼或名稱..." 
+                               class="w-full bg-slate-100 p-4 rounded-xl font-black text-xl border-2 border-slate-300 outline-none focus:border-blue-600 transition-all">
+                        <button v-if="searchQuery" @click="clearSearch" class="absolute right-4 text-slate-400 hover:text-red-500"><i class="fa-solid fa-circle-xmark text-2xl"></i></button>
                     </div>
-                    <div v-if="suggestions.length > 0" class="absolute z-50 w-full bg-white shadow-2xl rounded-xl mt-2 border-2 border-slate-800 max-h-60 overflow-y-auto">
-                        <div v-for="s in suggestions" :key="s.c" @click="selectDrug(s)" class="p-4 border-b border-slate-100 flex justify-between items-center hover:bg-blue-50 cursor-pointer transition">
+                    <div v-if="suggestions.length > 0" 
+                         ref="suggestionBox"
+                         class="absolute z-50 w-full bg-white shadow-2xl rounded-xl mt-2 border-2 border-slate-800 max-h-60 overflow-y-auto overflow-x-hidden">
+                        <div v-for="(s, index) in suggestions" 
+                             :key="s.c" 
+                             :ref="el => { if (highlightIndex === index) highlightedItem = el }"
+                             @click="selectDrug(s)" 
+                             :class="['suggestion-item p-4 border-b border-slate-100 flex justify-between items-center cursor-pointer transition-all', highlightIndex === index ? 'highlighted' : '']">
                             <div><div class="text-blue-600 font-bold text-sm">{{ s.c }}</div><div class="text-xl font-black text-slate-800">{{ s.n }}</div></div>
-                            <div class="bg-orange-100 text-orange-700 px-3 py-1 rounded-lg text-sm font-bold border border-orange-200">庫：{{ s.s || '?' }}</div>
+                            <div class="bg-orange-100 text-orange-700 px-3 py-1 rounded-lg text-sm font-bold">庫：{{ s.s || '?' }}</div>
                         </div>
                     </div>
                 </div>
 
-                <div v-if="form.name" class="bg-blue-700 p-5 rounded-xl border-2 border-slate-800">
+                <div v-if="form.name" class="bg-blue-700 p-5 rounded-xl border-2 border-slate-800 shadow-inner animate-in fade-in zoom-in duration-200">
                     <p class="font-black text-white text-xl mb-3">已選：[{{ form.code }}] {{ form.name }}</p>
-                    <label class="flex items-center gap-3 bg-white/10 p-3 rounded-lg border border-white/20 cursor-pointer">
+                    <label class="flex items-center gap-3 bg-white/10 p-3 rounded-lg border border-white/20 cursor-pointer hover:bg-white/20 transition">
                         <input type="checkbox" v-model="form.isUrgent" class="w-6 h-6">
-                        <span class="text-white font-black text-xl tracking-wider">🚨 急領 (藥庫助理優先撥補)</span>
+                        <span class="text-white font-black text-xl tracking-wider">🚨 急領 (助理優先處理)</span>
                     </label>
                 </div>
 
                 <div v-if="!form.isUrgent" class="bg-slate-200 p-5 rounded-[2rem] border-2 border-slate-800">
-                    <div class="bg-white p-4 rounded-xl border-2 border-slate-800 mb-4 shadow-inner text-right text-4xl font-black text-slate-900 min-h-[1.5em]">{{ form.qtyStr || '0' }}</div>
+                    <div ref="qtyDisplay" tabindex="0" class="qty-display bg-white p-4 rounded-xl border-2 border-slate-800 mb-4 shadow-inner text-right text-4xl font-black text-slate-900 min-h-[1.5em] transition-all">{{ form.qtyStr || '0' }}</div>
                     <div class="grid grid-cols-4 gap-3">
-                        <button @click="form.qtyStr = ''" class="calc-btn btn-ac">AC</button>
-                        <button @click="deleteLast('form')" class="calc-btn btn-del"><i class="fa-solid fa-delete-left"></i></button>
-                        <button @click="toggleSign('form')" class="calc-btn btn-sign">+/-</button>
-                        <button @click="addOp('form','/')" class="calc-btn btn-op">÷</button>
-                        <button v-for="n in ['7','8','9','*','4','5','6','-','1','2','3','+']" @click="isNaN(n)?addOp('form',n):addNum('form',n)" :class="['calc-btn', isNaN(n)?'btn-op':'btn-num']">{{ n === '*' ? '×' : n }}</button>
+                        <button v-for="btn in ['AC','DEL','+/-','/','7','8','9','*','4','5','6','-','1','2','3','+']" @click="handleCalcClick(btn)" :class="getBtnClass(btn)">{{ getBtnLabel(btn) }}</button>
                         <button @click="addNum('form','0')" class="calc-btn btn-num col-span-2">0</button>
                         <button @click="addNum('form','.')" class="calc-btn btn-num">.</button>
                         <button @click="calculate('form')" class="calc-btn btn-equal text-5xl">=</button>
@@ -100,111 +130,78 @@
 
             <section class="space-y-6">
                 <div v-if="pendingUrgent.length > 0" class="space-y-3">
-                    <div class="flex items-center gap-2 text-red-600">
-                        <i class="fa-solid fa-bell animate-swing"></i>
-                        <h3 class="font-black text-2xl">急領待處理 ({{ pendingUrgent.length }})</h3>
-                    </div>
-                    <div class="space-y-4">
-                        <div v-for="log in pendingUrgent" :key="log.id" @click="openUrgentEdit(log)" class="urgent-pulse bg-white p-5 rounded-2xl shadow-xl flex items-center gap-4 border-2 cursor-pointer transition active:scale-95">
-                            <div class="flex-1">
-                                <div class="text-[0.8em] font-bold text-red-500 mb-1">
-                                    <span class="bg-red-600 text-white px-2 py-0.5 rounded mr-2">急件</span>{{ log.time }}
-                                </div>
-                                <p class="font-black text-slate-900 text-2xl">[{{ log.code }}] {{ log.name }}</p>
-                                <p class="text-sm font-bold text-slate-400 mt-1">申請：{{ log.user }}</p>
-                            </div>
-                            <div class="bg-red-600 text-white font-black px-6 py-3 rounded-xl text-2xl">處理</div>
+                    <div class="flex items-center gap-2 text-red-600 font-black text-2xl"><i class="fa-solid fa-bell animate-swing"></i><h3>急領待處理</h3></div>
+                    <div v-for="log in pendingUrgent" :key="log.id" @click="openUrgentEdit(log)" class="urgent-pulse bg-white p-5 rounded-2xl shadow-xl flex items-center gap-4 border-2">
+                        <div class="flex-1">
+                            <div class="text-[0.8em] font-bold text-red-500 mb-1"><span class="bg-red-600 text-white px-2 py-0.5 rounded mr-2">急件</span>{{ log.time }}</div>
+                            <p class="font-black text-slate-900 text-2xl">[{{ log.code }}] {{ log.name }}</p>
                         </div>
+                        <div class="bg-red-600 text-white font-black px-6 py-3 rounded-xl text-2xl shadow-lg">處理</div>
                     </div>
                 </div>
 
                 <div class="bg-white p-4 rounded-xl border-2 border-slate-800 shadow-md flex justify-between items-center">
                     <h3 class="font-black text-xl text-slate-600">最近紀錄</h3>
-                    <div class="flex gap-2">
-                        <input type="date" v-model="filterDate" class="p-2 border-2 border-slate-800 rounded-lg font-bold">
-                    </div>
+                    <input type="date" v-model="filterDate" class="p-2 border-2 border-slate-800 rounded-lg font-bold">
                 </div>
 
                 <div class="max-h-[500px] overflow-y-auto space-y-4 pr-2 border-b-2 border-slate-200 pb-4">
                     <div v-for="log in filteredHistory" :key="log.id" class="record-card bg-white p-4 rounded-xl shadow border-2 border-slate-300 flex items-center gap-4">
                         <div class="flex-1">
-                            <div class="text-[0.8em] font-bold text-slate-400">
-                                <span class="bg-slate-700 text-white px-2 py-0.5 rounded mr-2">{{ log.user }}</span>{{ log.time }}
-                            </div>
+                            <div class="text-[0.8em] font-bold text-slate-400"><span class="bg-slate-700 text-white px-2 py-0.5 rounded mr-2">{{ log.user }}</span>{{ log.time }}</div>
                             <p class="font-black text-slate-900 text-xl">[{{ log.code }}] {{ log.name }}</p>
                         </div>
                         <div class="flex items-center gap-3">
-                            <div v-if="log.isUrgent && log.processed" class="bg-yellow-400 text-slate-900 font-black px-4 py-2 rounded-lg text-2xl min-w-[90px] text-center border-2 border-slate-800">
-                                {{ log.qty }}
-                            </div>
-                            <div v-else :class="log.qty > 0 ? 'bg-blue-600' : 'bg-orange-600'" class="text-white font-black px-4 py-2 rounded-lg text-2xl min-w-[90px] text-center">
-                                {{ log.qty > 0 ? '+' : '' }}{{ log.qty }}
-                            </div>
-                            <button @click="deleteSingle(log)" class="bg-red-100 text-red-600 w-12 h-12 rounded-lg flex items-center justify-center"><i class="fa-solid fa-trash-can"></i></button>
+                            <div v-if="log.isUrgent && log.processed" class="bg-yellow-400 text-slate-900 font-black px-4 py-2 rounded-lg text-2xl min-w-[90px] text-center border-2 border-slate-800">{{ log.qty }}</div>
+                            <div v-else :class="log.qty > 0 ? 'bg-blue-600' : 'bg-orange-600'" class="text-white font-black px-4 py-2 rounded-lg text-2xl min-w-[90px] text-center">{{ log.qty > 0 ? '+' : '' }}{{ log.qty }}</div>
+                            <button @click.stop="deleteSingle(log)" class="bg-red-100 text-red-600 w-12 h-12 rounded-lg flex items-center justify-center hover:bg-red-200 transition active:scale-90"><i class="fa-solid fa-trash-can"></i></button>
                         </div>
                     </div>
                 </div>
-
-                <div class="grid grid-cols-1 gap-3">
-                    <button @click="exportByDate" class="bg-slate-800 text-white py-5 rounded-2xl font-black text-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-1">
-                        <i class="fa-solid fa-file-excel mr-2"></i>匯出 {{ filterDate }} 撥補報表
-                    </button>
-                </div>
+                <button @click="exportByDate" class="w-full bg-slate-800 text-white py-5 rounded-2xl font-black text-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-1"><i class="fa-solid fa-file-excel mr-2"></i>匯出報表</button>
             </section>
         </div>
 
         <div v-if="editingUrgent" class="modal-overlay">
             <div class="bg-white w-full max-w-md rounded-[2.5rem] p-6 border-4 border-slate-800 shadow-2xl">
-                <div class="flex justify-between items-start mb-4 border-b-2 border-slate-100 pb-2">
-                    <div>
-                        <h2 class="font-black text-2xl text-red-600 tracking-tighter">🚨 處理急領紀錄</h2>
-                        <p class="font-bold text-slate-600 text-sm mt-1">{{ editingUrgent.name }}</p>
-                    </div>
+                <div class="flex justify-between items-start mb-4 border-b-2 pb-2">
+                    <div><h2 class="font-black text-2xl text-red-600 tracking-tighter">🚨 處理急領</h2><p class="font-bold text-slate-600 text-sm mt-1">{{ editingUrgent.name }}</p></div>
                     <button @click="editingUrgent = null" class="text-4xl font-black text-slate-400">&times;</button>
                 </div>
-
-                <div class="bg-slate-100 p-4 rounded-2xl border-2 border-slate-800 mb-4">
-                    <p class="text-xs font-bold text-slate-400 mb-1 tracking-widest uppercase">實際撥補數量</p>
-                    <div class="text-right text-5xl font-black text-slate-900 min-h-[1.2em] font-mono tracking-tighter">{{ assistantQtyStr || '0' }}</div>
-                </div>
-
+                <div class="bg-slate-100 p-4 rounded-2xl border-2 border-slate-800 mb-4 text-right text-5xl font-black">{{ assistantQtyStr || '0' }}</div>
                 <div class="grid grid-cols-4 gap-3">
-                    <button @click="assistantQtyStr = ''" class="calc-btn btn-ac h-[65px]">AC</button>
-                    <button @click="deleteLast('assistant')" class="calc-btn btn-del h-[65px]"><i class="fa-solid fa-delete-left"></i></button>
-                    <button @click="toggleSign('assistant')" class="calc-btn btn-sign h-[65px]">+/-</button>
-                    <button @click="addOp('assistant','/')" class="calc-btn btn-op h-[65px]">÷</button>
-                    <button v-for="n in ['7','8','9','*','4','5','6','-','1','2','3','+']" @click="isNaN(n)?addOp('assistant',n):addNum('assistant',n)" :class="['calc-btn h-[65px]', isNaN(n)?'btn-op':'btn-num']">{{ n === '*' ? '×' : n }}</button>
-                    <button @click="addNum('assistant','0')" class="calc-btn btn-num col-span-2 h-[65px]">0</button>
-                    <button @click="addNum('assistant','.')" class="calc-btn btn-num h-[65px]">.</button>
-                    <button @click="calculate('assistant')" class="calc-btn btn-equal text-4xl h-[65px]">=</button>
+                    <button v-for="btn in ['AC','DEL','+/-','/','7','8','9','*','4','5','6','-','1','2','3','+']" @click="handleAssistantCalc(btn)" :class="getBtnClass(btn)" style="height: 60px;">{{ getBtnLabel(btn) }}</button>
+                    <button @click="addNum('assistant','0')" class="calc-btn btn-num col-span-2" style="height: 60px;">0</button>
+                    <button @click="addNum('assistant','.')" class="calc-btn btn-num" style="height: 60px;">.</button>
+                    <button @click="calculate('assistant')" class="calc-btn btn-equal text-4xl" style="height: 60px;">=</button>
                 </div>
-
-                <div class="flex gap-4 mt-8">
-                    <button @click="editingUrgent = null" class="flex-1 py-4 bg-slate-200 rounded-xl font-black border-2 border-slate-300">取消</button>
-                    <button @click="confirmUrgentEdit" class="flex-1 py-4 bg-emerald-600 text-white rounded-xl font-black border-2 border-slate-800 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-1">確認發放</button>
+                <div class="grid grid-cols-2 gap-4 mt-8">
+                    <button @click="cancelUrgentIssuance" class="py-4 bg-slate-200 text-slate-600 rounded-xl font-black border-2 border-slate-400 transition hover:bg-slate-300">取消發放 (帶0)</button>
+                    <button @click="confirmUrgentEdit" class="py-4 bg-emerald-600 text-white rounded-xl font-black border-2 border-slate-800 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none">確認發放</button>
                 </div>
             </div>
         </div>
 
         <div v-if="showManager" class="modal-overlay">
             <div class="bg-white w-full max-w-md rounded-3xl p-8 border-4 border-slate-800 shadow-2xl">
-                <div class="flex justify-between items-center mb-6"><h2 class="font-black text-2xl text-slate-800">人員管理</h2><button @click="showManager = false" class="text-4xl">&times;</button></div>
+                <div class="flex justify-between items-center mb-6"><h2 class="font-black text-2xl">人員管理</h2><button @click="showManager = false" class="text-4xl font-black text-slate-400">&times;</button></div>
                 <div class="flex gap-2 mb-6">
-                    <input v-model="newStaffName" placeholder="輸入姓名" class="flex-1 p-4 rounded-xl border-2 border-slate-300 font-bold focus:border-blue-500 outline-none transition">
-                    <button @click="addStaff" class="bg-blue-600 text-white px-6 rounded-xl font-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:shadow-none">新增</button>
+                    <input v-model="newStaffName" @keyup.enter="addStaff" placeholder="輸入姓名" class="flex-1 p-4 rounded-xl border-2 font-bold outline-none focus:border-blue-500">
+                    <button @click="addStaff" class="bg-blue-600 text-white px-6 rounded-xl font-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:shadow-none transition-all">新增</button>
                 </div>
                 <div class="max-h-60 overflow-y-auto space-y-2 border-t pt-4">
-                    <div v-for="(name, idx) in staffList" :key="idx" class="flex justify-between p-4 bg-slate-50 rounded-xl border border-slate-200">
-                        <span class="font-bold text-slate-700 text-lg">{{ name }}</span>
-                        <button @click="removeStaff(idx)" class="text-red-500 hover:text-red-700 transition"><i class="fa-solid fa-trash"></i></button>
+                    <div v-for="(name, idx) in staffList" :key="idx" class="flex justify-between p-4 bg-slate-50 rounded-xl border">
+                        <span class="font-bold text-slate-700">{{ name }}</span>
+                        <button @click="removeStaff(idx)" class="text-red-500"><i class="fa-solid fa-trash"></i></button>
                     </div>
                 </div>
             </div>
         </div>
+
     </div>
 
 <script type="module">
-    import { createApp, ref, computed, onMounted, onUnmounted } from "https://unpkg.com/vue@3/dist/vue.esm-browser.js";
+    import { createApp, ref, computed, onMounted, onUnmounted, nextTick, watch } from "https://unpkg.com/vue@3/dist/vue.esm-browser.js";
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getDatabase, ref as dbRef, push, remove, query, limitToLast, onValue, set, update, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
@@ -227,6 +224,7 @@
             const searchQuery = ref('');
             const warehouse = ref([]);
             const suggestions = ref([]);
+            const highlightIndex = ref(-1);
             const history = ref([]);
             const staffList = ref([]);
             const showManager = ref(false);
@@ -235,181 +233,145 @@
             const newStaffName = ref('');
             const filterDate = ref(new Date().toISOString().split('T')[0]);
             const baseFontSize = ref(1.1);
-            let lastUrgentId = null;
+            
+            const searchInput = ref(null);
+            const qtyDisplay = ref(null);
+            const highlightedItem = ref(null);
+            const suggestionBox = ref(null);
+            let reminderTimer = null;
 
-            // 語音播放
-            const speak = (text) => {
-                const utter = new SpeechSynthesisUtterance(text);
-                utter.lang = 'zh-TW';
-                utter.rate = 0.95;
-                window.speechSynthesis.speak(utter);
+            const playBeep = () => { try { const ctx = new AudioContext(); const osc = ctx.createOscillator(); const gain = ctx.createGain(); osc.type = "sine"; osc.frequency.setValueAtTime(880, ctx.currentTime); gain.gain.setValueAtTime(0.05, ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3); osc.connect(gain); gain.connect(ctx.destination); osc.start(); osc.stop(ctx.currentTime + 0.3); } catch (e) {} };
+
+            // 🚀 核心：鍵盤移動邏輯
+            const moveHighlight = (step) => {
+                if (suggestions.value.length === 0) return;
+                highlightIndex.value = (highlightIndex.value + step + suggestions.value.length) % suggestions.value.length;
+                
+                // 自動捲動確保選中項目在可見範圍內
+                nextTick(() => {
+                    if (highlightedItem.value) {
+                        highlightedItem.value.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                    }
+                });
             };
 
-            // 鍵盤監聽核心邏輯
-            const handleKeyboard = (e) => {
-                // 如果正在輸入姓名或藥品搜尋，不觸發計算機
-                if (['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
-                    // 唯一例外：彈窗開啟時的輸入框不應該擋住鍵盤邏輯，但這裡我們彈窗沒放 input，所以 OK
-                    return;
+            // 🚀 核心：Enter 鍵確認選取
+            const confirmSelection = () => {
+                if (highlightIndex.value >= 0 && suggestions.value[highlightIndex.value]) {
+                    selectDrug(suggestions.value[highlightIndex.value]);
+                    jumpToQty(); 
+                } else if (suggestions.value.length === 1) {
+                    selectDrug(suggestions.value[0]);
+                    jumpToQty();
                 }
+            };
 
-                // 判定目前操作對象 (彈窗中 or 主畫面)
+            const jumpToQty = () => {
+                if (qtyDisplay.value) {
+                    qtyDisplay.value.focus();
+                    searchInput.value.blur();
+                }
+            };
+
+            const selectDrug = (d) => {
+                form.value.code = d.c; form.value.name = d.n; form.value.shelf = d.s || '無';
+                searchQuery.value = d.n; suggestions.value = []; highlightIndex.value = -1;
+                nextTick(() => searchInput.value.blur());
+            };
+
+            const onSearchInput = () => {
+                highlightIndex.value = -1; // 每次輸入時重置高亮索引
+                const k = searchQuery.value.toLowerCase().trim();
+                suggestions.value = k ? warehouse.value.filter(i => i.n?.toLowerCase().includes(k) || i.c?.toLowerCase().includes(k)).slice(0, 15) : [];
+            };
+
+            const saveUserPreference = () => localStorage.setItem('preferred_user', form.value.user);
+            const addStaff = () => { if(newStaffName.value.trim()){ staffList.value.push(newStaffName.value.trim()); set(dbRef(db, "staff_list"), staffList.value); newStaffName.value = ''; } };
+            const removeStaff = (i) => { if(confirm("確定刪除？")){ staffList.value.splice(i, 1); set(dbRef(db, "staff_list"), staffList.value); } };
+
+            const handleKeyboard = (e) => {
+                if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'SELECT') return;
                 const target = editingUrgent.value ? 'assistant' : 'form';
                 const key = e.key;
-
                 if (/[0-9]/.test(key)) addNum(target, key);
                 else if (['+', '-', '*', '/'].includes(key)) addOp(target, key);
                 else if (key === '.') addNum(target, '.');
                 else if (key === 'Enter' || key === '=') { e.preventDefault(); calculate(target); }
                 else if (key === 'Backspace') { e.preventDefault(); deleteLast(target); }
-                else if (key === 'Delete' || key === 'Escape') { 
-                    e.preventDefault(); 
-                    if (target === 'form') form.value.qtyStr = ''; 
-                    else assistantQtyStr.value = '';
-                }
             };
 
             onMounted(() => {
                 onValue(dbRef(db, "warehouse"), s => warehouse.value = s.val() ? Object.values(s.val()) : []);
-                
                 onValue(query(dbRef(db, "transfer_logs"), limitToLast(50)), s => {
-                    const data = s.val() ? Object.entries(s.val()).map(([id, v]) => ({ id, ...v })) : [];
-                    history.value = data.reverse();
-                    
-                    const latestUrgent = data.find(l => l.isUrgent && !l.processed);
-                    if (latestUrgent && latestUrgent.id !== lastUrgentId) {
-                        speak("有急領，請領藥");
-                        lastUrgentId = latestUrgent.id;
-                    }
+                    history.value = s.val() ? Object.entries(s.val()).map(([id, v]) => ({ id, ...v })).reverse() : [];
                 });
-
-                onValue(dbRef(db, "staff_list"), s => { if(s.val()) staffList.value = s.val(); });
+                onValue(dbRef(db, "staff_list"), s => { 
+                    if(s.val()){
+                        staffList.value = s.val();
+                        const saved = localStorage.getItem('preferred_user');
+                        if (saved && (staffList.value.includes(saved) || saved === '值班人員')) form.value.user = saved;
+                    } 
+                });
                 window.addEventListener('keydown', handleKeyboard);
             });
 
-            onUnmounted(() => window.removeEventListener('keydown', handleKeyboard));
+            onUnmounted(() => { window.removeEventListener('keydown', handleKeyboard); if(reminderTimer) clearInterval(reminderTimer); });
 
-            // 資料過濾
-            const filteredHistory = computed(() => history.value.filter(log => !log.isUrgent || log.processed));
-            const pendingUrgent = computed(() => history.value.filter(log => log.isUrgent && !log.processed));
-
-            // 計算機邏輯
-            const addNum = (target, n) => {
-                if (target === 'form') form.value.qtyStr = (form.value.qtyStr === '0' ? n : form.value.qtyStr + n);
-                else assistantQtyStr.value = (assistantQtyStr.value === '0' ? n : assistantQtyStr.value + n);
-            };
-            const addOp = (target, op) => {
-                if (target === 'form') form.value.qtyStr += op;
-                else assistantQtyStr.value += op;
-            };
-            const deleteLast = (target) => {
-                if (target === 'form') form.value.qtyStr = form.value.qtyStr.slice(0,-1);
-                else assistantQtyStr.value = assistantQtyStr.value.slice(0,-1);
-            };
-            const toggleSign = (target) => {
-                let s = target === 'form' ? form.value.qtyStr : assistantQtyStr.value;
-                s = s.startsWith('-') ? s.slice(1) : (s ? '-' + s : '-');
-                if (target === 'form') form.value.qtyStr = s; else assistantQtyStr.value = s;
-            };
-            const calculate = (target) => {
-                let s = target === 'form' ? form.value.qtyStr : assistantQtyStr.value;
+            const addNum = (t, n) => { if(t === 'form') form.value.qtyStr += n; else assistantQtyStr.value += n; };
+            const addOp = (t, o) => { if(t === 'form') form.value.qtyStr += o; else assistantQtyStr.value += o; };
+            const deleteLast = (t) => { if(t === 'form') form.value.qtyStr = form.value.qtyStr.slice(0,-1); else assistantQtyStr.value = assistantQtyStr.value.slice(0,-1); };
+            const calculate = (t) => {
+                let s = t === 'form' ? form.value.qtyStr : assistantQtyStr.value;
                 try {
-                    const clean = s.replace(/[^0-9+\-*/().]/g, '');
-                    if (clean) {
-                        const res = eval(clean);
-                        const rounded = Math.round(res * 100) / 100;
-                        if (target === 'form') form.value.qtyStr = rounded.toString();
-                        else assistantQtyStr.value = rounded.toString();
-                    }
-                } catch { 
-                    if (target === 'form') form.value.qtyStr = ''; else assistantQtyStr.value = '';
-                }
+                    const res = eval(s.replace(/[^0-9+\-*/().]/g, ''));
+                    if(t==='form') form.value.qtyStr = (Math.round(res*100)/100).toString();
+                    else assistantQtyStr.value = (Math.round(res*100)/100).toString();
+                } catch {}
             };
 
-            // 業務邏輯
             const submitRecord = async () => {
-                if (!form.value.name) return alert("請選藥品");
-                let qty = 0;
-                if (!form.value.isUrgent) {
-                    calculate('form');
-                    qty = Number(form.value.qtyStr);
-                    if (!qty) return alert("請輸入數量");
-                }
-                const payload = {
+                if(!form.value.name) return alert("請先選藥品");
+                let q = 0; if(!form.value.isUrgent) { calculate('form'); q = Number(form.value.qtyStr); if(!q) return alert("請輸入數量"); }
+                await push(dbRef(db, "transfer_logs"), {
                     time: new Date().toLocaleString('zh-TW', { hour12: false }),
-                    user: form.value.user, code: form.value.code, name: form.value.name,
-                    qty: qty, isUrgent: form.value.isUrgent, processed: false
-                };
-                await push(dbRef(db, "transfer_logs"), payload);
-                form.value.qtyStr = ''; form.value.isUrgent = false; form.value.name = ''; searchQuery.value = '';
-                alert("提交成功");
-            };
-
-            const openUrgentEdit = (log) => { editingUrgent.value = log; assistantQtyStr.value = ''; };
-
-            const confirmUrgentEdit = async () => {
-                calculate('assistant');
-                const qty = Number(assistantQtyStr.value);
-                if (!qty) return alert("請輸入撥補數");
-                await update(dbRef(db, `transfer_logs/${editingUrgent.value.id}`), { qty: qty, processed: true });
-                editingUrgent.value = null;
-            };
-
-            // 恢復匯出功能
-            const exportByDate = async () => {
-                const snapshot = await get(dbRef(db, "transfer_logs"));
-                if (!snapshot.exists()) return alert("無資料");
-                const d = new Date(filterDate.value);
-                const targetDate = `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;
-                
-                const filtered = Object.values(snapshot.val()).filter(l => {
-                    if (!l.time) return false;
-                    const logDate = l.time.split(' ')[0].split('/').map(Number).join('/');
-                    return logDate === targetDate;
+                    user: form.value.user, code: form.value.code, name: form.value.name, qty: q,
+                    isUrgent: form.value.isUrgent, processed: false
                 });
-
-                if (filtered.length === 0) return alert("該日期無撥補紀錄");
-
-                const exportData = filtered.map(l => ({
-                    '時間': l.time,
-                    '人員': l.user,
-                    '代碼': l.code,
-                    '名稱': l.name,
-                    '數量': l.isUrgent ? (l.processed ? l.qty : '急領(未處理)') : l.qty,
-                    '備註': l.isUrgent ? '急領件' : ''
-                }));
-
-                const ws = XLSX.utils.json_to_sheet(exportData);
-                const wb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(wb, ws, "撥補紀錄");
-                XLSX.writeFile(wb, `FYH撥補報表_${filterDate.value}.xlsx`);
+                form.value.qtyStr = ''; form.value.isUrgent = false; form.value.name = ''; searchQuery.value = '';
+                nextTick(() => searchInput.value.focus());
             };
 
-            // UI 輔助
-            const onSearchInput = () => {
-                const k = searchQuery.value.toLowerCase().trim();
-                suggestions.value = k ? warehouse.value.filter(i => i.n?.toLowerCase().includes(k) || i.c?.toLowerCase().includes(k)).slice(0, 12) : [];
+            const pendingUrgent = computed(() => history.value.filter(l => l.isUrgent && !l.processed));
+            const filteredHistory = computed(() => history.value.filter(l => !l.isUrgent || l.processed));
+            watch(() => pendingUrgent.value.length, (c) => { if(c > 0 && !reminderTimer){ playBeep(); reminderTimer = setInterval(playBeep, 5000); } else if(c===0 && reminderTimer){ clearInterval(reminderTimer); reminderTimer = null; } });
+
+            const exportByDate = async () => {
+                const s = await get(dbRef(db, "transfer_logs")); if(!s.exists()) return alert("無資料");
+                const d = new Date(filterDate.value);
+                const target = `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;
+                const filtered = Object.values(s.val()).filter(l => l.time.split(' ')[0].split('/').map(Number).join('/') === target);
+                const ws = XLSX.utils.json_to_sheet(filtered.map(l => ({ '時間': l.time, '人員': l.user, '代碼': l.code, '名稱': l.name, '數量': l.isUrgent?(l.processed?l.qty:'待處理'):l.qty })));
+                const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "報表"); XLSX.writeFile(wb, `撥補報表_${filterDate.value}.xlsx`);
             };
-            const selectDrug = (d) => {
-                form.value.code = d.c; form.value.name = d.n; form.value.shelf = d.s || '無';
-                searchQuery.value = d.n; suggestions.value = [];
-            };
-            const clearSearch = () => { searchQuery.value = ''; suggestions.value = []; form.value.name = ''; };
-            const deleteSingle = async (log) => { if(confirm("確定刪除？")) await remove(dbRef(db, `transfer_logs/${log.id}`)); };
-            const changeFontSize = (d) => { baseFontSize.value += d; document.documentElement.style.fontSize = `${baseFontSize.value}rem`; };
-            const addStaff = () => { if(newStaffName.value) { staffList.value.push(newStaffName.value); set(dbRef(db, "staff_list"), staffList.value); newStaffName.value = ''; } };
-            const removeStaff = (idx) => { staffList.value.splice(idx, 1); set(dbRef(db, "staff_list"), staffList.value); };
 
             return {
-                form, searchQuery, suggestions, history, staffList, showManager, filterDate,
-                editingUrgent, assistantQtyStr, openUrgentEdit, confirmUrgentEdit,
-                onSearchInput, selectDrug, clearSearch, addNum, addOp, deleteLast, toggleSign,
-                calculate, submitRecord, deleteSingle, addStaff, removeStaff, newStaffName,
-                goBack: () => window.location.href = 'search.html', changeFontSize,
-                pendingUrgent, filteredHistory, exportByDate
+                form, searchQuery, suggestions, highlightIndex, history, staffList, filterDate,
+                editingUrgent, assistantQtyStr, pendingUrgent, filteredHistory,
+                searchInput, qtyDisplay, highlightedItem, suggestionBox, showManager, newStaffName,
+                confirmSelection, jumpToQty, onSearchInput, moveHighlight, selectDrug, submitRecord, addStaff, removeStaff, saveUserPreference,
+                handleCalcClick: (b) => { if(b==='AC')form.value.qtyStr='';else if(b==='DEL')deleteLast('form');else if(['/','*','-','+'].includes(b))addOp('form',b);else addNum('form',b); },
+                handleAssistantCalc: (b) => { if(b==='AC')assistantQtyStr.value='';else if(b==='DEL')deleteLast('assistant');else if(['/','*','-','+'].includes(b))addOp('assistant',b);else addNum('assistant',b); },
+                getBtnClass: (b) => b==='AC'?'calc-btn btn-ac':(b==='DEL'?'calc-btn btn-del':(['/','*','-','+'].includes(b)?'calc-btn btn-op':(b==='+/-'?'calc-btn btn-sign':'calc-btn btn-num'))),
+                getBtnLabel: (b) => b==='*'?'×':(b==='/'?'÷':(b==='DEL'?'←':b)),
+                deleteSingle: async (l) => { if(confirm("確定刪除此紀錄？")) await remove(dbRef(db, `transfer_logs/${l.id}`)); },
+                goBack: () => window.location.href = 'search.html',
+                changeFontSize: (d) => { baseFontSize.value += d; document.documentElement.style.fontSize = `${baseFontSize.value}rem`; },
+                confirmUrgentEdit: async () => { calculate('assistant'); await update(dbRef(db, `transfer_logs/${editingUrgent.value.id}`), { qty: Number(assistantQtyStr.value), processed: true }); editingUrgent.value = null; },
+                cancelUrgentIssuance: async () => { await update(dbRef(db, `transfer_logs/${editingUrgent.value.id}`), { qty: 0, processed: true }); editingUrgent.value = null; },
+                openUrgentEdit: (l) => { editingUrgent.value = l; assistantQtyStr.value = ''; },
+                exportByDate, clearSearch: () => { searchQuery.value = ''; suggestions.value = []; form.value.name = ''; }
             };
         }
     }).mount('#app');
 </script>
 </body>
-</html>
