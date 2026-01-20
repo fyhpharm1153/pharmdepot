@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="藥劑科管理">
-    <title>藥劑科管理系統入口 v2.5</title>
+    <title>藥劑科管理系統入口 v2.7</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.esm-browser.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -108,7 +108,7 @@
                 <div class="flex-1">
                     <div class="font-black text-slate-800 text-sm">最新消息</div>
                     <div class="text-slate-600 text-[0.85em] mt-1 font-bold leading-tight">{{ note.message }}</div>
-                    <div class="text-[0.6em] text-slate-400 mt-2">{{ note.time }}</div>
+                    <div class="text-[0.65em] text-slate-400 mt-2 font-mono">{{ note.time }}</div>
                 </div>
                 <button @click="closeNotification" class="absolute top-2 right-2 text-slate-300 hover:text-red-500 transition-colors">
                     <i class="fa-solid fa-circle-xmark text-lg"></i>
@@ -122,27 +122,23 @@
             <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" @click="showLogModal = false"></div>
             <div class="relative bg-white rounded-[2rem] shadow-2xl w-full max-w-md p-6">
                 <div class="flex justify-between items-center mb-6">
-                    <h3 class="text-xl font-black text-slate-800">發送紀錄</h3>
-                    <button @click="openSheet" class="text-emerald-600 font-bold text-sm border border-emerald-100 px-3 py-1 rounded-lg">試算表</button>
+                    <h3 class="text-xl font-black text-slate-800">發送紀錄 / 消息</h3>
+                    <button @click="openSheet" class="text-emerald-600 font-bold text-sm border border-emerald-100 px-3 py-1 rounded-lg">查看試算表</button>
                 </div>
-                
-                <textarea v-model="logNote" class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl mb-4 focus:ring-2 focus:ring-blue-500 outline-none" rows="3" placeholder="請在此輸入訊息內容..."></textarea>
-                
+                <textarea v-model="logNote" class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl mb-4 focus:ring-2 focus:ring-blue-500 outline-none" rows="3" placeholder="請在此輸入內容..."></textarea>
                 <div class="space-y-4">
                     <button @click="addLog('一般訊息')" :disabled="isSending || !logNote.trim()" class="w-full py-3 bg-slate-700 text-white rounded-2xl font-black shadow-lg disabled:opacity-40 active:scale-95 transition-all flex items-center justify-center gap-2">
                         <i class="fa-solid fa-paper-plane"></i> 僅發送備註訊息
                     </button>
-
                     <div class="relative py-2 flex items-center">
                         <div class="flex-grow border-t border-slate-200"></div>
                         <span class="flex-shrink mx-4 text-slate-400 text-[0.6em] font-bold uppercase tracking-widest">或快速支援</span>
                         <div class="flex-grow border-t border-slate-200"></div>
                     </div>
-
                     <div class="grid grid-cols-1 gap-2">
-                        <button @click="addLog('支援調劑')" :disabled="isSending" class="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black shadow-lg active:scale-95 transition-all">支援調劑</button>
-                        <button @click="addLog('支援check')" :disabled="isSending" class="w-full py-4 bg-blue-500 text-white rounded-2xl font-black shadow-lg active:scale-95 transition-all">支援check</button>
-                        <button @click="addLog('支援發藥')" :disabled="isSending" class="w-full py-4 bg-emerald-500 text-white rounded-2xl font-black shadow-lg active:scale-95 transition-all">支援發藥</button>
+                        <button @click="addLog('支援調劑')" :disabled="isSending" class="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black shadow-lg active:scale-95">支援調劑</button>
+                        <button @click="addLog('支援check')" :disabled="isSending" class="w-full py-4 bg-blue-500 text-white rounded-2xl font-black shadow-lg active:scale-95">支援check</button>
+                        <button @click="addLog('支援發藥')" :disabled="isSending" class="w-full py-4 bg-emerald-500 text-white rounded-2xl font-black shadow-lg active:scale-95">支援發藥</button>
                     </div>
                 </div>
                 <div class="mt-6 text-center"><button @click="showLogModal = false" class="text-slate-400 text-sm font-bold">返回首頁</button></div>
@@ -154,14 +150,20 @@
         <div class="flex justify-center gap-4 mb-6">
             <div class="stats-badge">
                 <span class="text-[0.6em] text-slate-400 font-bold uppercase tracking-wider">訪客總人數</span>
-                <span class="text-[1.2em] font-black text-blue-600" id="busuanzi_value_site_uv"><i class="fa-solid fa-spinner fa-spin text-xs text-slate-200"></i></span>
+                <span class="text-[1.2em] font-black text-blue-600" id="busuanzi_value_site_uv">
+                    <i class="fa-solid fa-spinner fa-spin text-xs text-slate-200"></i>
+                </span>
             </div>
             <div class="stats-badge">
                 <span class="text-[0.6em] text-slate-400 font-bold uppercase tracking-wider">總瀏覽次數</span>
-                <span class="text-[1.2em] font-black text-slate-700" id="busuanzi_value_site_pv"><i class="fa-solid fa-spinner fa-spin text-xs text-slate-200"></i></span>
+                <span class="text-[1.2em] font-black text-slate-700" id="busuanzi_value_site_pv">
+                    <i class="fa-solid fa-spinner fa-spin text-xs text-slate-200"></i>
+                </span>
             </div>
         </div>
-        <p class="text-slate-400 text-[0.6em] font-bold italic">Version 2.5 (3-Min Auto Filter)</p>
+        
+        <p class="text-slate-400 text-[0.6em] font-bold italic">Version 2.7 (Full Integration)</p>
+        
         <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
     </footer>
 </div>
@@ -187,37 +189,39 @@
                 checkNewRecords(); 
             });
 
+            const getFormattedDateTime = (dateObj) => {
+                const yyyy = dateObj.getFullYear();
+                const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+                const dd = String(dateObj.getDate()).padStart(2, '0');
+                const hh = String(dateObj.getHours()).padStart(2, '0');
+                const min = String(dateObj.getMinutes()).padStart(2, '0');
+                const ss = String(dateObj.getSeconds()).padStart(2, '0');
+                return `${yyyy}/${mm}/${dd} ${hh}:${min}:${ss}`;
+            };
+
             const checkNewRecords = async () => {
                 try {
                     const response = await fetch(GAS_URL);
                     const data = await response.json();
-                    
                     data.forEach(item => {
-                        // 解析紀錄的時間
                         const recordDate = new Date(item.time);
                         const now = new Date();
-                        // 計算時間差（毫秒）
-                        const diffMs = now - recordDate;
-                        const diffMinutes = diffMs / 1000 / 60;
-
+                        const diffMinutes = (now - recordDate) / 1000 / 60;
                         if (item.id > lastSyncId.value) {
-                            // 核心邏輯：如果是新 ID 且發送時間在 3 分鐘內，才觸發 UI
                             if (lastSyncId.value !== 0 && diffMinutes <= 3) { 
                                 triggerUI(item.type, item.note, item.time, item.id);
                             }
                             lastSyncId.value = item.id;
                         }
                     });
-                } catch (e) { console.warn("同步中..."); }
+                } catch (e) { console.warn("Syncing..."); }
             };
 
             const triggerUI = (type, note, time, id) => {
                 const displayMsg = type === '一般訊息' ? `訊息：${note}` : `${type}：${note || '無備註'}`;
                 const voiceMsg = type === '一般訊息' ? note : type;
-                
-                latestNote.value = [{ id, message: displayMsg, time }];
+                latestNote.value = [{ id, message: displayMsg, time: time }];
                 speak(voiceMsg);
-                
                 setTimeout(() => {
                     if (latestNote.value.length > 0 && latestNote.value[0].id === id) {
                         latestNote.value = [];
@@ -227,32 +231,14 @@
 
             const addLog = async (type) => {
                 if (type === '一般訊息' && !logNote.value.trim()) return;
-
                 isSending.value = true;
-                const now = new Date();
-                
-                // 格式化時間：比照 Google 表單格式 YYYY/MM/DD HH:mm:ss
-                const yyyy = now.getFullYear();
-                const mm = String(now.getMonth() + 1).padStart(2, '0');
-                const dd = String(now.getDate()).padStart(2, '0');
-                const timeStr = now.toLocaleTimeString('zh-TW', { hour12: false });
-                const fullDateTime = `${yyyy}/${mm}/${dd} ${timeStr}`;
-
+                const fullDateTime = getFormattedDateTime(new Date());
                 const payload = { time: fullDateTime, type: type, note: logNote.value };
-
                 try {
-                    await fetch(GAS_URL, {
-                        method: 'POST',
-                        body: JSON.stringify(payload),
-                        mode: 'no-cors'
-                    });
-                    // 本地立即反應
+                    await fetch(GAS_URL, { method: 'POST', body: JSON.stringify(payload), mode: 'no-cors' });
                     triggerUI(type, logNote.value, fullDateTime, Date.now());
-                } catch (e) { console.error("發送失敗", e); }
-
-                logNote.value = '';
-                isSending.value = false;
-                showLogModal.value = false;
+                } catch (e) {}
+                logNote.value = ''; isSending.value = false; showLogModal.value = false;
             };
 
             const closeNotification = () => { latestNote.value = []; };
@@ -268,13 +254,11 @@
             };
 
             const openSheet = () => { window.open(GAS_URL.replace("/exec", "/edit"), "_blank"); };
-
             const changeFont = (delta) => {
                 currentSize.value = Math.max(12, Math.min(32, currentSize.value + delta));
                 applyFontSize(currentSize.value);
                 localStorage.setItem('fyh-font-size', currentSize.value);
             };
-
             const applyFontSize = (size) => {
                 currentSize.value = size;
                 document.documentElement.style.setProperty('--base-size', `${size}px`);
