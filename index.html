@@ -6,9 +6,10 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="藥劑科管理">
-    <title>藥劑科管理系統入口 v1.6.15</title>
+    <title>藥劑科管理系統入口 v1.7.0</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.esm-browser.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
         :root { --base-size: 16px; }
@@ -29,9 +30,13 @@
         .font-btn { @apply w-10 h-10 rounded-full border border-slate-200 bg-white flex items-center justify-center text-slate-600 font-bold active:bg-blue-600 active:text-white transition-all shadow-sm; }
         .stats-badge { @apply bg-white px-4 py-2 rounded-2xl border border-slate-200 shadow-sm flex flex-col items-center min-w-[120px]; }
         
-        /* 彈窗動畫 */
+        /* 彈窗與通知動畫 */
         .fade-enter-active, .fade-leave-active { transition: opacity 0.3s ease; }
         .fade-enter-from, .fade-leave-to { opacity: 0; }
+        
+        .slide-enter-active, .slide-leave-active { transition: all 0.5s ease; }
+        .slide-enter-from { opacity: 0; transform: translateX(100%); }
+        .slide-leave-to { opacity: 0; transform: translateX(100%); }
     </style>
 </head>
 <body class="min-h-screen py-8 px-4">
@@ -44,7 +49,7 @@
     </div>
 
     <header class="text-center mb-10">
-        <div class="inline-block bg-blue-600 p-5 rounded-[2rem] shadow-xl mb-4 text-white">
+        <div @click="showLogModal = true" class="inline-block bg-blue-600 p-5 rounded-[2rem] shadow-xl mb-4 text-white cursor-pointer hover:bg-blue-700 transition-all active:scale-95">
             <i class="fa-solid fa-hospital text-4xl"></i>
         </div>
         <h1 class="text-[1.8em] font-black text-slate-800 tracking-tighter leading-tight">藥劑科管理系統</h1>
@@ -141,6 +146,45 @@
         </div>
     </section>
 
+    <div class="fixed top-5 right-5 z-[100] flex flex-col gap-3 w-72 pointer-events-none">
+        <transition-group name="slide">
+            <div v-for="note in notifications" :key="note.id" class="bg-white border-l-4 border-blue-600 shadow-2xl rounded-xl p-4 pointer-events-auto flex items-start gap-3">
+                <div class="bg-blue-100 text-blue-600 p-2 rounded-lg">
+                    <i class="fa-solid fa-bell fa-shake"></i>
+                </div>
+                <div>
+                    <div class="font-black text-slate-800 text-sm">支援請求</div>
+                    <div class="text-slate-600 text-[0.9em] font-bold">{{ note.message }}</div>
+                </div>
+            </div>
+        </transition-group>
+    </div>
+
+    <transition name="fade">
+        <div v-if="showLogModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" @click="showLogModal = false"></div>
+            <div class="relative bg-white rounded-[2rem] shadow-2xl w-full max-w-md overflow-hidden flex flex-col">
+                <div class="p-6 border-b border-slate-100 flex justify-between items-center">
+                    <h3 class="text-xl font-black text-slate-800">新增紀錄</h3>
+                    <button @click="exportExcel" class="text-emerald-600 font-bold text-sm flex items-center gap-1">
+                        <i class="fa-solid fa-file-excel"></i> 匯出 Excel
+                    </button>
+                </div>
+                <div class="p-6 space-y-4">
+                    <textarea v-model="logText" class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500" rows="3" placeholder="輸入文字備註..."></textarea>
+                    <div class="grid grid-cols-1 gap-2">
+                        <button @click="addLog('支援調劑')" class="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold active:scale-95 transition-all">支援調劑</button>
+                        <button @click="addLog('支援check')" class="w-full py-3 bg-blue-500 text-white rounded-xl font-bold active:scale-95 transition-all">支援check</button>
+                        <button @click="addLog('支援發藥')" class="w-full py-3 bg-emerald-500 text-white rounded-xl font-bold active:scale-95 transition-all">支援發藥</button>
+                    </div>
+                </div>
+                <div class="p-4 text-center border-t border-slate-50">
+                    <button @click="showLogModal = false" class="text-slate-400 font-bold">取消</button>
+                </div>
+            </div>
+        </div>
+    </transition>
+
     <footer class="mt-16 text-center pb-12 border-t border-slate-200 pt-8">
         <div class="flex justify-center gap-4 mb-6">
             <div class="stats-badge">
@@ -162,7 +206,7 @@
         </button>
 
         <p class="text-slate-300 text-[0.6em] font-mono tracking-widest uppercase mb-1">Pharmacy Inventory System</p>
-        <p class="text-slate-400 text-[0.6em] font-bold italic">Version 1.6.15 (20260120)</p>
+        <p class="text-slate-400 text-[0.6em] font-bold italic">Version 1.7.0 (20260120)</p>
         
         <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
     </footer>
@@ -170,38 +214,13 @@
     <transition name="fade">
         <div v-if="showInstallGuide" class="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" @click="showInstallGuide = false"></div>
-            <div class="relative bg-white rounded-[2rem] shadow-2xl w-full max-w-sm overflow-hidden">
-                <div class="p-8 text-center">
-                    <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl">
-                        <i class="fa-solid fa-plus"></i>
-                    </div>
-                    <h3 class="text-xl font-black text-slate-800 mb-2">加入手機桌面</h3>
-                    <p class="text-slate-500 text-sm mb-6">將此系統設為桌面捷徑，<br>就像使用 App 一樣快速！</p>
-                    
-                    <div v-if="isIOS" class="space-y-4 text-left bg-slate-50 p-4 rounded-2xl text-[0.9em]">
-                        <div class="flex items-center gap-3 text-slate-700">
-                            <span class="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold">1</span>
-                            <span>點擊瀏覽器下方的 <i class="fa-solid fa-arrow-up-from-bracket text-blue-500"></i> **「分享」**按鈕</span>
-                        </div>
-                        <div class="flex items-center gap-3 text-slate-700">
-                            <span class="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold">2</span>
-                            <span>向上滑動選擇 **「加入主畫面」** <i class="fa-regular fa-square-plus text-slate-500"></i></span>
-                        </div>
-                    </div>
-
-                    <div v-else class="space-y-4 text-left bg-slate-50 p-4 rounded-2xl text-[0.9em]">
-                        <div class="flex items-center gap-3 text-slate-700">
-                            <span class="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold">1</span>
-                            <span>點擊右上角 <i class="fa-solid fa-ellipsis-vertical text-slate-500"></i> **「選單」**或**「設定」**</span>
-                        </div>
-                        <div class="flex items-center gap-3 text-slate-700">
-                            <span class="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold">2</span>
-                            <span>選擇 **「安裝應用程式」** 或 **「新增至主畫面」**</span>
-                        </div>
-                    </div>
-
-                    <button @click="showInstallGuide = false" class="mt-8 w-full bg-blue-600 text-white py-3 rounded-xl font-bold shadow-md active:bg-blue-700 transition-colors">我知道了</button>
+            <div class="relative bg-white rounded-[2rem] shadow-2xl w-full max-w-sm overflow-hidden p-8 text-center">
+                <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl">
+                    <i class="fa-solid fa-plus"></i>
                 </div>
+                <h3 class="text-xl font-black text-slate-800 mb-2">加入手機桌面</h3>
+                <p class="text-slate-500 text-sm mb-6">將此系統設為桌面捷徑，<br>就像使用 App 一樣快速！</p>
+                <button @click="showInstallGuide = false" class="mt-8 w-full bg-blue-600 text-white py-3 rounded-xl font-bold shadow-md active:bg-blue-700 transition-colors">我知道了</button>
             </div>
         </div>
     </transition>
@@ -213,8 +232,13 @@
         setup() {
             const currentSize = ref(16);
             const showInstallGuide = ref(false);
+            const showLogModal = ref(false);
+            const logText = ref('');
+            const notifications = ref([]);
+            
+            // 從 LocalStorage 讀取歷史紀錄
+            const history = ref(JSON.parse(localStorage.getItem('support_history') || '[]'));
 
-            // 判斷是否為 iOS
             const isIOS = computed(() => {
                 return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
             });
@@ -239,7 +263,60 @@
                 document.documentElement.style.setProperty('--base-size', `${currentSize.value}px`);
             };
 
-            return { changeFont, showInstallGuide, isIOS };
+            // 新增紀錄功能
+            const addLog = (type) => {
+                const now = new Date();
+                const timeStr = now.toLocaleString('zh-TW');
+                const msg = `${type}${logText.value ? '：' + logText.value : ''}`;
+                
+                // 1. 存入歷史
+                history.value.push({
+                    時間: timeStr,
+                    類別: type,
+                    備註: logText.value
+                });
+                localStorage.setItem('support_history', JSON.stringify(history.value));
+
+                // 2. 觸發語音
+                speak(msg);
+
+                // 3. 顯示推播
+                const id = Date.now();
+                notifications.value.push({ id, message: msg });
+
+                // 4. 一分鐘後消失
+                setTimeout(() => {
+                    notifications.value = notifications.value.filter(n => n.id !== id);
+                }, 60000);
+
+                // 重置並關閉視窗
+                logText.value = '';
+                showLogModal.value = false;
+            };
+
+            // 語音播放
+            const speak = (text) => {
+                if ('speechSynthesis' in window) {
+                    const utter = new SpeechSynthesisUtterance(text);
+                    utter.lang = 'zh-TW';
+                    window.speechSynthesis.speak(utter);
+                }
+            };
+
+            // 匯出 Excel
+            const exportExcel = () => {
+                if (history.value.length === 0) return alert('目前尚無紀錄');
+                const worksheet = XLSX.utils.json_to_sheet(history.value);
+                const workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, worksheet, "支援紀錄");
+                XLSX.writeFile(workbook, `藥劑科支援紀錄_${new Date().toLocaleDateString()}.xlsx`);
+            };
+
+            return { 
+                changeFont, showInstallGuide, isIOS, 
+                showLogModal, logText, addLog, 
+                notifications, exportExcel 
+            };
         }
     }).mount('#app');
 </script>
