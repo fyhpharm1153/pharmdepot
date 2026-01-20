@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="藥劑科管理">
-    <title>藥劑科管理系統入口 v1.7.0</title>
+    <title>藥劑科管理系統入口 v2.0</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.esm-browser.js"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
@@ -14,29 +14,17 @@
     <style>
         :root { --base-size: 16px; }
         [v-cloak] { display: none; }
-        body { 
-            background-color: #f1f5f9; 
-            font-size: var(--base-size); 
-            transition: font-size 0.2s ease;
-            -webkit-tap-highlight-color: transparent;
-        }
+        body { background-color: #f1f5f9; font-size: var(--base-size); transition: font-size 0.2s ease; -webkit-tap-highlight-color: transparent; }
         .nav-card { transition: all 0.2s ease; }
         .nav-card:active { transform: scale(0.96); }
-        .responsive-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 0.75rem;
-        }
+        .responsive-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 0.75rem; }
         .font-btn { @apply w-10 h-10 rounded-full border border-slate-200 bg-white flex items-center justify-center text-slate-600 font-bold active:bg-blue-600 active:text-white transition-all shadow-sm; }
         .stats-badge { @apply bg-white px-4 py-2 rounded-2xl border border-slate-200 shadow-sm flex flex-col items-center min-w-[120px]; }
-        
-        /* 彈窗與通知動畫 */
         .fade-enter-active, .fade-leave-active { transition: opacity 0.3s ease; }
         .fade-enter-from, .fade-leave-to { opacity: 0; }
-        
-        .slide-enter-active, .slide-leave-active { transition: all 0.5s ease; }
-        .slide-enter-from { opacity: 0; transform: translateX(100%); }
-        .slide-leave-to { opacity: 0; transform: translateX(100%); }
+        .slide-enter-active, .slide-leave-active { transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .slide-enter-from { opacity: 0; transform: translateX(100px); }
+        .slide-leave-to { opacity: 0; transform: scale(0.8); }
     </style>
 </head>
 <body class="min-h-screen py-8 px-4">
@@ -57,105 +45,75 @@
     </header>
 
     <section class="mb-10">
-        <h2 class="text-slate-400 text-[0.7em] font-black uppercase tracking-[0.2em] mb-4 flex items-center gap-2 px-2">
-            <i class="fa-solid fa-gears"></i> 一、行政管理與查詢
-        </h2>
+        <h2 class="text-slate-400 text-[0.7em] font-black uppercase tracking-[0.2em] mb-4 px-2"><i class="fa-solid fa-gears"></i> 一、行政管理與查詢</h2>
         <div class="responsive-grid">
-            <a href="https://amanhung.github.io/schedule/" target="_blank" class="nav-card bg-white p-5 rounded-[1.5rem] shadow-sm border border-slate-100 flex items-center gap-4 group hover:border-blue-400">
-                <div class="bg-indigo-50 w-14 h-14 rounded-2xl flex items-center justify-center text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
-                    <i class="fa-solid fa-calendar-check text-xl"></i>
-                </div>
-                <span class="font-bold text-slate-700 text-[1.1em]">線上排班系統</span>
+            <a href="https://amanhung.github.io/schedule/" target="_blank" class="nav-card bg-white p-5 rounded-[1.5rem] shadow-sm border border-slate-100 flex items-center gap-4 group">
+                <div class="bg-indigo-50 w-14 h-14 rounded-2xl flex items-center justify-center text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-colors"><i class="fa-solid fa-calendar-check text-xl"></i></div>
+                <span class="font-bold text-slate-700">線上排班系統</span>
             </a>
-
-            <a href="https://fyhpharm1153.github.io/pharmdepot/newdrugstatus.html" target="_blank" class="nav-card bg-white p-5 rounded-[1.5rem] shadow-sm border border-slate-100 flex items-center gap-4 group hover:border-blue-400">
-                <div class="bg-blue-50 w-14 h-14 rounded-2xl flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                    <i class="fa-solid fa-flask-vial text-xl"></i>
-                </div>
-                <span class="font-bold text-slate-700 text-[1.1em]">114Q4 新藥進度</span>
+            <a href="https://fyhpharm1153.github.io/pharmdepot/newdrugstatus.html" target="_blank" class="nav-card bg-white p-5 rounded-[1.5rem] shadow-sm border border-slate-100 flex items-center gap-4 group">
+                <div class="bg-blue-50 w-14 h-14 rounded-2xl flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors"><i class="fa-solid fa-flask-vial text-xl"></i></div>
+                <span class="font-bold text-slate-700">114Q4 新藥進度</span>
             </a>
-
-            <a href="https://amanhung.github.io/hospital-drug-search/" target="_blank" class="nav-card bg-white p-5 rounded-[1.5rem] shadow-sm border border-slate-100 flex items-center gap-4 group hover:border-blue-400">
-                <div class="bg-blue-50 w-14 h-14 rounded-2xl flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                    <i class="fa-solid fa-book-medical text-xl"></i>
-                </div>
-                <span class="font-bold text-slate-700 text-[1.1em]">院內處方集</span>
+            <a href="https://amanhung.github.io/hospital-drug-search/" target="_blank" class="nav-card bg-white p-5 rounded-[1.5rem] shadow-sm border border-slate-100 flex items-center gap-4 group">
+                <div class="bg-blue-50 w-14 h-14 rounded-2xl flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors"><i class="fa-solid fa-book-medical text-xl"></i></div>
+                <span class="font-bold text-slate-700">院內處方集</span>
             </a>
-
-            <a href="https://amanhung.github.io/Inventory/" target="_blank" class="nav-card bg-white p-5 rounded-[1.5rem] shadow-sm border border-slate-100 flex items-center gap-4 group hover:border-blue-400">
-                <div class="bg-blue-50 w-14 h-14 rounded-2xl flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                    <i class="fa-solid fa-list-check text-xl"></i>
-                </div>
-                <span class="font-bold text-slate-700 text-[1.1em]">盤點系統</span>
+            <a href="https://amanhung.github.io/Inventory/" target="_blank" class="nav-card bg-white p-5 rounded-[1.5rem] shadow-sm border border-slate-100 flex items-center gap-4 group">
+                <div class="bg-blue-50 w-14 h-14 rounded-2xl flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors"><i class="fa-solid fa-list-check text-xl"></i></div>
+                <span class="font-bold text-slate-700">盤點系統</span>
             </a>
-
-            <a href="search.html" class="nav-card bg-white p-5 rounded-[1.5rem] shadow-sm border border-slate-100 flex items-center gap-4 group hover:border-emerald-400">
-                <div class="bg-emerald-50 w-14 h-14 rounded-2xl flex items-center justify-center text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
-                    <i class="fa-solid fa-magnifying-glass text-xl"></i>
-                </div>
-                <span class="font-bold text-slate-700 text-[1.1em]">儲位搜尋</span>
+            <a href="search.html" class="nav-card bg-white p-5 rounded-[1.5rem] shadow-sm border border-slate-100 flex items-center gap-4 group">
+                <div class="bg-emerald-50 w-14 h-14 rounded-2xl flex items-center justify-center text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-colors"><i class="fa-solid fa-magnifying-glass text-xl"></i></div>
+                <span class="font-bold text-slate-700">儲位搜尋</span>
             </a>
-
-            <a href="https://fyhpharm1153.github.io/pharmdepot/transfer.html" target="_blank" class="nav-card bg-white p-5 rounded-[1.5rem] shadow-sm border border-slate-100 flex items-center gap-4 group hover:border-sky-400">
-                <div class="bg-sky-50 w-14 h-14 rounded-2xl flex items-center justify-center text-sky-600 group-hover:bg-sky-600 group-hover:text-white transition-colors">
-                    <i class="fa-solid fa-truck-fast text-xl"></i>
-                </div>
-                <span class="font-bold text-slate-700 text-[1.1em]">撥補/急領</span>
+            <a href="https://fyhpharm1153.github.io/pharmdepot/transfer.html" target="_blank" class="nav-card bg-white p-5 rounded-[1.5rem] shadow-sm border border-slate-100 flex items-center gap-4 group">
+                <div class="bg-sky-50 w-14 h-14 rounded-2xl flex items-center justify-center text-sky-600 group-hover:bg-sky-600 group-hover:text-white transition-colors"><i class="fa-solid fa-truck-fast text-xl"></i></div>
+                <span class="font-bold text-slate-700">撥補/急領</span>
             </a>
         </div>
     </section>
 
     <section class="mb-10">
-        <h2 class="text-slate-400 text-[0.7em] font-black uppercase tracking-[0.2em] mb-4 flex items-center gap-2 px-2">
-            <i class="fa-solid fa-clipboard-check"></i> 二、品質通報專區
-        </h2>
+        <h2 class="text-slate-400 text-[0.7em] font-black uppercase tracking-[0.2em] mb-4 px-2"><i class="fa-solid fa-clipboard-check"></i> 二、品質通報專區</h2>
         <div class="responsive-grid">
-            <a href="https://tinyurl.com/110fyhmissrx" target="_blank" class="nav-card bg-white p-5 rounded-[1.5rem] shadow-sm border border-slate-100 flex items-center gap-4 group hover:border-rose-400">
-                <div class="bg-rose-50 w-14 h-14 rounded-2xl flex items-center justify-center text-rose-600 group-hover:bg-rose-600 group-hover:text-white transition-colors">
-                    <i class="fa-solid fa-circle-question text-xl"></i>
-                </div>
-                <span class="font-bold text-slate-700 text-[1.1em]">疑義處方登記</span>
+            <a href="https://tinyurl.com/110fyhmissrx" target="_blank" class="nav-card bg-white p-5 rounded-[1.5rem] shadow-sm border border-slate-100 flex items-center gap-4 group">
+                <div class="bg-rose-50 w-14 h-14 rounded-2xl flex items-center justify-center text-rose-600 group-hover:bg-rose-600 group-hover:text-white transition-colors"><i class="fa-solid fa-circle-question text-xl"></i></div>
+                <span class="font-bold text-slate-700">疑義處方登記</span>
             </a>
-
-            <a href="https://forms.gle/P8CAU19HgGF4CVEf9" target="_blank" class="nav-card bg-white p-5 rounded-[1.5rem] shadow-sm border border-slate-100 flex items-center gap-4 group hover:border-orange-400">
-                <div class="bg-orange-50 w-14 h-14 rounded-2xl flex items-center justify-center text-orange-600 group-hover:bg-orange-600 group-hover:text-white transition-colors">
-                    <i class="fa-solid fa-triangle-exclamation text-xl"></i>
-                </div>
-                <span class="font-bold text-slate-700 text-[1.1em]">調劑錯誤登記</span>
+            <a href="https://forms.gle/P8CAU19HgGF4CVEf9" target="_blank" class="nav-card bg-white p-5 rounded-[1.5rem] shadow-sm border border-slate-100 flex items-center gap-4 group">
+                <div class="bg-orange-50 w-14 h-14 rounded-2xl flex items-center justify-center text-orange-600 group-hover:bg-orange-600 group-hover:text-white transition-colors"><i class="fa-solid fa-triangle-exclamation text-xl"></i></div>
+                <span class="font-bold text-slate-700">調劑錯誤登記</span>
             </a>
         </div>
     </section>
 
     <section class="mb-10">
-        <h2 class="text-slate-400 text-[0.7em] font-black uppercase tracking-[0.2em] mb-4 flex items-center gap-2 px-2">
-            <i class="fa-solid fa-comment-medical"></i> 三、民眾藥務諮詢
-        </h2>
+        <h2 class="text-slate-400 text-[0.7em] font-black uppercase tracking-[0.2em] mb-4 px-2"><i class="fa-solid fa-comment-medical"></i> 三、民眾藥務諮詢</h2>
         <div class="responsive-grid">
-            <a href="https://cw-chen122.github.io/wegovy-cal/" target="_blank" class="nav-card bg-white p-5 rounded-[1.5rem] shadow-sm border border-slate-100 flex items-center gap-4 group hover:border-blue-400">
-                <div class="bg-cyan-50 w-14 h-14 rounded-2xl flex items-center justify-center text-cyan-600 group-hover:bg-cyan-600 group-hover:text-white transition-colors">
-                    <i class="fa-solid fa-calculator text-xl"></i>
-                </div>
-                <span class="font-bold text-slate-700 text-[1.1em]">Wegovy 劑量換算器</span>
+            <a href="https://cw-chen122.github.io/wegovy-cal/" target="_blank" class="nav-card bg-white p-5 rounded-[1.5rem] shadow-sm border border-slate-100 flex items-center gap-4 group">
+                <div class="bg-cyan-50 w-14 h-14 rounded-2xl flex items-center justify-center text-cyan-600 group-hover:bg-cyan-600 group-hover:text-white transition-colors"><i class="fa-solid fa-calculator text-xl"></i></div>
+                <span class="font-bold text-slate-700">Wegovy 劑量換算器</span>
             </a>
-            <a href="https://amanhung.github.io/Formulary/" target="_blank" class="nav-card bg-white p-5 rounded-[1.5rem] shadow-sm border border-slate-100 flex items-center gap-4 group hover:border-emerald-400">
-                <div class="bg-emerald-50 w-14 h-14 rounded-2xl flex items-center justify-center text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
-                    <i class="fa-solid fa-users text-xl"></i>
-                </div>
-                <span class="font-bold text-slate-700 text-[1.1em]">民眾藥品查詢</span>
+            <a href="https://amanhung.github.io/Formulary/" target="_blank" class="nav-card bg-white p-5 rounded-[1.5rem] shadow-sm border border-slate-100 flex items-center gap-4 group">
+                <div class="bg-emerald-50 w-14 h-14 rounded-2xl flex items-center justify-center text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-colors"><i class="fa-solid fa-users text-xl"></i></div>
+                <span class="font-bold text-slate-700">民眾藥品查詢</span>
             </a>
         </div>
     </section>
 
-    <div class="fixed top-5 right-5 z-[100] flex flex-col gap-3 w-72 pointer-events-none">
+    <div class="fixed top-5 right-5 z-[100] flex flex-col gap-3 w-80">
         <transition-group name="slide">
-            <div v-for="note in notifications" :key="note.id" class="bg-white border-l-4 border-blue-600 shadow-2xl rounded-xl p-4 pointer-events-auto flex items-start gap-3">
-                <div class="bg-blue-100 text-blue-600 p-2 rounded-lg">
-                    <i class="fa-solid fa-bell fa-shake"></i>
+            <div v-for="note in notifications" :key="note.id" class="bg-white border-l-4 border-blue-600 shadow-2xl rounded-2xl p-4 flex items-start gap-3 relative overflow-hidden group">
+                <div class="bg-blue-100 text-blue-600 p-3 rounded-xl"><i class="fa-solid fa-bell fa-shake"></i></div>
+                <div class="flex-1">
+                    <div class="font-black text-slate-800 text-sm">試算表即時同步</div>
+                    <div class="text-slate-600 text-[0.9em] mt-1 font-bold leading-tight">{{ note.message }}</div>
+                    <div class="text-[0.6em] text-slate-400 mt-2">{{ note.time }}</div>
                 </div>
-                <div>
-                    <div class="font-black text-slate-800 text-sm">支援請求</div>
-                    <div class="text-slate-600 text-[0.9em] font-bold">{{ note.message }}</div>
-                </div>
+                <button @click="closeNotification(note.id)" class="absolute top-2 right-2 text-slate-300 hover:text-red-500 transition-colors">
+                    <i class="fa-solid fa-circle-xmark text-lg"></i>
+                </button>
             </div>
         </transition-group>
     </div>
@@ -163,24 +121,18 @@
     <transition name="fade">
         <div v-if="showLogModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" @click="showLogModal = false"></div>
-            <div class="relative bg-white rounded-[2rem] shadow-2xl w-full max-w-md overflow-hidden flex flex-col">
-                <div class="p-6 border-b border-slate-100 flex justify-between items-center">
-                    <h3 class="text-xl font-black text-slate-800">新增紀錄</h3>
-                    <button @click="exportExcel" class="text-emerald-600 font-bold text-sm flex items-center gap-1">
-                        <i class="fa-solid fa-file-excel"></i> 匯出 Excel
-                    </button>
+            <div class="relative bg-white rounded-[2rem] shadow-2xl w-full max-w-md p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xl font-black text-slate-800">發送支援請求</h3>
+                    <button @click="exportExcel" class="text-emerald-600 font-bold text-sm border border-emerald-100 px-3 py-1 rounded-lg">查看試算表</button>
                 </div>
-                <div class="p-6 space-y-4">
-                    <textarea v-model="logText" class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500" rows="3" placeholder="輸入文字備註..."></textarea>
-                    <div class="grid grid-cols-1 gap-2">
-                        <button @click="addLog('支援調劑')" class="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold active:scale-95 transition-all">支援調劑</button>
-                        <button @click="addLog('支援check')" class="w-full py-3 bg-blue-500 text-white rounded-xl font-bold active:scale-95 transition-all">支援check</button>
-                        <button @click="addLog('支援發藥')" class="w-full py-3 bg-emerald-500 text-white rounded-xl font-bold active:scale-95 transition-all">支援發藥</button>
-                    </div>
+                <textarea v-model="logNote" class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl mb-4 focus:ring-2 focus:ring-blue-500 outline-none" rows="3" placeholder="備註內容..."></textarea>
+                <div class="space-y-2">
+                    <button @click="addLog('支援調劑')" :disabled="isSending" class="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black shadow-lg disabled:opacity-50">支援調劑</button>
+                    <button @click="addLog('支援check')" :disabled="isSending" class="w-full py-4 bg-blue-500 text-white rounded-2xl font-black shadow-lg disabled:opacity-50">支援check</button>
+                    <button @click="addLog('支援發藥')" :disabled="isSending" class="w-full py-4 bg-emerald-500 text-white rounded-2xl font-black shadow-lg disabled:opacity-50">支援發藥</button>
                 </div>
-                <div class="p-4 text-center border-t border-slate-50">
-                    <button @click="showLogModal = false" class="text-slate-400 font-bold">取消</button>
-                </div>
+                <div class="mt-4 text-center"><button @click="showLogModal = false" class="text-slate-400 text-sm font-bold">返回首頁</button></div>
             </div>
         </div>
     </transition>
@@ -189,133 +141,118 @@
         <div class="flex justify-center gap-4 mb-6">
             <div class="stats-badge">
                 <span class="text-[0.6em] text-slate-400 font-bold uppercase tracking-wider">訪客總人數</span>
-                <span class="text-[1.2em] font-black text-blue-600" id="busuanzi_value_site_uv">
-                    <i class="fa-solid fa-spinner fa-spin text-xs text-slate-200"></i>
-                </span>
+                <span class="text-[1.2em] font-black text-blue-600" id="busuanzi_value_site_uv"><i class="fa-solid fa-spinner fa-spin text-xs text-slate-200"></i></span>
             </div>
             <div class="stats-badge">
                 <span class="text-[0.6em] text-slate-400 font-bold uppercase tracking-wider">總瀏覽次數</span>
-                <span class="text-[1.2em] font-black text-slate-700" id="busuanzi_value_site_pv">
-                    <i class="fa-solid fa-spinner fa-spin text-xs text-slate-200"></i>
-                </span>
+                <span class="text-[1.2em] font-black text-slate-700" id="busuanzi_value_site_pv"><i class="fa-solid fa-spinner fa-spin text-xs text-slate-200"></i></span>
             </div>
         </div>
-
-        <button @click="showInstallGuide = true" class="mb-8 inline-flex items-center gap-2 bg-slate-800 text-white px-6 py-3 rounded-full text-[0.9em] font-bold shadow-lg active:scale-95 transition-all">
-            <i class="fa-solid fa-mobile-screen-button"></i> 將系統加入手機桌面
-        </button>
-
-        <p class="text-slate-300 text-[0.6em] font-mono tracking-widest uppercase mb-1">Pharmacy Inventory System</p>
-        <p class="text-slate-400 text-[0.6em] font-bold italic">Version 1.7.0 (20260120)</p>
-        
+        <p class="text-slate-400 text-[0.6em] font-bold italic">Version 2.0 (Sync Enabled)</p>
         <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
     </footer>
-
-    <transition name="fade">
-        <div v-if="showInstallGuide" class="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" @click="showInstallGuide = false"></div>
-            <div class="relative bg-white rounded-[2rem] shadow-2xl w-full max-w-sm overflow-hidden p-8 text-center">
-                <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl">
-                    <i class="fa-solid fa-plus"></i>
-                </div>
-                <h3 class="text-xl font-black text-slate-800 mb-2">加入手機桌面</h3>
-                <p class="text-slate-500 text-sm mb-6">將此系統設為桌面捷徑，<br>就像使用 App 一樣快速！</p>
-                <button @click="showInstallGuide = false" class="mt-8 w-full bg-blue-600 text-white py-3 rounded-xl font-bold shadow-md active:bg-blue-700 transition-colors">我知道了</button>
-            </div>
-        </div>
-    </transition>
 </div>
 
 <script type="module">
-    import { createApp, ref, onMounted, computed } from 'https://unpkg.com/vue@3/dist/vue.esm-browser.js';
+    import { createApp, ref, onMounted } from 'https://unpkg.com/vue@3/dist/vue.esm-browser.js';
+
+    // 自動填入您提供的 GAS 網址
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbyw9mwwO1dXFfgGWSgDH1Ppl_-z6F661Z1a4fyInZ9k2G5054yd5kEEboO8MH1Wa6_m/exec";
+
     createApp({
         setup() {
             const currentSize = ref(16);
-            const showInstallGuide = ref(false);
             const showLogModal = ref(false);
-            const logText = ref('');
+            const logNote = ref('');
+            const isSending = ref(false);
             const notifications = ref([]);
-            
-            // 從 LocalStorage 讀取歷史紀錄
-            const history = ref(JSON.parse(localStorage.getItem('support_history') || '[]'));
-
-            const isIOS = computed(() => {
-                return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-            });
+            const lastSyncId = ref(0);
 
             onMounted(() => {
                 const saved = localStorage.getItem('fyh-font-size');
-                if (saved) {
-                    currentSize.value = parseInt(saved);
-                    applyFontSize();
-                }
+                if (saved) { applyFontSize(parseInt(saved)); }
+                
+                // 設定 10 秒檢查一次新紀錄
+                setInterval(checkNewRecords, 10000);
+                checkNewRecords(); 
             });
 
-            const changeFont = (delta) => {
-                currentSize.value += delta;
-                if (currentSize.value < 12) currentSize.value = 12;
-                if (currentSize.value > 32) currentSize.value = 32;
-                applyFontSize();
-                localStorage.setItem('fyh-font-size', currentSize.value);
+            const checkNewRecords = async () => {
+                try {
+                    const response = await fetch(GAS_URL);
+                    const data = await response.json();
+                    
+                    data.forEach(item => {
+                        if (item.id > lastSyncId.value) {
+                            if (lastSyncId.value !== 0) { 
+                                triggerUI(item.type, item.note, item.time, item.id);
+                            }
+                            lastSyncId.value = item.id;
+                        }
+                    });
+                } catch (e) { console.warn("同步中..."); }
             };
 
-            const applyFontSize = () => {
-                document.documentElement.style.setProperty('--base-size', `${currentSize.value}px`);
-            };
-
-            // 新增紀錄功能
-            const addLog = (type) => {
-                const now = new Date();
-                const timeStr = now.toLocaleString('zh-TW');
-                const msg = `${type}${logText.value ? '：' + logText.value : ''}`;
-                
-                // 1. 存入歷史
-                history.value.push({
-                    時間: timeStr,
-                    類別: type,
-                    備註: logText.value
-                });
-                localStorage.setItem('support_history', JSON.stringify(history.value));
-
-                // 2. 觸發語音
+            const triggerUI = (type, note, time, id) => {
+                const msg = `${type}${note ? '：' + note : ''}`;
+                notifications.value.push({ id, message: msg, time });
                 speak(msg);
+                setTimeout(() => { closeNotification(id); }, 60000);
+            };
 
-                // 3. 顯示推播
-                const id = Date.now();
-                notifications.value.push({ id, message: msg });
+            const addLog = async (type) => {
+                isSending.value = true;
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString('zh-TW', { hour12: false });
+                const data = { time: timeStr, type: type, note: logNote.value };
 
-                // 4. 一分鐘後消失
-                setTimeout(() => {
-                    notifications.value = notifications.value.filter(n => n.id !== id);
-                }, 60000);
+                try {
+                    await fetch(GAS_URL, {
+                        method: 'POST',
+                        body: JSON.stringify(data),
+                        mode: 'no-cors'
+                    });
+                    // 本地立即反應
+                    triggerUI(type, logNote.value, timeStr, Date.now());
+                } catch (e) { console.error("發送失敗"); }
 
-                // 重置並關閉視窗
-                logText.value = '';
+                logNote.value = '';
+                isSending.value = false;
                 showLogModal.value = false;
             };
 
-            // 語音播放
+            const closeNotification = (id) => {
+                notifications.value = notifications.value.filter(n => n.id !== id);
+            };
+
             const speak = (text) => {
                 if ('speechSynthesis' in window) {
+                    window.speechSynthesis.cancel();
                     const utter = new SpeechSynthesisUtterance(text);
                     utter.lang = 'zh-TW';
                     window.speechSynthesis.speak(utter);
                 }
             };
 
-            // 匯出 Excel
             const exportExcel = () => {
-                if (history.value.length === 0) return alert('目前尚無紀錄');
-                const worksheet = XLSX.utils.json_to_sheet(history.value);
-                const workbook = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(workbook, worksheet, "支援紀錄");
-                XLSX.writeFile(workbook, `藥劑科支援紀錄_${new Date().toLocaleDateString()}.xlsx`);
+                // 直接打開試算表網址方便查看
+                window.open(GAS_URL.replace("/exec", "/edit"), "_blank");
+            };
+
+            const changeFont = (delta) => {
+                currentSize.value = Math.max(12, Math.min(32, currentSize.value + delta));
+                applyFontSize(currentSize.value);
+                localStorage.setItem('fyh-font-size', currentSize.value);
+            };
+
+            const applyFontSize = (size) => {
+                currentSize.value = size;
+                document.documentElement.style.setProperty('--base-size', `${size}px`);
             };
 
             return { 
-                changeFont, showInstallGuide, isIOS, 
-                showLogModal, logText, addLog, 
-                notifications, exportExcel 
+                changeFont, showLogModal, logNote, addLog, isSending,
+                notifications, closeNotification, exportExcel 
             };
         }
     }).mount('#app');
