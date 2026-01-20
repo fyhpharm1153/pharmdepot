@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>藥品撥補系統 - 核心作業版</title>
+    <title>藥品撥補系統 - 進階語音控制版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -68,7 +68,7 @@
                 </div>
 
                 <div class="relative">
-                    <label class="font-bold text-slate-500 block mb-1 text-lg">搜尋藥品 <span class="text-xs text-amber-600 ml-2 font-normal">(僅限藥庫資料庫)</span></label>
+                    <label class="font-bold text-slate-500 block mb-1 text-lg">搜尋藥品</label>
                     <div class="relative flex items-center">
                         <input v-model="searchQuery" ref="searchInput" @input="onSearchInput" 
                             @keydown.down.prevent="moveHighlight(1)" @keydown.up.prevent="moveHighlight(-1)" 
@@ -112,9 +112,9 @@
                 <div v-if="(!form.isUrgent && !form.isER) || form.isSuperUrgent" class="bg-slate-200 p-5 rounded-[2rem] border-2 border-slate-800">
                     <div class="flex justify-between items-center mb-4 px-2">
                         <label class="font-black text-slate-600 text-lg">撥補數量</label>
-                        <button @click="showCalc = !showCalc" class="flex items-center gap-2 bg-white px-3 py-1 rounded-lg border-2 border-slate-800 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-xs font-bold">
+                        <button @click="showCalc = !showCalc" class="flex items-center gap-2 bg-white px-3 py-1 rounded-lg border-2 border-slate-800 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-xs font-bold transition-all">
                             <i class="fa-solid" :class="showCalc ? 'fa-eye-slash' : 'fa-calculator'"></i>
-                            {{ showCalc ? '顯示計算機' : '隱藏計算機' }}
+                            {{ showCalc ? '顯示' : '隱藏' }}計算機
                         </button>
                     </div>
                     <div ref="qtyDisplay" tabindex="0" class="qty-display bg-white p-4 rounded-xl border-2 border-slate-800 mb-4 shadow-inner text-right text-4xl font-black text-slate-900 min-h-[1.5em] transition-all">
@@ -151,7 +151,7 @@
                 </div>
 
                 <div class="bg-white p-4 rounded-xl border-2 border-slate-800 shadow-md flex justify-between items-center">
-                    <h3 class="font-black text-xl text-slate-600">最近紀錄</h3>
+                    <h3 class="font-black text-xl text-slate-600">最近紀錄 <span class="text-xs font-normal opacity-60">(最近20筆)</span></h3>
                     <input type="date" v-model="filterDate" class="p-2 border-2 border-slate-800 rounded-lg font-bold">
                 </div>
 
@@ -170,16 +170,62 @@
                     </div>
                 </div>
 
-                <button @click="exportByDate" class="w-full bg-slate-800 text-white py-5 rounded-2xl font-black text-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                <button @click="exportByDate" class="w-full bg-slate-800 text-white py-5 rounded-2xl font-black text-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-y-1 transition-all">
                     <i class="fa-solid fa-file-excel mr-2"></i>匯出該日報表 (.xlsx)
                 </button>
             </section>
         </div>
 
+        <div v-if="showManager" class="modal-overlay">
+            <div class="bg-white w-full max-w-md rounded-3xl p-8 border-4 border-slate-800 shadow-2xl overflow-y-auto max-h-[90vh]">
+                <div class="flex justify-between items-center mb-6"><h2 class="font-black text-2xl">系統設定</h2><button @click="showManager = false" class="text-4xl font-black text-slate-400">&times;</button></div>
+                
+                <div class="mb-8">
+                    <h3 class="font-bold text-slate-500 mb-3 border-b pb-1">人員管理</h3>
+                    <div class="flex gap-2 mb-4"><input v-model="newStaffName" @keyup.enter="addStaff" placeholder="輸入姓名" class="flex-1 p-3 rounded-xl border-2 font-bold outline-none"><button @click="addStaff" class="bg-blue-600 text-white px-4 rounded-xl font-black">新增</button></div>
+                    <div class="max-h-40 overflow-y-auto space-y-2"><div v-for="(name, idx) in staffList" :key="idx" class="flex justify-between p-3 bg-slate-50 rounded-xl border"><span class="font-bold text-slate-700">{{ name }}</span><button @click="removeStaff(idx)" class="text-red-500"><i class="fa-solid fa-trash"></i></button></div></div>
+                </div>
+
+                <div class="space-y-6">
+                    <h3 class="font-bold text-slate-500 mb-1 border-b pb-1">語音提醒設定</h3>
+                    
+                    <div class="bg-purple-50 p-4 rounded-2xl border-2 border-purple-200 space-y-3">
+                        <div class="flex justify-between items-center">
+                            <span class="font-bold text-purple-900">⚡ 超急領提醒</span>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" v-model="vSettings.superOn" @change="saveVSettings" class="sr-only peer">
+                                <div class="w-11 h-6 bg-slate-300 rounded-full peer peer-checked:bg-purple-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full"></div>
+                            </label>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <input v-model="vSettings.superText" @change="saveVSettings" placeholder="文字" class="p-2 rounded-lg border border-purple-300 text-sm">
+                            <div class="flex items-center gap-1"><input type="number" v-model.number="vSettings.superSec" @change="saveVSettings" class="w-16 p-2 rounded-lg border border-purple-300 text-sm font-bold text-center"> <span class="text-xs">秒/次</span></div>
+                        </div>
+                        <button @click="testVoice('super')" class="w-full py-1 text-xs bg-white border border-purple-300 rounded text-purple-700 font-bold hover:bg-purple-100 transition-colors">測試音訊 (男聲)</button>
+                    </div>
+
+                    <div class="bg-blue-50 p-4 rounded-2xl border-2 border-blue-200 space-y-3">
+                        <div class="flex justify-between items-center">
+                            <span class="font-bold text-blue-900">🚨 一般叫藥提醒</span>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" v-model="vSettings.normalOn" @change="saveVSettings" class="sr-only peer">
+                                <div class="w-11 h-6 bg-slate-300 rounded-full peer peer-checked:bg-blue-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full"></div>
+                            </label>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <input v-model="vSettings.normalText" @change="saveVSettings" placeholder="文字" class="p-2 rounded-lg border border-blue-300 text-sm">
+                            <div class="flex items-center gap-1"><input type="number" v-model.number="vSettings.normalSec" @change="saveVSettings" class="w-16 p-2 rounded-lg border border-blue-300 text-sm font-bold text-center"> <span class="text-xs">秒/次</span></div>
+                        </div>
+                        <button @click="testVoice('normal')" class="w-full py-1 text-xs bg-white border border-blue-300 rounded text-blue-700 font-bold hover:bg-blue-100 transition-colors">測試音訊 (女聲)</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div v-if="editingLog" class="modal-overlay">
             <div class="bg-white w-full max-w-md rounded-[2.5rem] p-6 border-4 border-slate-800 shadow-2xl">
                 <div class="flex justify-between items-start mb-4 border-b-2 pb-2">
-                    <div><h2 class="font-black text-2xl" :class="editingLog.isSuperUrgent ? 'text-purple-600' : (editingLog.isUrgent ? 'text-red-600' : (editingLog.isER ? 'text-indigo-700' : 'text-blue-700'))">{{ editingLog.isSuperUrgent ? '⚡ 處理超急領' : (editingLog.isUrgent && !editingLog.processed ? '🚨 處理急領' : (editingLog.isER && !editingLog.processed ? '🚑 急診發藥' : '📝 修改數量')) }}</h2><p class="font-bold text-slate-600 text-sm mt-1">{{ editingLog.name }}</p></div>
+                    <div><h2 class="font-black text-2xl" :class="editingLog.isSuperUrgent ? 'text-purple-600' : (editingLog.isUrgent ? 'text-red-600' : 'text-blue-700')">{{ editingLog.isSuperUrgent ? '⚡ 超急處理' : (editingLog.isUrgent && !editingLog.processed ? '🚨 處理急領' : '📝 修改數量') }}</h2><p class="font-bold text-slate-600 text-sm mt-1">{{ editingLog.name }}</p></div>
                     <button @click="editingLog = null" class="text-4xl font-black text-slate-400">&times;</button>
                 </div>
                 <div class="bg-slate-100 p-4 rounded-2xl border-2 border-slate-800 mb-4 text-right text-5xl font-black">{{ editQtyStr || '0' }}</div>
@@ -193,14 +239,6 @@
                     <button v-if="(editingLog.isUrgent || editingLog.isER || editingLog.isSuperUrgent) && !editingLog.processed" @click="cancelUrgentIssuance" class="py-4 bg-slate-200 text-slate-600 rounded-xl font-black border-2 border-slate-400">取消發放(0)</button>
                     <button @click="confirmEdit" class="py-4 bg-emerald-600 text-white rounded-xl font-black border-2 border-slate-800 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]" :class="(editingLog.isUrgent || editingLog.isER || editingLog.isSuperUrgent) && !editingLog.processed ? 'col-span-1' : 'col-span-2'">確認發放</button>
                 </div>
-            </div>
-        </div>
-
-        <div v-if="showManager" class="modal-overlay">
-            <div class="bg-white w-full max-w-md rounded-3xl p-8 border-4 border-slate-800 shadow-2xl">
-                <div class="flex justify-between items-center mb-6"><h2 class="font-black text-2xl">人員管理</h2><button @click="showManager = false" class="text-4xl font-black text-slate-400">&times;</button></div>
-                <div class="flex gap-2 mb-6"><input v-model="newStaffName" @keyup.enter="addStaff" placeholder="輸入姓名" class="flex-1 p-4 rounded-xl border-2 font-bold outline-none"><button @click="addStaff" class="bg-blue-600 text-white px-6 rounded-xl font-black active:scale-95">新增</button></div>
-                <div class="max-h-60 overflow-y-auto space-y-2 border-t pt-4"><div v-for="(name, idx) in staffList" :key="idx" class="flex justify-between p-4 bg-slate-50 rounded-xl border"><span class="font-bold text-slate-700 text-lg">{{ name }}</span><button @click="removeStaff(idx)" class="text-red-500"><i class="fa-solid fa-trash"></i></button></div></div>
             </div>
         </div>
 
@@ -243,40 +281,31 @@
             const baseFontSize = ref(1.1);
             const newStaffName = ref('');
 
+            // 📢 語音控制設定 (預設)
+            const vSettings = ref({
+                superOn: true, superText: '超急領快領藥', superSec: 5,
+                normalOn: true, normalText: '一般叫藥', normalSec: 20
+            });
+
             let superTimer = null;
             let normalTimer = null;
 
-            // 🔊 超急領提醒 (男聲, 5秒)
-            const speakSuperReminder = () => {
+            // 🔊 核心播放函數
+            const speak = (text, isMale = false) => {
                 if ('speechSynthesis' in window) {
                     window.speechSynthesis.cancel();
-                    const utter = new SpeechSynthesisUtterance("超急領快領藥");
-                    utter.lang = 'zh-TW'; utter.pitch = 0.8; utter.rate = 1.0;
+                    const utter = new SpeechSynthesisUtterance(text);
+                    utter.lang = 'zh-TW';
+                    utter.pitch = isMale ? 0.8 : 1.2; // 低音男聲 / 高音女聲
+                    utter.rate = 1.0;
                     window.speechSynthesis.speak(utter);
                 }
             };
 
-            // 🔊 急領提醒 (女聲, 20秒)
-            const speakNormalReminder = () => {
-                if ('speechSynthesis' in window) {
-                    window.speechSynthesis.cancel();
-                    const utter = new SpeechSynthesisUtterance("一般叫藥");
-                    utter.lang = 'zh-TW'; utter.pitch = 1.2;
-                    window.speechSynthesis.speak(utter);
-                }
-            };
-
-            // 🔊 提交時讀出 (男聲)
-            const speakSubmission = (name, qty) => {
-                if ('speechSynthesis' in window) {
-                    const utter = new SpeechSynthesisUtterance(`超急領。${name}。數量：${qty}`);
-                    utter.lang = 'zh-TW'; utter.pitch = 0.8; utter.rate = 0.9;
-                    window.speechSynthesis.speak(utter);
-                }
-            };
+            const saveVSettings = () => { set(dbRef(db, "voice_config"), vSettings.value); };
 
             onMounted(() => {
-                // 🚀 核心：解析網址參數
+                // 🚀 解析網址參數 (門診/住院帶 urgent, 急診帶 er)
                 const params = new URLSearchParams(window.location.search);
                 const pCode = params.get('code');
                 const pName = params.get('name');
@@ -287,22 +316,17 @@
                     form.value.code = pCode || '';
                     form.value.name = pName || '';
                     form.value.shelf = pShelf || '無';
-                    searchQuery.value = pName || pCode || '';
-                    
+                    searchQuery.value = pName || '';
                     if (pType === 'urgent') form.value.isUrgent = true;
                     if (pType === 'er') form.value.isER = true;
-                    
                     nextTick(() => jumpToQty());
                 }
 
-                onValue(dbRef(db, "warehouse"), s => {
-                    warehouseList.value = s.val() ? Object.values(s.val()).map(i => ({ c: i.c, n: i.n, s: i.s })) : [];
-                });
-
+                onValue(dbRef(db, "voice_config"), s => { if(s.val()) vSettings.value = s.val(); });
+                onValue(dbRef(db, "warehouse"), s => { warehouseList.value = s.val() ? Object.values(s.val()).map(i => ({ c: i.c, n: i.n, s: i.s })) : []; });
                 onValue(query(dbRef(db, "transfer_logs"), limitToLast(100)), s => {
                     history.value = s.val() ? Object.entries(s.val()).map(([id, v]) => ({ id, ...v })).reverse() : [];
                 });
-
                 onValue(dbRef(db, "staff_list"), s => { if(s.val()) staffList.value = s.val(); });
                 window.addEventListener('keydown', handleKeyboard);
             });
@@ -317,22 +341,25 @@
             const pendingNormal = computed(() => history.value.filter(l => l.isUrgent && !l.isSuperUrgent && !l.processed));
             const filteredHistory = computed(() => history.value.filter(l => (!l.isUrgent && !l.isER && !l.isSuperUrgent) || l.processed).slice(0, 20));
 
-            // 監控 超急領 提醒
-            watch(() => pendingSuper.value.length, (newCount) => {
-                if (newCount > 0) {
-                    if (!superTimer) { speakSuperReminder(); superTimer = setInterval(speakSuperReminder, 5000); }
-                } else { clearInterval(superTimer); superTimer = null; }
-            });
+            // 👁️ 監控超急領提醒
+            watch([() => pendingSuper.value.length, () => vSettings.value.superOn, () => vSettings.value.superSec], ([count, on, sec]) => {
+                clearInterval(superTimer); superTimer = null;
+                if (count > 0 && on) {
+                    speak(vSettings.value.superText, true);
+                    superTimer = setInterval(() => speak(vSettings.value.superText, true), sec * 1000);
+                }
+            }, { immediate: true });
 
-            // 監控 一般叫藥 提醒
-            watch(() => pendingNormal.value.length, (newCount) => {
-                if (newCount > 0) {
-                    if (!normalTimer) {
-                        if (pendingSuper.value.length === 0) speakNormalReminder();
-                        normalTimer = setInterval(speakNormalReminder, 20000); 
-                    }
-                } else { clearInterval(normalTimer); normalTimer = null; }
-            });
+            // 👁️ 監控一般叫藥提醒
+            watch([() => pendingNormal.value.length, () => vSettings.value.normalOn, () => vSettings.value.normalSec], ([count, on, sec]) => {
+                clearInterval(normalTimer); normalTimer = null;
+                if (count > 0 && on) {
+                    if (pendingSuper.value.length === 0) speak(vSettings.value.normalText, false);
+                    normalTimer = setInterval(() => {
+                        if (pendingSuper.value.length === 0) speak(vSettings.value.normalText, false);
+                    }, sec * 1000);
+                }
+            }, { immediate: true });
 
             const moveHighlight = (step) => {
                 if (suggestions.value.length === 0) return;
@@ -393,7 +420,9 @@
                     if(!q && !form.value.isUrgent && !form.value.isER) return alert("請輸入數量"); 
                 }
 
-                if (form.value.isSuperUrgent) speakSubmission(form.value.name, q);
+                if (form.value.isSuperUrgent) {
+                    speak(`超急領。${form.value.name}。數量：${q}`, true);
+                }
 
                 await push(dbRef(db, "transfer_logs"), {
                     time: new Date().toLocaleString('zh-TW', { hour12: false }),
@@ -406,8 +435,9 @@
             };
 
             return {
-                form, searchQuery, suggestions, highlightIndex, history, staffList, filterDate, editingLog, editQtyStr, pendingUrgent, filteredHistory, searchInput, qtyDisplay, showManager, showCalc, newStaffName,
-                moveHighlight, confirmSelection, selectDrug, jumpToQty, addNum, calculate, submitRecord,
+                form, searchQuery, suggestions, highlightIndex, history, staffList, filterDate, editingLog, editQtyStr, pendingUrgent, filteredHistory, searchInput, qtyDisplay, showManager, showCalc, newStaffName, vSettings,
+                moveHighlight, confirmSelection, selectDrug, jumpToQty, addNum, calculate, submitRecord, saveVSettings,
+                testVoice: (type) => speak(type === 'super' ? vSettings.value.superText : vSettings.value.normalText, type === 'super'),
                 handleCalcClick: (target, b) => {
                     if(b==='AC') (target==='form'?form.value.qtyStr='':editQtyStr.value='');
                     else if(b==='DEL') { if(target==='form') form.value.qtyStr=form.value.qtyStr.slice(0,-1); else editQtyStr.value=editQtyStr.value.slice(0,-1); }
@@ -446,15 +476,10 @@
                     if (!s.val()) return alert("尚無資料");
                     const d = new Date(filterDate.value);
                     const target = `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;
-                    const logs = Object.values(s.val()).filter(l => {
-                        const lDate = l.time.split(' ')[0].split('/').map(Number).join('/');
-                        return lDate === target;
-                    });
-                    const data = logs.map(l => ({ '時間': l.time, '人員': l.user, '代碼': l.code, '名稱': l.name, '數量': l.qty, '備註': l.isSuperUrgent ? '超急' : (l.isUrgent ? '急領' : (l.isER ? '急診' : '一般')) }));
+                    const logs = Object.values(s.val()).filter(l => l.time.split(' ')[0].split('/').map(Number).join('/') === target);
+                    const data = logs.map(l => ({ '時間': l.time, '代碼': l.code, '名稱': l.name, '數量': l.qty, '類型': l.isSuperUrgent ? '超急' : (l.isUrgent ? '急領' : '一般') }));
                     const ws = XLSX.utils.json_to_sheet(data);
-                    const wb = XLSX.utils.book_new();
-                    XLSX.utils.book_append_sheet(wb, ws, "撥補報表");
-                    XLSX.writeFile(wb, `撥補報表_${filterDate.value}.xlsx`);
+                    const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "撥補報表"); XLSX.writeFile(wb, `撥補報表_${filterDate.value}.xlsx`);
                 }
             };
         }
