@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="藥劑科管理">
-    <title>藥劑科管理系統入口 v2.7</title>
+    <title>藥劑科管理系統入口 v2.8</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.esm-browser.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -29,10 +29,18 @@
 <body class="min-h-screen py-8 px-4">
 <div id="app" v-cloak class="max-w-4xl mx-auto">
     
-    <div class="flex justify-end items-center gap-3 mb-6">
-        <span class="text-[0.7em] font-bold text-slate-400 uppercase tracking-tighter">字體縮放</span>
-        <button @click="changeFont(-2)" class="font-btn">A-</button>
-        <button @click="changeFont(2)" class="font-btn">A+</button>
+    <div class="flex justify-between items-center mb-6">
+        <div class="flex items-center gap-2 px-3 py-1 bg-white rounded-full border border-slate-200 shadow-sm">
+            <div :class="['w-2 h-2 rounded-full', voiceEnabled ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500']"></div>
+            <span class="text-[0.65em] font-bold text-slate-500 uppercase tracking-tighter">
+                {{ voiceEnabled ? '語音運作中' : '請點擊畫面啟用語音' }}
+            </span>
+        </div>
+        <div class="flex items-center gap-3">
+            <span class="text-[0.7em] font-bold text-slate-400 uppercase tracking-tighter">字體縮放</span>
+            <button @click="changeFont(-2)" class="font-btn">A-</button>
+            <button @click="changeFont(2)" class="font-btn">A+</button>
+        </div>
     </div>
 
     <header class="text-center mb-10">
@@ -122,17 +130,15 @@
             <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" @click="showLogModal = false"></div>
             <div class="relative bg-white rounded-[2rem] shadow-2xl w-full max-w-md p-6">
                 <div class="flex justify-between items-center mb-6">
-                    <h3 class="text-xl font-black text-slate-800">發送紀錄 / 消息</h3>
-                    <button @click="openSheet" class="text-emerald-600 font-bold text-sm border border-emerald-100 px-3 py-1 rounded-lg">查看試算表</button>
+                    <h3 class="text-xl font-black text-slate-800">發送紀錄</h3>
+                    <button @click="openSheet" class="text-emerald-600 font-bold text-sm border border-emerald-100 px-3 py-1 rounded-lg">試算表</button>
                 </div>
-                <textarea v-model="logNote" class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl mb-4 focus:ring-2 focus:ring-blue-500 outline-none" rows="3" placeholder="請在此輸入內容..."></textarea>
+                <textarea v-model="logNote" class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl mb-4 focus:ring-2 focus:ring-blue-500 outline-none" rows="3" placeholder="請在此輸入訊息..."></textarea>
                 <div class="space-y-4">
-                    <button @click="addLog('一般訊息')" :disabled="isSending || !logNote.trim()" class="w-full py-3 bg-slate-700 text-white rounded-2xl font-black shadow-lg disabled:opacity-40 active:scale-95 transition-all flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-paper-plane"></i> 僅發送備註訊息
-                    </button>
+                    <button @click="addLog('一般訊息')" :disabled="isSending || !logNote.trim()" class="w-full py-3 bg-slate-700 text-white rounded-2xl font-black shadow-lg disabled:opacity-40">發送備註訊息</button>
                     <div class="relative py-2 flex items-center">
                         <div class="flex-grow border-t border-slate-200"></div>
-                        <span class="flex-shrink mx-4 text-slate-400 text-[0.6em] font-bold uppercase tracking-widest">或快速支援</span>
+                        <span class="flex-shrink mx-4 text-slate-400 text-[0.6em] font-bold uppercase tracking-widest">快速支援</span>
                         <div class="flex-grow border-t border-slate-200"></div>
                     </div>
                     <div class="grid grid-cols-1 gap-2">
@@ -146,24 +152,18 @@
         </div>
     </transition>
 
-    <footer class="mt-16 text-center pb-12 border-t border-slate-200 pt-8">
+    <footer class="mt-16 text-center pb-12 border-t border-slate-200 pt-8" @click="unlockVoice">
         <div class="flex justify-center gap-4 mb-6">
             <div class="stats-badge">
                 <span class="text-[0.6em] text-slate-400 font-bold uppercase tracking-wider">訪客總人數</span>
-                <span class="text-[1.2em] font-black text-blue-600" id="busuanzi_value_site_uv">
-                    <i class="fa-solid fa-spinner fa-spin text-xs text-slate-200"></i>
-                </span>
+                <span class="text-[1.2em] font-black text-blue-600" id="busuanzi_value_site_uv">--</span>
             </div>
             <div class="stats-badge">
                 <span class="text-[0.6em] text-slate-400 font-bold uppercase tracking-wider">總瀏覽次數</span>
-                <span class="text-[1.2em] font-black text-slate-700" id="busuanzi_value_site_pv">
-                    <i class="fa-solid fa-spinner fa-spin text-xs text-slate-200"></i>
-                </span>
+                <span class="text-[1.2em] font-black text-slate-700" id="busuanzi_value_site_pv">--</span>
             </div>
         </div>
-        
-        <p class="text-slate-400 text-[0.6em] font-bold italic">Version 2.7 (Full Integration)</p>
-        
+        <p class="text-slate-400 text-[0.6em] font-bold italic">Version 2.8 (Voice & Format Fixed)</p>
         <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
     </footer>
 </div>
@@ -181,32 +181,52 @@
             const isSending = ref(false);
             const latestNote = ref([]); 
             const lastSyncId = ref(0);
+            const voiceEnabled = ref(false);
 
             onMounted(() => {
                 const saved = localStorage.getItem('fyh-font-size');
                 if (saved) { applyFontSize(parseInt(saved)); }
+                
+                // 啟動同步監測
                 setInterval(checkNewRecords, 10000);
                 checkNewRecords(); 
+
+                // 點擊畫面任何地方即啟動語音解鎖
+                window.addEventListener('click', unlockVoice, { once: true });
             });
 
-            const getFormattedDateTime = (dateObj) => {
-                const yyyy = dateObj.getFullYear();
-                const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
-                const dd = String(dateObj.getDate()).padStart(2, '0');
-                const hh = String(dateObj.getHours()).padStart(2, '0');
-                const min = String(dateObj.getMinutes()).padStart(2, '0');
-                const ss = String(dateObj.getSeconds()).padStart(2, '0');
-                return `${yyyy}/${mm}/${dd} ${hh}:${min}:${ss}`;
+            // 解鎖瀏覽器語音限制
+            const unlockVoice = () => {
+                if (voiceEnabled.value) return;
+                const utter = new SpeechSynthesisUtterance(''); // 發送無聲請求以激活
+                window.speechSynthesis.speak(utter);
+                voiceEnabled.value = true;
+                console.log("語音已解鎖");
+            };
+
+            // 格式化日期函數 (確保 UI 與 Sheet 抓回來的 T/Z 格式一致)
+            const formatTime = (input) => {
+                const date = new Date(input);
+                if (isNaN(date.getTime())) return input; // 如果不是日期就回傳原文字
+                const y = date.getFullYear();
+                const m = String(date.getMonth() + 1).padStart(2, '0');
+                const d = String(date.getDate()).padStart(2, '0');
+                const hh = String(date.getHours()).padStart(2, '0');
+                const mm = String(date.getMinutes()).padStart(2, '0');
+                const ss = String(date.getSeconds()).padStart(2, '0');
+                return `${y}/${m}/${d} ${hh}:${mm}:${ss}`;
             };
 
             const checkNewRecords = async () => {
                 try {
                     const response = await fetch(GAS_URL);
                     const data = await response.json();
+                    
                     data.forEach(item => {
                         const recordDate = new Date(item.time);
                         const now = new Date();
                         const diffMinutes = (now - recordDate) / 1000 / 60;
+
                         if (item.id > lastSyncId.value) {
                             if (lastSyncId.value !== 0 && diffMinutes <= 3) { 
                                 triggerUI(item.type, item.note, item.time, item.id);
@@ -214,14 +234,20 @@
                             lastSyncId.value = item.id;
                         }
                     });
-                } catch (e) { console.warn("Syncing..."); }
+                } catch (e) { console.warn("同步中..."); }
             };
 
-            const triggerUI = (type, note, time, id) => {
+            const triggerUI = (type, note, rawTime, id) => {
+                const displayTime = formatTime(rawTime); // 強制格式化時間
                 const displayMsg = type === '一般訊息' ? `訊息：${note}` : `${type}：${note || '無備註'}`;
                 const voiceMsg = type === '一般訊息' ? note : type;
-                latestNote.value = [{ id, message: displayMsg, time: time }];
-                speak(voiceMsg);
+                
+                latestNote.value = [{ id, message: displayMsg, time: displayTime }];
+                
+                if (voiceEnabled.value) {
+                    speak(voiceMsg);
+                }
+                
                 setTimeout(() => {
                     if (latestNote.value.length > 0 && latestNote.value[0].id === id) {
                         latestNote.value = [];
@@ -232,12 +258,15 @@
             const addLog = async (type) => {
                 if (type === '一般訊息' && !logNote.value.trim()) return;
                 isSending.value = true;
-                const fullDateTime = getFormattedDateTime(new Date());
+                const now = new Date();
+                const fullDateTime = formatTime(now); // 送出的時候也是標準格式
                 const payload = { time: fullDateTime, type: type, note: logNote.value };
+
                 try {
                     await fetch(GAS_URL, { method: 'POST', body: JSON.stringify(payload), mode: 'no-cors' });
                     triggerUI(type, logNote.value, fullDateTime, Date.now());
                 } catch (e) {}
+
                 logNote.value = ''; isSending.value = false; showLogModal.value = false;
             };
 
@@ -249,6 +278,7 @@
                     const utter = new SpeechSynthesisUtterance(text);
                     utter.lang = 'zh-TW';
                     utter.rate = 1.0;
+                    utter.pitch = 1.0;
                     window.speechSynthesis.speak(utter);
                 }
             };
@@ -266,7 +296,7 @@
 
             return { 
                 changeFont, showLogModal, logNote, addLog, isSending,
-                latestNote, closeNotification, openSheet 
+                latestNote, closeNotification, openSheet, voiceEnabled, unlockVoice 
             };
         }
     }).mount('#app');
