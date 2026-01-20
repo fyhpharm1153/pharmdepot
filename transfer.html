@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>藥品撥補系統 - 進階語音控制版</title>
+    <title>藥品撥補系統 - 核心作業版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -48,7 +48,7 @@
         <header class="flex justify-between items-center mb-6 gap-4 bg-white p-4 rounded-2xl border-2 border-slate-800 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.1)]">
             <div class="flex items-center gap-3">
                 <button @click="goBack" class="w-12 h-12 border-2 border-slate-800 rounded-xl bg-white flex items-center justify-center shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"><i class="fa-solid fa-arrow-left"></i></button>
-                <h1 class="text-2xl font-black">藥品撥補系統</h1>
+                <h1 class="text-2xl font-black text-slate-800">藥品撥補系統</h1>
             </div>
             <div class="flex gap-2">
                 <button @click="changeFontSize(-0.1)" class="px-4 py-1 border-2 border-slate-800 rounded-xl font-bold bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">A-</button>
@@ -57,11 +57,11 @@
             </div>
         </header>
 
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start mb-8">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start mb-8 text-[1em]">
             <section class="bg-white p-6 rounded-[2rem] border-2 border-slate-800 shadow-xl space-y-5">
                 <div>
                     <label class="font-bold text-slate-500 block mb-1 text-lg">撥補人員</label>
-                    <select v-model="form.user" @change="saveUserPreference" class="w-full bg-slate-100 p-4 rounded-xl font-black text-xl border-2 border-slate-300">
+                    <select v-model="form.user" @change="saveUserPreference" class="w-full bg-slate-100 p-4 rounded-xl font-black text-xl border-2 border-slate-300 text-slate-800">
                         <option value="值班人員">值班人員</option>
                         <option v-for="user in staffList" :key="user" :value="user">{{ user }}</option>
                     </select>
@@ -96,7 +96,7 @@
                     <div class="grid grid-cols-3 gap-3">
                         <label class="flex items-center gap-3 bg-white/10 p-3 rounded-lg border border-white/20 cursor-pointer">
                             <input type="checkbox" v-model="form.isSuperUrgent" @change="if(form.isSuperUrgent){form.isUrgent=false;form.isER=false}" class="w-6 h-6">
-                            <span class="text-white font-black text-lg tracking-wider">⚡ 超急領</span>
+                            <span class="text-white font-black text-lg tracking-wider">⚡ 超急</span>
                         </label>
                         <label class="flex items-center gap-3 bg-white/10 p-3 rounded-lg border border-white/20 cursor-pointer">
                             <input type="checkbox" v-model="form.isUrgent" @change="if(form.isUrgent){form.isSuperUrgent=false;form.isER=false}" class="w-6 h-6">
@@ -111,7 +111,7 @@
 
                 <div v-if="(!form.isUrgent && !form.isER) || form.isSuperUrgent" class="bg-slate-200 p-5 rounded-[2rem] border-2 border-slate-800">
                     <div class="flex justify-between items-center mb-4 px-2">
-                        <label class="font-black text-slate-600 text-lg">撥補數量</label>
+                        <label class="font-black text-slate-600 text-lg">數量</label>
                         <button @click="showCalc = !showCalc" class="flex items-center gap-2 bg-white px-3 py-1 rounded-lg border-2 border-slate-800 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-xs font-bold transition-all">
                             <i class="fa-solid" :class="showCalc ? 'fa-eye-slash' : 'fa-calculator'"></i>
                             {{ showCalc ? '顯示' : '隱藏' }}計算機
@@ -133,7 +133,7 @@
 
             <section id="historySection" class="space-y-6">
                 <div v-if="pendingUrgent.length > 0" class="space-y-3">
-                    <div class="flex items-center gap-2 text-red-600 font-black text-2xl"><i class="fa-solid fa-bell animate-swing"></i><h3>急領待處理 ({{ pendingUrgent.length }})</h3></div>
+                    <div class="flex items-center gap-2 text-red-600 font-black text-2xl"><i class="fa-solid fa-bell animate-swing"></i><h3>緊急待處理 ({{ pendingUrgent.length }})</h3></div>
                     <div v-for="log in pendingUrgent" :key="log.id" @click="openEditModal(log)" class="urgent-pulse bg-white p-5 rounded-2xl shadow-xl flex items-center gap-4 border-2">
                         <div class="flex-1">
                             <div class="text-[0.8em] font-bold text-red-500 mb-1">
@@ -144,7 +144,6 @@
                                 [{{ log.code }}] {{ log.name }}
                                 <span class="bg-yellow-400 text-blue-900 px-3 py-0.5 rounded-full text-sm border-2 border-blue-900 shadow-sm font-black">儲位：{{ log.shelf || '無' }}</span>
                             </p>
-                            <p v-if="log.isSuperUrgent" class="text-purple-700 font-black">數量：{{ log.qty }}</p>
                         </div>
                         <div :class="log.isSuperUrgent ? 'bg-purple-600' : 'bg-red-600'" class="text-white font-black px-6 py-3 rounded-xl text-2xl shadow-lg">處理</div>
                     </div>
@@ -155,89 +154,124 @@
                     <input type="date" v-model="filterDate" class="p-2 border-2 border-slate-800 rounded-lg font-bold">
                 </div>
 
-                <div class="max-h-[450px] overflow-y-auto space-y-4 pr-2">
+                <div class="max-h-[450px] overflow-y-auto space-y-4 pr-2 border-b-2 border-slate-200 pb-4">
                     <div v-for="log in filteredHistory" :key="log.id" class="record-card bg-white p-4 rounded-xl shadow border-2 border-slate-300 flex items-center gap-4">
                         <div class="flex-1">
                             <div class="text-[0.8em] font-bold text-slate-400"><span class="bg-slate-700 text-white px-2 py-0.5 rounded mr-2">{{ log.user }}</span>{{ log.time }}</div>
-                            <p class="font-black text-slate-900 text-xl">[{{ log.code }}] {{ log.name }}</p>
+                            <p class="font-black text-slate-900 text-xl leading-tight">[{{ log.code }}] {{ log.name }}</p>
                         </div>
                         <div class="flex items-center gap-3">
-                            <div @click="openEditModal(log)" :class="[log.isSuperUrgent ? 'bg-purple-600 text-white' : (log.isUrgent ? 'bg-yellow-400' : (log.isER ? 'bg-indigo-600 text-white' : 'bg-blue-600 text-white'))]" class="font-black px-4 py-2 rounded-lg text-2xl min-w-[90px] text-center border-2 cursor-pointer">
-                                {{ (log.isER || (log.isUrgent && !log.isSuperUrgent)) && !log.processed ? (log.isER?'🚑':'🚨') : log.qty }}
+                            <div @click="openEditModal(log)" 
+                                :class="[log.isSuperUrgent ? 'bg-purple-600 text-white border-slate-800' : (log.isUrgent ? 'bg-yellow-400 text-slate-900 border-slate-800' : (log.isER ? 'bg-indigo-600 text-white' : 'bg-blue-600 text-white'))]" 
+                                class="font-black px-4 py-2 rounded-lg text-2xl min-w-[90px] text-center border-2 cursor-pointer shadow-sm">
+                                {{ (log.isUrgent || log.isER) && !log.isSuperUrgent && !log.processed ? (log.isER ? '🚑' : '🚨') : log.qty }}
                             </div>
-                            <button @click.stop="deleteSingle(log)" class="bg-red-100 text-red-600 w-12 h-12 rounded-lg flex items-center justify-center"><i class="fa-solid fa-trash-can"></i></button>
+                            <button @click.stop="deleteSingle(log)" class="bg-red-100 text-red-600 w-12 h-12 rounded-lg flex items-center justify-center border border-red-200">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
                         </div>
                     </div>
                 </div>
-
-                <button @click="exportByDate" class="w-full bg-slate-800 text-white py-5 rounded-2xl font-black text-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-y-1 transition-all">
+                
+                <button @click="exportByDate" class="w-full bg-slate-800 text-white py-5 rounded-2xl font-black text-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all">
                     <i class="fa-solid fa-file-excel mr-2"></i>匯出該日報表 (.xlsx)
                 </button>
             </section>
         </div>
 
+        <section class="mt-12 bg-indigo-50 p-8 rounded-[3rem] border-4 border-indigo-800 shadow-2xl">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                <div class="flex items-center gap-4 text-indigo-900 font-black text-3xl">
+                    <i class="fa-solid fa-truck-medical"></i>
+                    <h2>急診領藥清單 ({{ pendingER.length }})</h2>
+                </div>
+                <button @click="exportERToday" class="bg-indigo-700 text-white px-6 py-3 rounded-xl font-black shadow-lg hover:bg-indigo-800 transition-all">匯出今日急診清單 (.xlsx)</button>
+            </div>
+            <div v-if="pendingER.length === 0" class="text-center py-12 text-indigo-300 italic font-bold text-xl">目前尚無急診件</div>
+            <div v-else class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                <div v-for="log in pendingER" :key="log.id" class="bg-white p-5 rounded-2xl shadow-md border-2 border-indigo-200 flex justify-between items-center">
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="bg-yellow-400 text-indigo-900 px-3 py-1 rounded-full text-sm font-black border-2 border-indigo-900 shadow-sm">儲位：{{ log.shelf || '無' }}</span>
+                            <span class="text-xs text-indigo-400 font-bold">{{ log.time.split(' ')[1] }}</span>
+                        </div>
+                        <div class="text-sm font-bold text-indigo-600">{{ log.code }}</div>
+                        <div class="text-xl font-black text-slate-800 leading-tight">{{ log.name }}</div>
+                    </div>
+                    <button @click="openEditModal(log)" class="ml-4 bg-indigo-600 text-white px-6 py-4 rounded-xl font-black text-xl shadow-lg hover:bg-indigo-700 active:scale-95 transition-all">處理</button>
+                </div>
+            </div>
+        </section>
+
+        <div v-if="editingLog" class="modal-overlay">
+            <div class="bg-white w-full max-w-md rounded-[2.5rem] p-6 border-4 border-slate-800 shadow-2xl">
+                <div class="flex justify-between items-start mb-4 border-b-2 pb-2">
+                    <div>
+                        <h2 class="font-black text-2xl" :class="editingLog.isSuperUrgent ? 'text-purple-600' : (editingLog.isUrgent ? 'text-red-600' : (editingLog.isER ? 'text-indigo-700' : 'text-blue-700'))">
+                            {{ editingLog.isSuperUrgent ? '⚡ 超急處理' : (editingLog.isUrgent ? '🚨 急領處理' : (editingLog.isER ? '🚑 急診處理' : '📝 修改數量')) }}
+                        </h2>
+                        <p class="font-bold text-slate-600 text-sm mt-1">{{ editingLog.name }}</p>
+                    </div>
+                    <button @click="editingLog = null" class="text-4xl font-black text-slate-400 hover:text-red-500 transition-colors">&times;</button>
+                </div>
+                <div class="bg-slate-100 p-4 rounded-2xl border-2 border-slate-800 mb-4 text-right text-5xl font-black shadow-inner">
+                    {{ editQtyStr || '0' }}
+                </div>
+                <div class="grid grid-cols-4 gap-3">
+                    <button v-for="btn in ['AC','DEL','+/-','/','7','8','9','*','4','5','6','-','1','2','3','+']" @click="handleCalcClick('edit', btn)" :class="getBtnClass(btn)" style="height: 60px;">{{ getBtnLabel(btn) }}</button>
+                    <button @click="addNum('edit','0')" class="calc-btn btn-num col-span-2" style="height: 60px;">0</button>
+                    <button @click="addNum('edit','.')" class="calc-btn btn-num" style="height: 60px;">.</button>
+                    <button @click="calculate('edit')" class="calc-btn btn-equal text-4xl" style="height: 60px;">=</button>
+                    <div class="col-span-4 grid grid-cols-2 gap-4 mt-6">
+                        <button v-if="(editingLog.isUrgent || editingLog.isSuperUrgent || editingLog.isER) && !editingLog.processed" @click="cancelUrgentIssuance" class="py-4 bg-slate-200 text-slate-600 rounded-xl font-black border-2 border-slate-400 hover:bg-slate-300">不領藥(0)</button>
+                        <button @click="confirmEdit" class="py-4 bg-emerald-600 text-white rounded-xl font-black border-2 border-slate-800 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:bg-emerald-700 active:translate-x-[2px] active:translate-y-[2px]" :class="(editingLog.isUrgent || editingLog.isSuperUrgent || editingLog.isER) && !editingLog.processed ? '' : 'col-span-2'">確認發放</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div v-if="showManager" class="modal-overlay">
             <div class="bg-white w-full max-w-md rounded-3xl p-8 border-4 border-slate-800 shadow-2xl overflow-y-auto max-h-[90vh]">
-                <div class="flex justify-between items-center mb-6"><h2 class="font-black text-2xl">系統設定</h2><button @click="showManager = false" class="text-4xl font-black text-slate-400">&times;</button></div>
+                <div class="flex justify-between items-center mb-6"><h2 class="font-black text-2xl text-slate-800">系統與語音設定</h2><button @click="showManager = false" class="text-4xl font-black text-slate-400">&times;</button></div>
                 
-                <div class="mb-8">
-                    <h3 class="font-bold text-slate-500 mb-3 border-b pb-1">人員管理</h3>
-                    <div class="flex gap-2 mb-4"><input v-model="newStaffName" @keyup.enter="addStaff" placeholder="輸入姓名" class="flex-1 p-3 rounded-xl border-2 font-bold outline-none"><button @click="addStaff" class="bg-blue-600 text-white px-4 rounded-xl font-black">新增</button></div>
-                    <div class="max-h-40 overflow-y-auto space-y-2"><div v-for="(name, idx) in staffList" :key="idx" class="flex justify-between p-3 bg-slate-50 rounded-xl border"><span class="font-bold text-slate-700">{{ name }}</span><button @click="removeStaff(idx)" class="text-red-500"><i class="fa-solid fa-trash"></i></button></div></div>
+                <div class="mb-8 border-b pb-6">
+                    <h3 class="font-bold text-slate-500 mb-3 flex items-center gap-2"><i class="fa-solid fa-users"></i>人員管理</h3>
+                    <div class="flex gap-2 mb-4"><input v-model="newStaffName" placeholder="輸入姓名" class="flex-1 p-3 rounded-xl border-2 font-bold outline-none border-slate-300 focus:border-blue-500"><button @click="addStaff" class="bg-blue-600 text-white px-4 rounded-xl font-black text-sm active:scale-95 transition-all">新增</button></div>
+                    <div class="max-h-40 overflow-y-auto space-y-2"><div v-for="(name, idx) in staffList" :key="idx" class="flex justify-between p-3 bg-slate-50 rounded-xl border border-slate-200"><span class="font-bold text-slate-700">{{ name }}</span><button @click="removeStaff(idx)" class="text-red-500"><i class="fa-solid fa-trash"></i></button></div></div>
                 </div>
 
                 <div class="space-y-6">
-                    <h3 class="font-bold text-slate-500 mb-1 border-b pb-1">語音提醒設定</h3>
+                    <h3 class="font-bold text-slate-500 mb-2 flex items-center gap-2"><i class="fa-solid fa-volume-high"></i>語音提醒設定</h3>
                     
-                    <div class="bg-purple-50 p-4 rounded-2xl border-2 border-purple-200 space-y-3">
+                    <div class="bg-purple-50 p-4 rounded-2xl border-2 border-purple-200 space-y-3 shadow-sm">
                         <div class="flex justify-between items-center">
-                            <span class="font-bold text-purple-900">⚡ 超急領提醒</span>
+                            <span class="font-bold text-purple-900">⚡ 超急領設定</span>
                             <label class="relative inline-flex items-center cursor-pointer">
                                 <input type="checkbox" v-model="vSettings.superOn" @change="saveVSettings" class="sr-only peer">
                                 <div class="w-11 h-6 bg-slate-300 rounded-full peer peer-checked:bg-purple-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full"></div>
                             </label>
                         </div>
                         <div class="grid grid-cols-2 gap-2">
-                            <input v-model="vSettings.superText" @change="saveVSettings" placeholder="文字" class="p-2 rounded-lg border border-purple-300 text-sm">
-                            <div class="flex items-center gap-1"><input type="number" v-model.number="vSettings.superSec" @change="saveVSettings" class="w-16 p-2 rounded-lg border border-purple-300 text-sm font-bold text-center"> <span class="text-xs">秒/次</span></div>
+                            <div class="col-span-2"><label class="text-[0.6em] font-bold text-purple-400 uppercase">語音內容</label><input v-model="vSettings.superText" @change="saveVSettings" placeholder="超急領快領藥" class="w-full p-2 rounded-lg border-2 border-purple-100 text-sm font-bold"></div>
+                            <div><label class="text-[0.6em] font-bold text-purple-400 uppercase">頻率(秒)</label><input type="number" v-model.number="vSettings.superSec" @change="saveVSettings" class="w-full p-2 rounded-lg border-2 border-purple-100 text-sm font-bold text-center"></div>
+                            <div class="flex items-end"><button @click="testVoice('super')" class="w-full h-10 bg-white border-2 border-purple-400 text-purple-600 rounded-lg text-xs font-black hover:bg-purple-100 transition-all">測試男聲</button></div>
                         </div>
-                        <button @click="testVoice('super')" class="w-full py-1 text-xs bg-white border border-purple-300 rounded text-purple-700 font-bold hover:bg-purple-100 transition-colors">測試音訊 (男聲)</button>
                     </div>
 
-                    <div class="bg-blue-50 p-4 rounded-2xl border-2 border-blue-200 space-y-3">
+                    <div class="bg-blue-50 p-4 rounded-2xl border-2 border-blue-200 space-y-3 shadow-sm">
                         <div class="flex justify-between items-center">
-                            <span class="font-bold text-blue-900">🚨 一般叫藥提醒</span>
+                            <span class="font-bold text-blue-900">🚨 一般叫藥設定</span>
                             <label class="relative inline-flex items-center cursor-pointer">
                                 <input type="checkbox" v-model="vSettings.normalOn" @change="saveVSettings" class="sr-only peer">
                                 <div class="w-11 h-6 bg-slate-300 rounded-full peer peer-checked:bg-blue-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full"></div>
                             </label>
                         </div>
                         <div class="grid grid-cols-2 gap-2">
-                            <input v-model="vSettings.normalText" @change="saveVSettings" placeholder="文字" class="p-2 rounded-lg border border-blue-300 text-sm">
-                            <div class="flex items-center gap-1"><input type="number" v-model.number="vSettings.normalSec" @change="saveVSettings" class="w-16 p-2 rounded-lg border border-blue-300 text-sm font-bold text-center"> <span class="text-xs">秒/次</span></div>
+                            <div class="col-span-2"><label class="text-[0.6em] font-bold text-blue-400 uppercase">語音內容</label><input v-model="vSettings.normalText" @change="saveVSettings" placeholder="一般叫藥" class="w-full p-2 rounded-lg border-2 border-blue-100 text-sm font-bold"></div>
+                            <div><label class="text-[0.6em] font-bold text-blue-400 uppercase">頻率(秒)</label><input type="number" v-model.number="vSettings.normalSec" @change="saveVSettings" class="w-full p-2 rounded-lg border-2 border-blue-100 text-sm font-bold text-center"></div>
+                            <div class="flex items-end"><button @click="testVoice('normal')" class="w-full h-10 bg-white border-2 border-blue-400 text-blue-600 rounded-lg text-xs font-black hover:bg-blue-100 transition-all">測試女聲</button></div>
                         </div>
-                        <button @click="testVoice('normal')" class="w-full py-1 text-xs bg-white border border-blue-300 rounded text-blue-700 font-bold hover:bg-blue-100 transition-colors">測試音訊 (女聲)</button>
                     </div>
-                </div>
-            </div>
-        </div>
-
-        <div v-if="editingLog" class="modal-overlay">
-            <div class="bg-white w-full max-w-md rounded-[2.5rem] p-6 border-4 border-slate-800 shadow-2xl">
-                <div class="flex justify-between items-start mb-4 border-b-2 pb-2">
-                    <div><h2 class="font-black text-2xl" :class="editingLog.isSuperUrgent ? 'text-purple-600' : (editingLog.isUrgent ? 'text-red-600' : 'text-blue-700')">{{ editingLog.isSuperUrgent ? '⚡ 超急處理' : (editingLog.isUrgent && !editingLog.processed ? '🚨 處理急領' : '📝 修改數量') }}</h2><p class="font-bold text-slate-600 text-sm mt-1">{{ editingLog.name }}</p></div>
-                    <button @click="editingLog = null" class="text-4xl font-black text-slate-400">&times;</button>
-                </div>
-                <div class="bg-slate-100 p-4 rounded-2xl border-2 border-slate-800 mb-4 text-right text-5xl font-black">{{ editQtyStr || '0' }}</div>
-                <div class="grid grid-cols-4 gap-3">
-                    <button v-for="btn in ['AC','DEL','+/-','/','7','8','9','*','4','5','6','-','1','2','3','+']" @click="handleCalcClick('edit', btn)" :class="getBtnClass(btn)" style="height: 60px;">{{ getBtnLabel(btn) }}</button>
-                    <button @click="addNum('edit','0')" class="calc-btn btn-num col-span-2" style="height: 60px;">0</button>
-                    <button @click="addNum('edit','.')" class="calc-btn btn-num" style="height: 60px;">.</button>
-                    <button @click="calculate('edit')" class="calc-btn btn-equal text-4xl" style="height: 60px;">=</button>
-                </div>
-                <div class="grid grid-cols-2 gap-4 mt-8">
-                    <button v-if="(editingLog.isUrgent || editingLog.isER || editingLog.isSuperUrgent) && !editingLog.processed" @click="cancelUrgentIssuance" class="py-4 bg-slate-200 text-slate-600 rounded-xl font-black border-2 border-slate-400">取消發放(0)</button>
-                    <button @click="confirmEdit" class="py-4 bg-emerald-600 text-white rounded-xl font-black border-2 border-slate-800 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]" :class="(editingLog.isUrgent || editingLog.isER || editingLog.isSuperUrgent) && !editingLog.processed ? 'col-span-1' : 'col-span-2'">確認發放</button>
                 </div>
             </div>
         </div>
@@ -264,7 +298,7 @@
 
     createApp({
         setup() {
-            const form = ref({ user: '值班人員', code: '', name: '', shelf: '', qtyStr: '', isUrgent: false, isER: false, isSuperUrgent: false });
+            const form = ref({ user: '值班人員', code: '', name: '', shelf: '', qtyStr: '', isUrgent: false, isSuperUrgent: false, isER: false });
             const searchQuery = ref('');
             const warehouseList = ref([]);
             const history = ref([]);
@@ -281,22 +315,21 @@
             const baseFontSize = ref(1.1);
             const newStaffName = ref('');
 
-            // 📢 語音控制設定 (預設)
-            const vSettings = ref({
-                superOn: true, superText: '超急領快領藥', superSec: 5,
-                normalOn: true, normalText: '一般叫藥', normalSec: 20
+            // 📢 語音控制與頻率
+            const vSettings = ref({ 
+                superOn: true, superText: '超急領快領藥', superSec: 5, 
+                normalOn: true, normalText: '一般叫藥', normalSec: 20 
             });
 
             let superTimer = null;
             let normalTimer = null;
 
-            // 🔊 核心播放函數
             const speak = (text, isMale = false) => {
                 if ('speechSynthesis' in window) {
                     window.speechSynthesis.cancel();
                     const utter = new SpeechSynthesisUtterance(text);
                     utter.lang = 'zh-TW';
-                    utter.pitch = isMale ? 0.8 : 1.2; // 低音男聲 / 高音女聲
+                    utter.pitch = isMale ? 0.8 : 1.2;
                     utter.rate = 1.0;
                     window.speechSynthesis.speak(utter);
                 }
@@ -305,24 +338,14 @@
             const saveVSettings = () => { set(dbRef(db, "voice_config"), vSettings.value); };
 
             onMounted(() => {
-                // 🚀 解析網址參數 (門診/住院帶 urgent, 急診帶 er)
                 const params = new URLSearchParams(window.location.search);
-                const pCode = params.get('code');
-                const pName = params.get('name');
-                const pType = params.get('type');
-                const pShelf = params.get('shelf');
-
+                const pCode = params.get('code'); const pName = params.get('name'); const pType = params.get('type'); const pShelf = params.get('shelf');
                 if (pCode || pName) {
-                    form.value.code = pCode || '';
-                    form.value.name = pName || '';
-                    form.value.shelf = pShelf || '無';
-                    searchQuery.value = pName || '';
-                    if (pType === 'urgent') form.value.isUrgent = true;
-                    if (pType === 'er') form.value.isER = true;
+                    form.value.code = pCode || ''; form.value.name = pName || ''; form.value.shelf = pShelf || '無'; searchQuery.value = pName || '';
+                    if (pType === 'urgent') form.value.isUrgent = true; if (pType === 'er') form.value.isER = true;
                     nextTick(() => jumpToQty());
                 }
-
-                onValue(dbRef(db, "voice_config"), s => { if(s.val()) vSettings.value = s.val(); });
+                onValue(dbRef(db, "voice_config"), s => { if(s.val()) vSettings.value = { ...vSettings.value, ...s.val() }; });
                 onValue(dbRef(db, "warehouse"), s => { warehouseList.value = s.val() ? Object.values(s.val()).map(i => ({ c: i.c, n: i.n, s: i.s })) : []; });
                 onValue(query(dbRef(db, "transfer_logs"), limitToLast(100)), s => {
                     history.value = s.val() ? Object.entries(s.val()).map(([id, v]) => ({ id, ...v })).reverse() : [];
@@ -331,17 +354,15 @@
                 window.addEventListener('keydown', handleKeyboard);
             });
 
-            onUnmounted(() => { 
-                window.removeEventListener('keydown', handleKeyboard); 
-                clearInterval(superTimer); clearInterval(normalTimer); 
-            });
+            onUnmounted(() => { window.removeEventListener('keydown', handleKeyboard); clearInterval(superTimer); clearInterval(normalTimer); });
 
             const pendingUrgent = computed(() => history.value.filter(l => (l.isUrgent || l.isSuperUrgent) && !l.processed));
             const pendingSuper = computed(() => history.value.filter(l => l.isSuperUrgent && !l.processed));
             const pendingNormal = computed(() => history.value.filter(l => l.isUrgent && !l.isSuperUrgent && !l.processed));
-            const filteredHistory = computed(() => history.value.filter(l => (!l.isUrgent && !l.isER && !l.isSuperUrgent) || l.processed).slice(0, 20));
+            const pendingER = computed(() => history.value.filter(l => l.isER && !l.processed));
+            const filteredHistory = computed(() => history.value.filter(l => (!l.isUrgent && !l.isSuperUrgent && !l.isER) || l.processed).slice(0, 20));
 
-            // 👁️ 監控超急領提醒
+            // 👁️ 監控 超急領 狀態與頻率
             watch([() => pendingSuper.value.length, () => vSettings.value.superOn, () => vSettings.value.superSec], ([count, on, sec]) => {
                 clearInterval(superTimer); superTimer = null;
                 if (count > 0 && on) {
@@ -350,7 +371,7 @@
                 }
             }, { immediate: true });
 
-            // 👁️ 監控一般叫藥提醒
+            // 👁️ 監控 急領 狀態與頻率
             watch([() => pendingNormal.value.length, () => vSettings.value.normalOn, () => vSettings.value.normalSec], ([count, on, sec]) => {
                 clearInterval(normalTimer); normalTimer = null;
                 if (count > 0 && on) {
@@ -372,97 +393,60 @@
             };
             const selectDrug = (d) => { 
                 form.value.code = d.c; form.value.name = d.n; form.value.shelf = d.s || '無'; 
-                searchQuery.value = d.n; suggestions.value = []; highlightIndex.value = -1;
-                nextTick(() => jumpToQty()); 
+                searchQuery.value = d.n; suggestions.value = []; highlightIndex.value = -1; nextTick(() => jumpToQty()); 
             };
             const jumpToQty = () => { if (qtyDisplay.value) qtyDisplay.value.focus(); };
-            const addNum = (t, n) => {
-                if(t === 'form') form.value.qtyStr = (form.value.qtyStr === '0' ? n : form.value.qtyStr + n);
-                else editQtyStr.value = (editQtyStr.value === '0' ? n : editQtyStr.value + n);
-            };
+            const addNum = (t, n) => { if(t === 'form') form.value.qtyStr = (form.value.qtyStr === '0' ? n : form.value.qtyStr + n); else editQtyStr.value = (editQtyStr.value === '0' ? n : editQtyStr.value + n); };
             const calculate = (t) => {
-                let s = t === 'form' ? form.value.qtyStr : editQtyStr.value;
-                if (!s) return;
-                try {
-                    s = s.replace(/[+\-*/]$/, "");
-                    const res = eval(s.replace(/[^0-9+\-*/().]/g, ''));
-                    const rounded = (Math.round(res * 100) / 100).toString();
-                    if (t === 'form') form.value.qtyStr = rounded; else editQtyStr.value = rounded;
+                let s = t === 'form' ? form.value.qtyStr : editQtyStr.value; if (!s) return;
+                try { s = s.replace(/[+\-*/]$/, ""); const res = eval(s.replace(/[^0-9+\-*/().]/g, '')); const rounded = (Math.round(res * 100) / 100).toString(); if (t === 'form') form.value.qtyStr = rounded; else editQtyStr.value = rounded;
                 } catch { if (t === 'form') form.value.qtyStr = ''; else editQtyStr.value = ''; }
             };
             const handleKeyboard = (e) => {
                 if (document.activeElement.tagName === 'INPUT' && document.activeElement !== searchInput.value) return;
-                const target = editingLog.value ? 'edit' : 'form';
-                const key = e.key;
+                const target = editingLog.value ? 'edit' : 'form'; const key = e.key;
                 if (/[0-9]/.test(key)) { addNum(target, key); } 
                 else if (['+', '-', '*', '/'].includes(key)) { if (target === 'form') form.value.qtyStr += key; else editQtyStr.value += key; } 
-                else if (key === 'Enter') {
-                    e.preventDefault();
-                    let currentStr = target === 'form' ? form.value.qtyStr : editQtyStr.value;
-                    if (/[+\-*/]/.test(currentStr)) calculate(target);
-                    else if (!editingLog.value && form.value.name && (form.value.qtyStr || form.value.isUrgent || form.value.isER || form.value.isSuperUrgent)) submitRecord();
-                    else if (editingLog.value) confirmEdit();
-                } 
-                else if (key === 'Backspace') {
-                    if (document.activeElement !== searchInput.value) {
-                        e.preventDefault();
-                        if(target === 'form') form.value.qtyStr = form.value.qtyStr.slice(0, -1);
-                        else editQtyStr.value = editQtyStr.value.slice(0, -1);
-                    }
-                }
+                else if (key === 'Enter') { e.preventDefault(); let currentStr = target === 'form' ? form.value.qtyStr : editQtyStr.value; if (/[+\-*/]/.test(currentStr)) calculate(target); else if (!editingLog.value && form.value.name && (form.value.qtyStr || form.value.isUrgent || form.value.isSuperUrgent || form.value.isER)) submitRecord(); else if (editingLog.value) confirmEdit(); } 
+                else if (key === 'Backspace') { if (document.activeElement !== searchInput.value) { e.preventDefault(); if(target === 'form') form.value.qtyStr = form.value.qtyStr.slice(0, -1); else editQtyStr.value = editQtyStr.value.slice(0, -1); } }
             };
             const submitRecord = async () => {
-                if(!form.value.name) return;
-                let q = 0;
-                if(!form.value.isUrgent && !form.value.isER || form.value.isSuperUrgent) { 
-                    calculate('form'); 
-                    q = Number(form.value.qtyStr); 
-                    if(!q && !form.value.isUrgent && !form.value.isER) return alert("請輸入數量"); 
+                if(!form.value.name) return; let q = 0;
+                if((!form.value.isUrgent && !form.value.isER) || form.value.isSuperUrgent) { 
+                    calculate('form'); q = Number(form.value.qtyStr); if(!q && !form.value.isSuperUrgent) return alert("請輸入數量"); 
                 }
-
-                if (form.value.isSuperUrgent) {
-                    speak(`超急領。${form.value.name}。數量：${q}`, true);
-                }
-
+                if (form.value.isSuperUrgent) speak(`超急領。${form.value.name}。數量：${q}`, true);
                 await push(dbRef(db, "transfer_logs"), {
                     time: new Date().toLocaleString('zh-TW', { hour12: false }),
                     user: form.value.user, code: form.value.code, name: form.value.name, shelf: form.value.shelf,
-                    qty: q, isUrgent: form.value.isUrgent, isER: form.value.isER, 
-                    isSuperUrgent: form.value.isSuperUrgent, processed: false
+                    qty: q, isUrgent: form.value.isUrgent, isSuperUrgent: form.value.isSuperUrgent, isER: form.value.isER, processed: false
                 });
-                form.value.qtyStr = ''; form.value.name = ''; searchQuery.value = ''; form.value.isUrgent = false; form.value.isER = false; form.value.isSuperUrgent = false;
-                nextTick(() => searchInput.value.focus());
+                form.value.qtyStr = ''; form.value.name = ''; searchQuery.value = ''; form.value.isUrgent = false; form.value.isSuperUrgent = false; form.value.isER = false; nextTick(() => searchInput.value.focus());
+            };
+
+            const exportERToday = async () => {
+                const s = await get(dbRef(db, "transfer_logs")); if (!s.val()) return alert("尚無資料");
+                const today = new Date().toLocaleDateString('zh-TW').split('/').map(Number).join('/');
+                const logs = Object.values(s.val()).filter(l => l.isER && !l.processed && l.time.split(' ')[0].split('/').map(Number).join('/') === today);
+                if (logs.length === 0) return alert("今日無待處理急診件");
+                const data = logs.map(l => ({ '儲位': l.shelf, '代碼': l.code, '藥名': l.name, '時間': l.time }));
+                const ws = XLSX.utils.json_to_sheet(data); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "清單"); XLSX.writeFile(wb, `今日急診領藥_${today.replace(/\//g, '-')}.xlsx`);
             };
 
             return {
-                form, searchQuery, suggestions, highlightIndex, history, staffList, filterDate, editingLog, editQtyStr, pendingUrgent, filteredHistory, searchInput, qtyDisplay, showManager, showCalc, newStaffName, vSettings,
-                moveHighlight, confirmSelection, selectDrug, jumpToQty, addNum, calculate, submitRecord, saveVSettings,
+                form, searchQuery, suggestions, highlightIndex, history, staffList, filterDate, editingLog, editQtyStr, pendingUrgent, pendingER, filteredHistory, searchInput, qtyDisplay, showManager, showCalc, newStaffName, vSettings,
+                moveHighlight, confirmSelection, selectDrug, jumpToQty, addNum, calculate, submitRecord, saveVSettings, exportERToday,
                 testVoice: (type) => speak(type === 'super' ? vSettings.value.superText : vSettings.value.normalText, type === 'super'),
-                handleCalcClick: (target, b) => {
-                    if(b==='AC') (target==='form'?form.value.qtyStr='':editQtyStr.value='');
-                    else if(b==='DEL') { if(target==='form') form.value.qtyStr=form.value.qtyStr.slice(0,-1); else editQtyStr.value=editQtyStr.value.slice(0,-1); }
-                    else if(b==='+/-') {
-                        let s = target==='form'?form.value.qtyStr:editQtyStr.value;
-                        s = s.startsWith('-')?s.substring(1):'-'+s;
-                        target==='form'?form.value.qtyStr=s:editQtyStr.value=s;
-                    }
+                handleCalcClick: (target, b) => { if(b==='AC') (target==='form'?form.value.qtyStr='':editQtyStr.value=''); else if(b==='DEL') { if(target==='form') form.value.qtyStr=form.value.qtyStr.slice(0,-1); else editQtyStr.value=editQtyStr.value.slice(0,-1); } 
+                    else if(b==='+/-') { let s = target==='form'?form.value.qtyStr:editQtyStr.value; s = s.startsWith('-')?s.substring(1):'-'+s; target==='form'?form.value.qtyStr=s:editQtyStr.value=s; }
                     else if(['/','*','-','+'].includes(b)) (target==='form'?form.value.qtyStr+=b:editQtyStr.value+=b);
-                    else addNum(target, b);
-                },
-                onSearchInput: () => {
-                    highlightIndex.value = -1;
-                    const k = searchQuery.value.toLowerCase().trim();
-                    suggestions.value = k ? warehouseList.value.filter(i => i.n?.toLowerCase().includes(k) || i.c?.toLowerCase().includes(k)).slice(0, 15) : [];
-                },
-                openEditModal: (log) => { editingLog.value = log; editQtyStr.value = log.qty.toString(); },
-                confirmEdit: async () => {
-                    calculate('edit');
-                    await update(dbRef(db, `transfer_logs/${editingLog.value.id}`), { qty: Number(editQtyStr.value), processed: true });
-                    editingLog.value = null;
-                },
-                cancelUrgentIssuance: async () => { if(confirm("取消此紀錄？")) { await update(dbRef(db, `transfer_logs/${editingLog.value.id}`), { qty: 0, processed: true }); editingLog.value = null; } },
+                    else addNum(target, b); },
+                onSearchInput: () => { highlightIndex.value = -1; const k = searchQuery.value.toLowerCase().trim(); suggestions.value = k ? warehouseList.value.filter(i => i.n?.toLowerCase().includes(k) || i.c?.toLowerCase().includes(k)).slice(0, 15) : []; },
+                openEditModal: (log) => { editingLog.value = log; editQtyStr.value = (log.qty || 0).toString(); },
+                confirmEdit: async () => { calculate('edit'); await update(dbRef(db, `transfer_logs/${editingLog.value.id}`), { qty: Number(editQtyStr.value), processed: true }); editingLog.value = null; },
+                cancelUrgentIssuance: async () => { if(confirm("標記為不領藥(數量歸零)？")) { await update(dbRef(db, `transfer_logs/${editingLog.value.id}`), { qty: 0, processed: true }); editingLog.value = null; } },
                 deleteSingle: async (l) => { if(confirm("確定刪除？")) await remove(dbRef(db, `transfer_logs/${l.id}`)); },
-                getBtnClass: (b) => b==='AC'?'calc-btn btn-ac':(b==='DEL'?'calc-btn btn-del':(['/','*','-','+'].includes(b)?'calc-btn btn-op':(b==='+/-'?'calc-btn btn-sign':'calc-btn btn-num'))),
+                getBtnClass: (b) => b==='AC'?'calc-btn btn-ac':(b==='DEL'?'calc-btn btn-del':(['/','*','-','+'].includes(b)?'calc-btn btn-op':(b==='+/-'?'calc-btn btn-sign':'calc-btn btn-num'))), 
                 getBtnLabel: (b) => b==='*'?'×':(b==='/'?'÷':(b==='DEL'?'←':b)),
                 scrollToUrgent: () => document.getElementById('historySection').scrollIntoView({ behavior: 'smooth' }),
                 changeFontSize: (d) => { baseFontSize.value += d; document.documentElement.style.fontSize = `${baseFontSize.value}rem`; },
@@ -472,14 +456,16 @@
                 addStaff: () => { if(newStaffName.value){ staffList.value.push(newStaffName.value); set(dbRef(db, "staff_list"), staffList.value); newStaffName.value=''; } },
                 removeStaff: (i) => { staffList.value.splice(i, 1); set(dbRef(db, "staff_list"), staffList.value); },
                 exportByDate: async () => {
-                    const s = await get(dbRef(db, "transfer_logs"));
-                    if (!s.val()) return alert("尚無資料");
+                    const s = await get(dbRef(db, "transfer_logs")); if (!s.val()) return alert("尚無資料");
                     const d = new Date(filterDate.value);
-                    const target = `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;
-                    const logs = Object.values(s.val()).filter(l => l.time.split(' ')[0].split('/').map(Number).join('/') === target);
-                    const data = logs.map(l => ({ '時間': l.time, '代碼': l.code, '名稱': l.name, '數量': l.qty, '類型': l.isSuperUrgent ? '超急' : (l.isUrgent ? '急領' : '一般') }));
-                    const ws = XLSX.utils.json_to_sheet(data);
-                    const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "撥補報表"); XLSX.writeFile(wb, `撥補報表_${filterDate.value}.xlsx`);
+                    const targetYear = d.getFullYear(); const targetMonth = d.getMonth() + 1; const targetDay = d.getDate();
+                    const logs = Object.values(s.val()).filter(l => {
+                        const parts = l.time.split(' ')[0].split('/');
+                        return Number(parts[0]) === targetYear && Number(parts[1]) === targetMonth && Number(parts[2]) === targetDay;
+                    });
+                    if (logs.length === 0) return alert("該日無撥補紀錄");
+                    const data = logs.map(l => ({ '時間': l.time, '人員': l.user, '代碼': l.code, '名稱': l.name, '數量': l.qty, '類型': l.isSuperUrgent ? '超急' : (l.isUrgent ? '急領' : (l.isER ? '急診' : '一般')) }));
+                    const ws = XLSX.utils.json_to_sheet(data); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "撥補報表"); XLSX.writeFile(wb, `撥補報表_${filterDate.value}.xlsx`);
                 }
             };
         }
