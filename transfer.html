@@ -45,7 +45,7 @@
         <header class="flex justify-between items-center mb-6 gap-4 bg-white p-4 rounded-2xl border-2 border-slate-800 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.1)]">
             <div class="flex items-center gap-3">
                 <button @click="goBack" class="w-12 h-12 border-2 border-slate-800 rounded-xl bg-white flex items-center justify-center shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"><i class="fa-solid fa-arrow-left"></i></button>
-                <h1 class="text-2xl font-black text-slate-800">藥品撥補系統</h1>
+                <h1 class="text-2xl font-black">藥品撥補系統</h1>
             </div>
             <div class="flex gap-2">
                 <button @click="changeFontSize(-0.1)" class="px-4 py-1 border-2 border-slate-800 rounded-xl font-bold bg-white">A-</button>
@@ -65,26 +65,14 @@
                 </div>
 
                 <div class="relative">
-                    <label class="font-bold text-slate-500 block mb-1 text-lg">搜尋藥品 <span class="text-xs text-blue-500 ml-2 font-normal">(↑↓選取 / Enter 帶入 / Tab 跳轉)</span></label>
+                    <label class="font-bold text-slate-500 block mb-1 text-lg">搜尋藥品 <span class="text-xs text-blue-500 ml-2 font-normal">(↑↓選取 / Enter 帶入)</span></label>
                     <div class="relative flex items-center">
-                        <input v-model="searchQuery" 
-                               ref="searchInput"
-                               @input="onSearchInput" 
-                               @keydown.down.prevent="moveHighlight(1)" 
-                               @keydown.up.prevent="moveHighlight(-1)" 
-                               @keydown.enter.prevent="confirmSelection"
-                               @keydown.tab.prevent="jumpToQty"
-                               placeholder="搜尋代碼或名稱..." 
-                               class="w-full bg-slate-100 p-4 rounded-xl font-black text-xl border-2 border-slate-300 outline-none focus:border-blue-600 transition-all">
+                        <input v-model="searchQuery" ref="searchInput" @input="onSearchInput" @keydown.down.prevent="moveHighlight(1)" @keydown.up.prevent="moveHighlight(-1)" @keydown.enter.prevent="confirmSelection" @keydown.tab.prevent="jumpToQty" placeholder="搜尋代碼或名稱..." class="w-full bg-slate-100 p-4 rounded-xl font-black text-xl border-2 border-slate-300 outline-none focus:border-blue-600 transition-all">
                         <button v-if="searchQuery" @click="clearSearch" class="absolute right-4 text-slate-400 hover:text-red-500"><i class="fa-solid fa-circle-xmark text-2xl"></i></button>
                     </div>
                     <div v-if="suggestions.length > 0" ref="suggestionBox" class="absolute z-50 w-full bg-white shadow-2xl rounded-xl mt-2 border-2 border-slate-800 max-h-60 overflow-y-auto overflow-x-hidden">
-                        <div v-for="(s, index) in suggestions" 
-                             :key="s.c" 
-                             :ref="el => { if (highlightIndex === index) highlightedItem = el }" 
-                             @click="selectDrug(s)" 
-                             :class="['suggestion-item p-4 border-b border-slate-100 flex justify-between items-center cursor-pointer transition-all', highlightIndex === index ? 'highlighted' : '']">
-                            <div><div class="text-blue-600 font-bold text-sm">{{ s.c }}</div><div class="text-xl font-black">{{ s.n }}</div></div>
+                        <div v-for="(s, index) in suggestions" :key="s.c" :ref="el => { if (highlightIndex === index) highlightedItem = el }" @click="selectDrug(s)" :class="['suggestion-item p-4 border-b border-slate-100 flex justify-between items-center cursor-pointer transition-all', highlightIndex === index ? 'highlighted' : '']">
+                            <div><div class="text-blue-600 font-bold text-sm">{{ s.c }}</div><div class="text-xl font-black text-slate-800">{{ s.n }}</div></div>
                             <div class="bg-orange-100 text-orange-700 px-3 py-1 rounded-lg text-sm font-bold">庫：{{ s.s || '?' }}</div>
                         </div>
                     </div>
@@ -95,15 +83,24 @@
                         <p class="font-black text-white text-xl">已選：[{{ form.code }}] {{ form.name }}</p>
                         <span class="bg-yellow-400 text-blue-900 px-3 py-1 rounded-full font-black text-sm border-2 border-blue-900 shadow-md">儲位：{{ form.shelf || '無' }}</span>
                     </div>
-                    <label class="flex items-center gap-3 bg-white/10 p-3 rounded-lg border border-white/20 cursor-pointer">
+                    <label class="flex items-center gap-3 bg-white/10 p-3 rounded-lg border border-white/20 cursor-pointer hover:bg-white/20 transition">
                         <input type="checkbox" v-model="form.isUrgent" class="w-6 h-6">
                         <span class="text-white font-black text-xl tracking-wider">🚨 急領 (助理優先處理)</span>
                     </label>
                 </div>
 
                 <div v-if="!form.isUrgent" class="bg-slate-200 p-5 rounded-[2rem] border-2 border-slate-800">
+                    <div class="flex justify-between items-center mb-4 px-2">
+                        <label class="font-black text-slate-600 text-lg">撥補數量</label>
+                        <button @click="showCalc = !showCalc" class="flex items-center gap-2 bg-white px-3 py-1 rounded-lg border-2 border-slate-800 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-xs font-bold active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all">
+                            <i class="fa-solid" :class="showCalc ? 'fa-eye-slash' : 'fa-calculator'"></i>
+                            {{ showCalc ? '隱藏計算機' : '顯示計算機' }}
+                        </button>
+                    </div>
+
                     <div ref="qtyDisplay" tabindex="0" class="qty-display bg-white p-4 rounded-xl border-2 border-slate-800 mb-4 shadow-inner text-right text-4xl font-black text-slate-900 min-h-[1.5em] transition-all">{{ form.qtyStr || '0' }}</div>
-                    <div class="grid grid-cols-4 gap-3">
+                    
+                    <div v-show="showCalc" class="grid grid-cols-4 gap-3">
                         <button v-for="btn in ['AC','DEL','+/-','/','7','8','9','*','4','5','6','-','1','2','3','+']" @click="handleCalcClick('form', btn)" :class="getBtnClass(btn)">{{ getBtnLabel(btn) }}</button>
                         <button @click="addNum('form','0')" class="calc-btn btn-num col-span-2">0</button>
                         <button @click="addNum('form','.')" class="calc-btn btn-num">.</button>
@@ -134,7 +131,7 @@
                     <input type="date" v-model="filterDate" class="p-2 border-2 border-slate-800 rounded-lg font-bold">
                 </div>
 
-                <div class="max-h-[450px] overflow-y-auto space-y-4 pr-2 border-b-2 border-slate-200 pb-4">
+                <div class="max-h-[500px] overflow-y-auto space-y-4 pr-2 border-b-2 border-slate-200 pb-4">
                     <div v-for="log in filteredHistory" :key="log.id" class="record-card bg-white p-4 rounded-xl shadow border-2 border-slate-300 flex items-center gap-4">
                         <div class="flex-1">
                             <div class="text-[0.8em] font-bold text-slate-400"><span class="bg-slate-700 text-white px-2 py-0.5 rounded mr-2">{{ log.user }}</span>{{ log.time }}</div>
@@ -143,10 +140,10 @@
                         <div class="flex items-center gap-3">
                             <div @click="openEditModal(log, 'history')" 
                                  :class="[log.isUrgent && log.processed ? 'bg-yellow-400 text-slate-900 border-slate-800' : (log.qty > 0 ? 'bg-blue-600 text-white border-transparent' : 'bg-orange-600 text-white border-transparent')]"
-                                 class="font-black px-4 py-2 rounded-lg text-2xl min-w-[90px] text-center border-2 cursor-pointer hover:opacity-80 transition">
+                                 class="font-black px-4 py-2 rounded-lg text-2xl min-w-[90px] text-center border-2 cursor-pointer hover:opacity-80 transition active:scale-95">
                                 {{ log.qty }}
                             </div>
-                            <button @click.stop="deleteSingle(log)" class="bg-red-100 text-red-600 w-12 h-12 rounded-lg flex items-center justify-center hover:bg-red-200 transition active:scale-90"><i class="fa-solid fa-trash-can"></i></button>
+                            <button @click.stop="deleteSingle(log)" class="bg-red-100 text-red-600 w-12 h-12 rounded-lg flex items-center justify-center active:scale-90"><i class="fa-solid fa-trash-can"></i></button>
                         </div>
                     </div>
                 </div>
@@ -169,7 +166,7 @@
                 </div>
                 <div class="grid grid-cols-2 gap-4 mt-8">
                     <button v-if="editingLog.isUrgent && !editingLog.processed" @click="cancelUrgentIssuance" class="py-4 bg-slate-200 text-slate-600 rounded-xl font-black border-2 border-slate-400">取消發放(0)</button>
-                    <button @click="confirmEdit" class="py-4 bg-emerald-600 text-white rounded-xl font-black border-2 border-slate-800 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none" :class="editingLog.isUrgent && !editingLog.processed ? 'col-span-1' : 'col-span-2'">確認發放</button>
+                    <button @click="confirmEdit" class="py-4 bg-emerald-600 text-white rounded-xl font-black border-2 border-slate-800 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:scale-95" :class="editingLog.isUrgent && !editingLog.processed ? 'col-span-1' : 'col-span-2'">確認發放</button>
                 </div>
             </div>
         </div>
@@ -179,7 +176,7 @@
                 <div class="flex justify-between items-center mb-6"><h2 class="font-black text-2xl">人員管理</h2><button @click="showManager = false" class="text-4xl font-black text-slate-400">&times;</button></div>
                 <div class="flex gap-2 mb-6">
                     <input v-model="newStaffName" @keyup.enter="addStaff" placeholder="輸入姓名" class="flex-1 p-4 rounded-xl border-2 font-bold outline-none">
-                    <button @click="addStaff" class="bg-blue-600 text-white px-6 rounded-xl font-black transition-all active:scale-95">新增</button>
+                    <button @click="addStaff" class="bg-blue-600 text-white px-6 rounded-xl font-black">新增</button>
                 </div>
                 <div class="max-h-60 overflow-y-auto space-y-2 border-t pt-4">
                     <div v-for="(name, idx) in staffList" :key="idx" class="flex justify-between p-4 bg-slate-50 rounded-xl border"><span class="font-bold text-slate-700 text-lg">{{ name }}</span><button @click="removeStaff(idx)" class="text-red-500"><i class="fa-solid fa-trash"></i></button></div>
@@ -216,6 +213,7 @@
             const history = ref([]);
             const staffList = ref([]);
             const showManager = ref(false);
+            const showCalc = ref(true); // 🚀 1. 計算機顯示控制
             const editingLog = ref(null);
             const editQtyStr = ref('');
             const newStaffName = ref('');
@@ -225,22 +223,69 @@
             const searchInput = ref(null);
             const qtyDisplay = ref(null);
             const highlightedItem = ref(null);
-            const suggestionBox = ref(null);
             let reminderTimer = null;
-            let refreshTimer = null;
 
-            const playBeep = () => { try { const ctx = new AudioContext(); const osc = ctx.createOscillator(); const gain = ctx.createGain(); osc.type = "sine"; osc.frequency.setValueAtTime(880, ctx.currentTime); gain.gain.setValueAtTime(0.05, ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3); osc.connect(gain); gain.connect(ctx.destination); osc.start(); osc.stop(ctx.currentTime + 0.3); } catch (e) {} };
+            // 🚀 2. 語音提示功能升級
+            const speakReminder = () => {
+                if ('speechSynthesis' in window) {
+                    // 先停止進行中的語音避免重疊
+                    window.speechSynthesis.cancel();
+                    const utter = new SpeechSynthesisUtterance("有急領，請領藥");
+                    utter.lang = 'zh-TW';
+                    utter.rate = 1.0;
+                    utter.pitch = 1.0;
+                    window.speechSynthesis.speak(utter);
+                }
+            };
 
-            // 🚀 選項與跳轉函式
+            onMounted(() => {
+                onValue(dbRef(db, "warehouse"), s => {
+                    warehouse.value = s.val() ? Object.values(s.val()) : [];
+                    if (form.value.code) { const drug = warehouse.value.find(i => i.c === form.value.code); if (drug) form.value.shelf = drug.s || drug.shelf || '無'; }
+                });
+
+                const params = new URLSearchParams(window.location.search);
+                if (params.get('code') && params.get('name')) {
+                    form.value.code = params.get('code'); form.value.name = params.get('name');
+                    searchQuery.value = params.get('name'); nextTick(() => jumpToQty());
+                }
+
+                onValue(query(dbRef(db, "transfer_logs"), limitToLast(50)), s => {
+                    history.value = s.val() ? Object.entries(s.val()).map(([id, v]) => ({ id, ...v })).reverse() : [];
+                });
+                onValue(dbRef(db, "staff_list"), s => { 
+                    if(s.val()) staffList.value = s.val(); 
+                    const saved = localStorage.getItem('preferred_user');
+                    if (saved && (staffList.value.includes(saved) || saved === '值班人員')) form.value.user = saved;
+                });
+                window.addEventListener('keydown', handleKeyboard);
+            });
+
+            onUnmounted(() => { window.removeEventListener('keydown', handleKeyboard); if(reminderTimer) clearInterval(reminderTimer); });
+
+            const pendingUrgent = computed(() => history.value.filter(l => l.isUrgent && !l.processed));
+            const filteredHistory = computed(() => history.value.filter(l => !l.isUrgent || l.processed));
+
+            // 🚀 語音提醒監聽邏輯
+            watch(() => pendingUrgent.value.length, (newCount) => {
+                if (newCount > 0) {
+                    if (!reminderTimer) {
+                        speakReminder(); // 發現瞬間先唸一次
+                        reminderTimer = setInterval(speakReminder, 5000);
+                    }
+                } else {
+                    if (reminderTimer) {
+                        clearInterval(reminderTimer);
+                        reminderTimer = null;
+                        window.speechSynthesis.cancel();
+                    }
+                }
+            });
+
             const jumpToQty = () => { if (qtyDisplay.value) { qtyDisplay.value.focus(); searchInput.value.blur(); } };
             const selectDrug = (d) => { form.value.code = d.c; form.value.name = d.n; form.value.shelf = d.s || '無'; searchQuery.value = d.n; suggestions.value = []; highlightIndex.value = -1; nextTick(() => jumpToQty()); };
             const confirmSelection = () => { if (highlightIndex.value >= 0 && suggestions.value[highlightIndex.value]) selectDrug(suggestions.value[highlightIndex.value]); else if (suggestions.value.length === 1) selectDrug(suggestions.value[0]); };
 
-            const onSearchInput = () => { highlightIndex.value = -1; const k = searchQuery.value.toLowerCase().trim(); suggestions.value = k ? warehouse.value.filter(i => i.n?.toLowerCase().includes(k) || i.c?.toLowerCase().includes(k)).slice(0, 15) : []; };
-
-            const moveHighlight = (step) => { if (suggestions.value.length === 0) return; highlightIndex.value = (highlightIndex.value + step + suggestions.value.length) % suggestions.value.length; nextTick(() => highlightedItem.value?.scrollIntoView({ block: 'nearest' })); };
-
-            // 🚀 計算機核心
             const calculate = (t) => {
                 let s = t === 'form' ? form.value.qtyStr : editQtyStr.value;
                 try {
@@ -253,41 +298,6 @@
 
             const addNum = (t, n) => { if(t === 'form') form.value.qtyStr = (form.value.qtyStr === '0' ? n : form.value.qtyStr + n); else editQtyStr.value = (editQtyStr.value === '0' ? n : editQtyStr.value + n); };
             const deleteLast = (t) => { if(t === 'form') form.value.qtyStr = form.value.qtyStr.slice(0,-1); else editQtyStr.value = editQtyStr.value.slice(0,-1); };
-            const toggleSign = (t) => {
-                let s = t === 'form' ? form.value.qtyStr : editQtyStr.value;
-                if (!s || s === '0') return;
-                s = s.startsWith('-') ? s.substring(1) : '-' + s;
-                if (t === 'form') form.value.qtyStr = s; else editQtyStr.value = s;
-            };
-
-            const handleCalcClick = (target, b) => { 
-                if(b==='AC') (target==='form'?form.value.qtyStr='':editQtyStr.value='');
-                else if(b==='DEL') deleteLast(target);
-                else if(b==='+/-') toggleSign(target);
-                else if(['/','*','-','+'].includes(b)) (target==='form'?form.value.qtyStr+=b:editQtyStr.value+=b);
-                else addNum(target, b); 
-            };
-
-            onMounted(() => {
-                // 1. 藥庫
-                onValue(dbRef(db, "warehouse"), s => {
-                    warehouse.value = s.val() ? Object.values(s.val()) : [];
-                    if (form.value.code) { const drug = warehouse.value.find(i => i.c === form.value.code); if (drug) form.value.shelf = drug.s || drug.shelf || '無'; }
-                });
-
-                // 2. URL
-                const params = new URLSearchParams(window.location.search);
-                if (params.get('code') && params.get('name')) { form.value.code = params.get('code'); form.value.name = params.get('name'); searchQuery.value = params.get('name'); nextTick(() => jumpToQty()); }
-
-                // 3. 紀錄同步
-                const sync = () => { onValue(query(dbRef(db, "transfer_logs"), limitToLast(50)), s => { history.value = s.val() ? Object.entries(s.val()).map(([id, v]) => ({ id, ...v })).reverse() : []; }, { onlyOnce: false }); };
-                sync(); refreshTimer = setInterval(sync, 10000);
-
-                onValue(dbRef(db, "staff_list"), s => { if(s.val()) staffList.value = s.val(); });
-                window.addEventListener('keydown', handleKeyboard);
-            });
-
-            onUnmounted(() => { window.removeEventListener('keydown', handleKeyboard); clearInterval(refreshTimer); if(reminderTimer) clearInterval(reminderTimer); });
 
             const handleKeyboard = (e) => {
                 if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'SELECT') return;
@@ -300,30 +310,23 @@
                 else if (key === 'Backspace') { e.preventDefault(); deleteLast(target); }
             };
 
-            const submitRecord = async () => {
-                if(!form.value.name) return alert("請先選藥品");
-                let q = 0; if(!form.value.isUrgent) { calculate('form'); q = Number(form.value.qtyStr); if(!q) return alert("請輸入數量"); }
-                await push(dbRef(db, "transfer_logs"), { time: new Date().toLocaleString('zh-TW', { hour12: false }), user: form.value.user, code: form.value.code, name: form.value.name, shelf: form.value.shelf, qty: q, isUrgent: form.value.isUrgent, processed: false });
-                form.value.qtyStr = ''; form.value.isUrgent = false; form.value.name = ''; searchQuery.value = ''; nextTick(() => searchInput.value.focus());
-            };
-
-            const confirmEdit = async () => { calculate('edit'); await update(dbRef(db, `transfer_logs/${editingLog.value.id}`), { qty: Number(editQtyStr.value), processed: true }); editingLog.value = null; };
-            const cancelUrgentIssuance = async () => { if(confirm("取消？")) await update(dbRef(db, `transfer_logs/${editingLog.value.id}`), { qty: 0, processed: true }); editingLog.value = null; };
-            const deleteSingle = async (l) => { if(confirm("刪除？")) await remove(dbRef(db, `transfer_logs/${l.id}`)); };
-
-            const pendingUrgent = computed(() => history.value.filter(l => l.isUrgent && !l.processed));
-            const filteredHistory = computed(() => history.value.filter(l => !l.isUrgent || l.processed));
-            watch(() => pendingUrgent.value.length, (c) => { if(c > 0 && !reminderTimer){ playBeep(); reminderTimer = setInterval(playBeep, 5000); } else if(c===0 && reminderTimer){ clearInterval(reminderTimer); reminderTimer = null; } });
-
             return {
-                form, searchQuery, suggestions, highlightIndex, history, staffList, filterDate, editingLog, editQtyStr, pendingUrgent, filteredHistory, searchInput, qtyDisplay, highlightedItem, showManager, newStaffName: ref(''),
-                confirmSelection, jumpToQty, onSearchInput, moveHighlight, selectDrug, submitRecord, addStaff: () => { if(newStaffName.value){ staffList.value.push(newStaffName.value); set(dbRef(db, "staff_list"), staffList.value); newStaffName.value=''; } }, removeStaff: (i) => { staffList.value.splice(i, 1); set(dbRef(db, "staff_list"), staffList.value); },
+                form, searchQuery, suggestions, highlightIndex, history, staffList, filterDate, editingLog, editQtyStr, pendingUrgent, filteredHistory, searchInput, qtyDisplay, highlightedItem, showManager, showCalc, newStaffName: ref(''),
+                confirmSelection, jumpToQty, onSearchInput: () => { highlightIndex.value = -1; const k = searchQuery.value.toLowerCase().trim(); suggestions.value = k ? warehouse.value.filter(i => i.n?.toLowerCase().includes(k) || i.c?.toLowerCase().includes(k)).slice(0, 10) : []; },
+                moveHighlight: (s) => { if(!suggestions.value.length) return; highlightIndex.value = (highlightIndex.value + s + suggestions.value.length) % suggestions.value.length; nextTick(() => highlightedItem.value?.scrollIntoView({ block: 'nearest' })); },
+                selectDrug, submitRecord: async () => { if(!form.value.name) return alert("請選藥品"); let q = 0; if(!form.value.isUrgent) { calculate('form'); q = Number(form.value.qtyStr); if(!q) return alert("請輸入數量"); } await push(dbRef(db, "transfer_logs"), { time: new Date().toLocaleString('zh-TW', { hour12: false }), user: form.value.user, code: form.value.code, name: form.value.name, shelf: form.value.shelf, qty: q, isUrgent: form.value.isUrgent, processed: false }); form.value.qtyStr = ''; form.value.isUrgent = false; form.value.name = ''; searchQuery.value = ''; nextTick(() => searchInput.value.focus()); },
                 saveUserPreference: () => localStorage.setItem('preferred_user', form.value.user),
-                handleCalcClick, calculate, deleteSingle, openEditModal: (l) => { editingLog.value = l; editQtyStr.value = l.qty.toString(); }, confirmEdit, cancelUrgentIssuance,
+                handleCalcClick: (target, b) => { if(b==='AC') (target==='form'?form.value.qtyStr='':editQtyStr.value=''); else if(b==='DEL') deleteLast(target); else if(b==='+/-') { let s = target==='form'?form.value.qtyStr:editQtyStr.value; s = s.startsWith('-')?s.substring(1):'-'+s; target==='form'?form.value.qtyStr=s:editQtyStr.value=s; } else if(['/','*','-','+'].includes(b)) (target==='form'?form.value.qtyStr+=b:editQtyStr.value+=b); else addNum(target, b); },
+                calculate, deleteSingle: async (l) => { if(confirm("確定刪除？")) await remove(dbRef(db, `transfer_logs/${l.id}`)); },
+                openEditModal: (log, type) => { editingLog.value = log; editQtyStr.value = log.qty.toString(); },
+                confirmEdit: async () => { calculate('edit'); await update(dbRef(db, `transfer_logs/${editingLog.value.id}`), { qty: Number(editQtyStr.value), processed: true }); editingLog.value = null; },
+                cancelUrgentIssuance: async () => { if(confirm("取消？")) await update(dbRef(db, `transfer_logs/${editingLog.value.id}`), { qty: 0, processed: true }); editingLog.value = null; },
                 getBtnClass: (b) => b==='AC'?'calc-btn btn-ac':(b==='DEL'?'calc-btn btn-del':(['/','*','-','+'].includes(b)?'calc-btn btn-op':(b==='+/-'?'calc-btn btn-sign':'calc-btn btn-num'))),
                 getBtnLabel: (b) => b==='*'?'×':(b==='/'?'÷':(b==='DEL'?'←':b)),
                 goBack: () => window.location.href = 'search.html', changeFontSize: (d) => { baseFontSize.value += d; document.documentElement.style.fontSize = `${baseFontSize.value}rem`; },
-                exportByDate: async () => { const s = await get(dbRef(db, "transfer_logs")); const d = new Date(filterDate.value); const target = `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`; const ws = XLSX.utils.json_to_sheet(Object.values(s.val()).filter(l => l.time.split(' ')[0].split('/').map(Number).join('/') === target).map(l => ({ '時間': l.time, '代碼': l.code, '名稱': l.name, '數量': l.isUrgent?(l.processed?l.qty:'待處'):l.qty }))); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "報表"); XLSX.writeFile(wb, `報表_${filterDate.value}.xlsx`); },
+                addStaff: () => { if(newStaffName.value){ staffList.value.push(newStaffName.value); set(dbRef(db, "staff_list"), staffList.value); newStaffName.value=''; } },
+                removeStaff: (i) => { staffList.value.splice(i, 1); set(dbRef(db, "staff_list"), staffList.value); },
+                exportByDate: async () => { const s = await get(dbRef(db, "transfer_logs")); const d = new Date(filterDate.value); const target = `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`; const ws = XLSX.utils.json_to_sheet(Object.values(s.val()).filter(l => l.time.split(' ')[0].split('/').map(Number).join('/') === target).map(l => ({ '時間': l.time, '代碼': l.code, '名稱': l.name, '數量': l.isUrgent?(l.processed?l.qty:'待處理'):l.qty }))); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "報表"); XLSX.writeFile(wb, `撥補報表_${filterDate.value}.xlsx`); },
                 clearSearch: () => { searchQuery.value=''; suggestions.value=[]; form.value.name=''; }
             };
         }
