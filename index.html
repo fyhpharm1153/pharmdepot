@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="藥劑科管理">
-    <title>藥劑科管理系統入口 v1.6.15</title>
+    <title>藥劑科管理系統入口 v1.6.17</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.esm-browser.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -30,13 +30,44 @@
         .stats-badge { @apply bg-white px-4 py-2 rounded-2xl border border-slate-200 shadow-sm flex flex-col items-center min-w-[120px]; }
         
         /* 彈窗動畫 */
-        .fade-enter-active, .fade-leave-active { transition: opacity 0.3s ease; }
-        .fade-enter-from, .fade-leave-to { opacity: 0; }
+        .fade-enter-active, .fade-leave-active { transition: all 0.3s ease; }
+        .fade-enter-from, .fade-leave-to { opacity: 0; transform: translateY(-20px); }
+
+        /* 推播 banner 樣式 */
+        .push-banner {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 9999;
+            width: 90%;
+            max-width: 600px;
+            animation: bounceIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+        @keyframes bounceIn {
+            0% { transform: translate(-50%, -100px); opacity: 0; }
+            100% { transform: translate(-50%, 0); opacity: 1; }
+        }
     </style>
 </head>
 <body class="min-h-screen py-8 px-4">
 <div id="app" v-cloak class="max-w-4xl mx-auto">
     
+    <transition name="fade">
+        <div v-if="activePush" class="push-banner bg-rose-600 text-white p-6 rounded-[2rem] shadow-[0_20px_50px_rgba(225,29,72,0.4)] border-4 border-white flex items-center gap-4">
+            <div class="bg-white/20 w-14 h-14 rounded-full flex items-center justify-center animate-pulse">
+                <i class="fa-solid fa-bell-exclamation text-2xl"></i>
+            </div>
+            <div class="flex-1">
+                <p class="text-[0.7em] font-bold opacity-80 uppercase tracking-widest">系統廣播公告</p>
+                <p class="text-[1.4em] font-black leading-tight">{{ activePush }}</p>
+            </div>
+            <button @click="activePush = null" class="w-10 h-10 rounded-full hover:bg-white/20 transition-colors">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+    </transition>
+
     <div class="flex justify-end items-center gap-3 mb-6">
         <span class="text-[0.7em] font-bold text-slate-400 uppercase tracking-tighter">字體縮放</span>
         <button @click="changeFont(-2)" class="font-btn">A-</button>
@@ -162,8 +193,7 @@
         </button>
 
         <p class="text-slate-300 text-[0.6em] font-mono tracking-widest uppercase mb-1">Pharmacy Inventory System</p>
-        <p class="text-slate-400 text-[0.6em] font-bold italic">Version 1.6.15 (20260120)</p>
-        
+        <p class="text-slate-400 text-[0.6em] font-bold italic">Version 1.6.17 (20260120)</p>
         <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
     </footer>
 
@@ -177,7 +207,6 @@
                     </div>
                     <h3 class="text-xl font-black text-slate-800 mb-2">加入手機桌面</h3>
                     <p class="text-slate-500 text-sm mb-6">將此系統設為桌面捷徑，<br>就像使用 App 一樣快速！</p>
-                    
                     <div v-if="isIOS" class="space-y-4 text-left bg-slate-50 p-4 rounded-2xl text-[0.9em]">
                         <div class="flex items-center gap-3 text-slate-700">
                             <span class="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold">1</span>
@@ -188,7 +217,6 @@
                             <span>向上滑動選擇 **「加入主畫面」** <i class="fa-regular fa-square-plus text-slate-500"></i></span>
                         </div>
                     </div>
-
                     <div v-else class="space-y-4 text-left bg-slate-50 p-4 rounded-2xl text-[0.9em]">
                         <div class="flex items-center gap-3 text-slate-700">
                             <span class="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold">1</span>
@@ -199,12 +227,46 @@
                             <span>選擇 **「安裝應用程式」** 或 **「新增至主畫面」**</span>
                         </div>
                     </div>
-
                     <button @click="showInstallGuide = false" class="mt-8 w-full bg-blue-600 text-white py-3 rounded-xl font-bold shadow-md active:bg-blue-700 transition-colors">我知道了</button>
                 </div>
             </div>
         </div>
     </transition>
+
+    <transition name="fade">
+        <div v-if="isAdminOpen" class="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md">
+            <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-300">
+                <div class="bg-slate-800 p-6 text-white flex justify-between items-center">
+                    <h3 class="font-black tracking-tighter"><i class="fa-solid fa-user-shield mr-2"></i>管理員後台 (1152)</h3>
+                    <button @click="isAdminOpen = false" class="text-slate-400 hover:text-white"><i class="fa-solid fa-circle-xmark text-xl"></i></button>
+                </div>
+                <div class="p-8">
+                    <div class="mb-6">
+                        <label class="block text-[0.7em] font-bold text-slate-400 mb-2 uppercase">自定義公告內容</label>
+                        <div class="flex gap-2">
+                            <input v-model="adminMsg" @keyup.enter="triggerPush(adminMsg)" type="text" placeholder="輸入文字..." class="flex-1 border-none bg-slate-100 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 transition-all">
+                            <button @click="triggerPush(adminMsg)" class="bg-blue-600 text-white px-6 rounded-xl font-bold hover:bg-blue-700 active:scale-95 transition-all">發送</button>
+                        </div>
+                    </div>
+                    
+                    <label class="block text-[0.7em] font-bold text-slate-400 mb-3 uppercase">快速支援指令</label>
+                    <div class="grid grid-cols-1 gap-3">
+                        <button @click="triggerPush('請支援調劑')" class="flex items-center justify-center gap-3 bg-rose-50 text-rose-600 p-4 rounded-2xl font-black border-2 border-rose-100 hover:bg-rose-100 transition-all">
+                            <i class="fa-solid fa-pills text-xl"></i> 請支援調劑
+                        </button>
+                        <button @click="triggerPush('請支援 check')" class="flex items-center justify-center gap-3 bg-amber-50 text-amber-600 p-4 rounded-2xl font-black border-2 border-amber-100 hover:bg-amber-100 transition-all">
+                            <i class="fa-solid fa-clipboard-check text-xl"></i> 請支援 Check
+                        </button>
+                        <button @click="triggerPush('請支援發藥')" class="flex items-center justify-center gap-3 bg-sky-50 text-sky-600 p-4 rounded-2xl font-black border-2 border-sky-100 hover:bg-sky-100 transition-all">
+                            <i class="fa-solid fa-hand-holding-medical text-xl"></i> 請支援發藥
+                        </button>
+                    </div>
+                    <p class="mt-6 text-center text-[0.7em] text-slate-400 font-medium leading-relaxed">公告會自動轉為語音唸出並同步至所有視窗。</p>
+                </div>
+            </div>
+        </div>
+    </transition>
+
 </div>
 
 <script type="module">
@@ -213,8 +275,14 @@
         setup() {
             const currentSize = ref(16);
             const showInstallGuide = ref(false);
+            const isAdminOpen = ref(false);
+            const adminMsg = ref('');
+            const activePush = ref(null);
+            const typedSequence = ref('');
+            
+            // 使用 BroadcastChannel 實現同台電腦多視窗同步
+            const bc = new BroadcastChannel('pharmacy_broadcast');
 
-            // 判斷是否為 iOS
             const isIOS = computed(() => {
                 return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
             });
@@ -225,7 +293,44 @@
                     currentSize.value = parseInt(saved);
                     applyFontSize();
                 }
+
+                // 隱藏指令偵測
+                window.addEventListener('keyup', (e) => {
+                    typedSequence.value += e.key;
+                    if (typedSequence.value.includes('1152')) {
+                        isAdminOpen.value = true;
+                        typedSequence.value = '';
+                    }
+                    if (typedSequence.value.length > 10) typedSequence.value = typedSequence.value.slice(-4);
+                });
+
+                // 接收廣播
+                bc.onmessage = (ev) => {
+                    executeAlert(ev.data);
+                };
             });
+
+            const triggerPush = (msg) => {
+                if (!msg) return;
+                bc.postMessage(msg); // 廣播給其他視窗
+                executeAlert(msg);   // 執行本視窗
+                adminMsg.value = '';
+            };
+
+            const executeAlert = (msg) => {
+                activePush.value = msg;
+                
+                // 語音念出內容
+                const speech = new SpeechSynthesisUtterance(msg);
+                speech.lang = 'zh-TW';
+                speech.rate = 1.0;
+                window.speechSynthesis.cancel(); 
+                window.speechSynthesis.speak(speech);
+
+                setTimeout(() => {
+                    if (activePush.value === msg) activePush.value = null;
+                }, 8000);
+            };
 
             const changeFont = (delta) => {
                 currentSize.value += delta;
@@ -239,10 +344,9 @@
                 document.documentElement.style.setProperty('--base-size', `${currentSize.value}px`);
             };
 
-            return { changeFont, showInstallGuide, isIOS };
+            return { changeFont, showInstallGuide, isIOS, isAdminOpen, adminMsg, activePush, triggerPush };
         }
     }).mount('#app');
 </script>
 </body>
 </html>
-
