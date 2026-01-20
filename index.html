@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>藥劑科管理系統入口 v1.6.11</title>
+    <title>藥劑科管理系統入口 v1.6.13</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.esm-browser.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -27,7 +27,6 @@
     </style>
 </head>
 <body class="min-h-screen py-8 px-4">
-
 <div id="app" v-cloak class="max-w-4xl mx-auto">
     <div class="flex justify-end items-center gap-3 mb-6">
         <span class="text-[0.7em] font-bold text-slate-400 uppercase tracking-tighter">字體縮放</span>
@@ -80,7 +79,14 @@
                 <div class="bg-emerald-50 w-14 h-14 rounded-2xl flex items-center justify-center text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
                     <i class="fa-solid fa-magnifying-glass text-xl"></i>
                 </div>
-                <span class="font-bold text-slate-700 text-[1.1em]">儲位搜尋/撥補</span>
+                <span class="font-bold text-slate-700 text-[1.1em]">儲位搜尋</span>
+            </a>
+
+            <a href="https://fyhpharm1153.github.io/pharmdepot/transfer.html" target="_blank" class="nav-card bg-white p-5 rounded-[1.5rem] shadow-sm border border-slate-100 flex items-center gap-4 group hover:border-sky-400">
+                <div class="bg-sky-50 w-14 h-14 rounded-2xl flex items-center justify-center text-sky-600 group-hover:bg-sky-600 group-hover:text-white transition-colors">
+                    <i class="fa-solid fa-truck-fast text-xl"></i>
+                </div>
+                <span class="font-bold text-slate-700 text-[1.1em]">撥補/急領</span>
             </a>
         </div>
     </section>
@@ -117,7 +123,6 @@
                 </div>
                 <span class="font-bold text-slate-700 text-[1.1em]">Wegovy 劑量換算器</span>
             </a>
-            
             <a href="https://amanhung.github.io/Formulary/" target="_blank" class="nav-card bg-white p-5 rounded-[1.5rem] shadow-sm border border-slate-100 flex items-center gap-4 group hover:border-emerald-400">
                 <div class="bg-emerald-50 w-14 h-14 rounded-2xl flex items-center justify-center text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
                     <i class="fa-solid fa-users text-xl"></i>
@@ -138,17 +143,14 @@
                 <span class="text-[1.2em] font-black text-slate-700" id="busuanzi_value_site_pv">--</span>
             </div>
         </div>
-
         <p class="text-slate-300 text-[0.6em] font-mono tracking-widest uppercase mb-1">Pharmacy Inventory System</p>
-        <p class="text-slate-400 text-[0.6em] font-bold italic">Version 1.6.11 (20260119)</p>
-        
+        <p class="text-slate-400 text-[0.6em] font-bold italic">Version 1.6.13 (20260120)</p>
         <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
     </footer>
 </div>
 
 <script type="module">
     import { createApp, ref, onMounted } from 'https://unpkg.com/vue@3/dist/vue.esm-browser.js';
-
     createApp({
         setup() {
             const currentSize = ref(16);
@@ -173,6 +175,5 @@
         }
     }).mount('#app');
 </script>
-
 </body>
 </html>
