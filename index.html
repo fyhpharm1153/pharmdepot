@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="藥劑科管理">
-    <title>藥劑科管理系統入口 v2.9</title>
+    <title>藥劑科管理系統入口 v3.0</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.esm-browser.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -82,6 +82,10 @@
             <a href="https://fyhpharm1153.github.io/pharmdepot/transfer.html" target="_blank" class="nav-card bg-white p-5 rounded-[1.5rem] shadow-sm border border-slate-100 flex items-center gap-4 group">
                 <div class="bg-sky-50 w-14 h-14 rounded-2xl flex items-center justify-center text-sky-600 group-hover:bg-sky-600 group-hover:text-white transition-colors"><i class="fa-solid fa-truck-fast text-xl"></i></div>
                 <span class="font-bold text-slate-700">撥補/急領</span>
+            </a>
+            <a href="https://fyhpharm1153.github.io/pharmdepot/udorder.html" target="_blank" class="nav-card bg-white p-5 rounded-[1.5rem] shadow-sm border border-slate-100 flex items-center gap-4 group">
+                <div class="bg-amber-50 w-14 h-14 rounded-2xl flex items-center justify-center text-amber-600 group-hover:bg-amber-600 group-hover:text-white transition-colors"><i class="fa-solid fa-utensils text-xl"></i></div>
+                <span class="font-bold text-slate-700">UD 點餐單</span>
             </a>
             <a href="https://amanhung.github.io/drink/" target="_blank" class="nav-card bg-white p-5 rounded-[1.5rem] shadow-sm border border-slate-100 flex items-center gap-4 group">
                 <div class="bg-orange-50 w-14 h-14 rounded-2xl flex items-center justify-center text-orange-600 group-hover:bg-orange-600 group-hover:text-white transition-colors"><i class="fa-solid fa-glass-cheers text-xl"></i></div>
@@ -163,7 +167,7 @@
                 <span class="text-[1.2em] font-black text-slate-700" id="busuanzi_value_site_pv">--</span>
             </div>
         </div>
-        <p class="text-slate-400 text-[0.6em] font-bold italic">Version 2.9 (Force Sync Enabled)</p>
+        <p class="text-slate-400 text-[0.6em] font-bold italic">Version 3.0 (Update: UD Order)</p>
         <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
     </footer>
 </div>
@@ -187,11 +191,8 @@
             onMounted(() => {
                 const saved = localStorage.getItem('fyh-font-size');
                 if (saved) { applyFontSize(parseInt(saved)); }
-                
-                // 啟動同步計時器
                 startSyncTimer();
                 checkNewRecords(); 
-
                 window.addEventListener('click', unlockVoice, { once: true });
             });
 
