@@ -1,109 +1,122 @@
 <!DOCTYPE html>
-<html lang="zh-TW" style="font-size: 1.1rem;">
+<html lang="zh-TW" style="font-size: 1rem;">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>住院藥局-智慧撥補系統</title>
+    <title>住院藥局-撥補作業系統</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
     <style type="text/tailwindcss">
         [v-cloak] { display: none !important; }
-        body { background-color: #f1f5f9; transition: all 0.2s; font-family: sans-serif; }
-        .neo-card { @apply bg-white border-4 border-slate-800 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]; }
-        .neo-btn { @apply border-2 border-slate-800 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px] transition-all; }
+        body { background-color: #f8fafc; transition: all 0.2s; font-family: sans-serif; }
         
-        .calc-btn { @apply flex items-center justify-center text-3xl font-black rounded-xl border-2 border-slate-800 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] h-[70px]; }
+        /* 輕量 Neo-Brutalism (2px 框, 4px 影) */
+        .neo-card { @apply bg-white border-2 border-slate-800 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]; }
+        .neo-btn { @apply border-2 border-slate-800 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[1px] active:translate-y-[1px] transition-all; }
+        
+        /* 計算機按鈕 */
+        .calc-btn { @apply flex items-center justify-center text-2xl font-black rounded-xl border-2 border-slate-800 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] h-[65px]; }
         .btn-num { @apply bg-white text-slate-900; }
         .btn-op { @apply bg-orange-400 text-white; }
         .btn-ac { @apply bg-red-600 text-white; }
         .btn-equal { @apply bg-blue-600 text-white; }
 
-        .drug-card { @apply cursor-pointer border-4 border-slate-800 rounded-[1.5rem] p-4 flex flex-col bg-white transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]; }
-        .drug-card.selected { @apply bg-indigo-700 text-white ring-8 ring-indigo-100 border-indigo-900; }
-        .drug-card.selected .shelf-badge { @apply bg-white text-indigo-700; }
+        /* 卡片樣式 */
+        .drug-card { @apply cursor-pointer border-2 border-slate-800 rounded-2xl p-4 flex flex-col bg-white transition-all shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]; }
+        .drug-card.selected { @apply bg-indigo-600 text-white shadow-none translate-x-[2px] translate-y-[2px] ring-4 ring-indigo-100; }
+        .drug-card.selected .shelf-badge { @apply bg-white text-indigo-700 border-indigo-900 shadow-none; }
         .drug-card.selected .name-text { @apply text-white; }
         
-        .shelf-badge { @apply bg-yellow-400 text-slate-900 px-3 py-0.5 rounded-lg font-black border-2 border-slate-800 text-sm w-fit; }
-        .name-text { @apply text-2xl font-black text-slate-800 leading-tight mt-3; }
+        .shelf-badge { @apply bg-yellow-400 text-slate-900 px-2 py-0.5 rounded font-black border border-slate-800 text-xs w-fit shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]; }
+        .name-text { @apply text-xl font-black text-slate-800 leading-tight mt-2; }
 
-        .modal-overlay { @apply fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md; }
-        .record-card { border-left: 10px solid #4f46e5; @apply bg-white p-4 rounded-xl shadow border-2 border-slate-300 flex items-center gap-4; }
+        .modal-overlay { @apply fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm; }
+        .record-card { border-left: 8px solid #4f46e5; @apply bg-white p-3 rounded-xl shadow border-2 border-slate-800 flex items-center gap-4; }
         
-        /* 分類標籤樣式 */
-        .category-tab { @apply px-5 py-2 border-2 border-slate-800 rounded-xl font-black text-sm transition-all whitespace-nowrap; }
-        .category-tab.active { @apply bg-indigo-600 text-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]; }
+        /* 修正分區捲軸：電腦版顯示捲軸 */
+        .tab-scroll-container { 
+            @apply flex flex-nowrap overflow-x-auto gap-2 pb-4 mb-2;
+            -webkit-overflow-scrolling: touch;
+        }
+        /* 電腦捲軸美化 */
+        .tab-scroll-container::-webkit-scrollbar { height: 8px; }
+        .tab-scroll-container::-webkit-scrollbar-track { background: #e2e8f0; border-radius: 10px; }
+        .tab-scroll-container::-webkit-scrollbar-thumb { background: #6366f1; border-radius: 10px; border: 2px solid #e2e8f0; }
+        
+        .tab-btn { @apply px-5 py-2 border-2 border-slate-800 rounded-lg font-black text-sm transition-all bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex-shrink-0; }
+        .tab-btn.active { @apply bg-indigo-600 text-white shadow-none translate-x-[1px] translate-y-[1px]; }
     </style>
 </head>
 <body class="p-3 md:p-6 pb-24">
-    <div id="app" class="max-w-7xl mx-auto" v-cloak>
+    <div id="app" class="max-w-6xl mx-auto" v-cloak>
         
-        <header class="flex flex-col md:flex-row justify-between items-center mb-8 bg-white p-4 rounded-2xl border-4 border-slate-800 shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] gap-4">
-            <h1 class="text-2xl font-black text-slate-800 tracking-tighter">住院藥局智慧撥補</h1>
-            <div class="flex items-center gap-2">
-                <div class="flex border-2 border-slate-800 rounded-xl overflow-hidden shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                    <button @click="changeFontSize(-0.1)" class="px-4 py-2 bg-white font-black border-r-2 border-slate-800">A-</button>
-                    <button @click="changeFontSize(0.1)" class="px-4 py-2 bg-white font-black">A+</button>
+        <header class="flex flex-col md:flex-row justify-between items-center mb-8 bg-white p-4 rounded-xl border-2 border-slate-800 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] gap-4">
+            <h1 class="text-xl font-black text-slate-800 italic">UD Replenish Center</h1>
+            <div class="flex items-center gap-3">
+                <div class="flex border-2 border-slate-800 rounded-lg overflow-hidden">
+                    <button @click="changeFontSize(-0.1)" class="px-3 py-1 bg-white font-black border-r-2 border-slate-800 hover:bg-slate-50">A-</button>
+                    <button @click="changeFontSize(0.1)" class="px-3 py-1 bg-white font-black hover:bg-slate-50">A+</button>
                 </div>
-                <select v-model="currentUser" class="font-black p-2 border-2 border-slate-800 rounded-xl bg-white outline-none">
+                <select v-model="currentUser" class="font-black p-1.5 border-2 border-slate-800 rounded-lg bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                     <option v-for="user in staffList" :value="user">{{ user }}</option>
                 </select>
-                <button @click="showManager = true" class="w-12 h-12 neo-btn bg-slate-800 text-white rounded-xl flex items-center justify-center"><i class="fa-solid fa-cog"></i></button>
+                <button @click="showManager = true" class="w-10 h-10 neo-btn bg-slate-800 text-white rounded-lg flex items-center justify-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"><i class="fa-solid fa-cog"></i></button>
             </div>
         </header>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
             <section>
-                <div class="neo-card rounded-[2.5rem] p-6 flex flex-col h-full bg-slate-50">
-                    <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-3xl font-black text-indigo-700 italic">UD Menu</h2>
-                        <input v-model="menuSearch" placeholder="搜尋..." class="p-2 border-4 border-slate-800 rounded-xl font-bold outline-none w-32 md:w-48">
+                <div class="neo-card rounded-3xl p-5 flex flex-col h-full bg-slate-50">
+                    <div class="flex justify-between items-center mb-4 gap-2">
+                        <h2 class="text-2xl font-black text-indigo-700 italic">UD Menu</h2>
+                        <input v-model="menuSearch" placeholder="搜尋..." class="p-2 border-2 border-slate-800 rounded-lg font-bold outline-none w-32 md:w-44 focus:bg-white">
                     </div>
                     
-                    <div class="flex gap-2 overflow-x-auto pb-4 no-scrollbar mb-2">
-                        <button @click="currentGroup = 'ALL'" :class="['category-tab', currentGroup === 'ALL' ? 'active' : 'bg-white']">全部</button>
-                        <button v-for="grp in shelfGroups" :key="grp" @click="currentGroup = grp" :class="['category-tab', currentGroup === grp ? 'active' : 'bg-white']">{{ grp }}區</button>
+                    <div class="tab-scroll-container">
+                        <button @click="currentGroup = 'ALL'" :class="['tab-btn', currentGroup === 'ALL' ? 'active' : '']">全部</button>
+                        <button v-for="grp in shelfGroups" :key="grp" @click="currentGroup = grp" :class="['tab-btn', currentGroup === grp ? 'active' : '']">{{ grp }}區</button>
                     </div>
                     
-                    <div class="grid grid-cols-1 gap-3 overflow-y-auto max-h-[60vh] pr-2">
+                    <div class="grid grid-cols-1 gap-3 overflow-y-auto max-h-[60vh] pr-1">
                         <div v-for="drug in filteredUDItems" :key="drug.code" 
                              @click="toggleSelect(drug)"
                              :class="['drug-card', isSelected(drug) ? 'selected' : '']">
                             <div class="flex justify-between items-center">
                                 <span class="shelf-badge">{{ drug.shelf }}</span>
-                                <span class="text-[0.6em] font-bold text-slate-400">{{ drug.code }}</span>
+                                <span class="text-[0.6rem] font-bold text-slate-400 uppercase tracking-tighter">{{ drug.code }}</span>
                             </div>
                             <h3 class="name-text">{{ drug.name }}</h3>
                         </div>
                     </div>
 
                     <button @click="openReviewModal" :disabled="selectedDrugs.length === 0"
-                            class="w-full mt-6 py-8 neo-btn bg-indigo-600 text-white rounded-[2rem] font-black text-3xl disabled:opacity-40 tracking-widest">
+                            class="w-full mt-6 py-6 neo-btn bg-indigo-600 text-white rounded-2xl font-black text-2xl disabled:opacity-40">
                         送出請求 ({{ selectedDrugs.length }})
                     </button>
                 </div>
             </section>
 
             <section class="space-y-8">
-                <div class="neo-card rounded-[2.5rem] p-6 bg-amber-50 min-h-[500px] flex flex-col">
-                    <h2 class="text-2xl font-black mb-8 flex items-center gap-3 text-slate-800">
+                <div class="neo-card rounded-3xl p-5 bg-orange-50 min-h-[450px] flex flex-col">
+                    <h2 class="text-xl font-black mb-6 flex items-center gap-2">
                         <i class="fa-solid fa-truck-loading text-orange-600"></i>待辦撥補
                     </h2>
-                    <div v-if="sortedPendingOrders.length === 0" class="flex-1 flex flex-col items-center justify-center text-slate-300 font-bold italic">
-                        <i class="fa-solid fa-check-double text-6xl mb-4 opacity-10"></i>目前無待撥項目
+                    <div v-if="sortedPendingOrders.length === 0" class="flex-1 flex flex-col items-center justify-center text-slate-400 font-bold italic opacity-30">
+                        <i class="fa-solid fa-check-double text-6xl mb-4"></i>目前無任務
                     </div>
-                    <div class="space-y-5 overflow-y-auto max-h-[60vh] pr-1">
+                    <div class="space-y-4 overflow-y-auto max-h-[60vh] pr-1">
                         <div v-for="order in sortedPendingOrders" :key="order.id" 
-                             class="bg-white border-4 border-slate-800 rounded-3xl p-5 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] flex justify-between items-center">
+                             class="bg-white border-2 border-slate-800 rounded-2xl p-4 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex justify-between items-center">
                             <div class="flex-1">
-                                <div class="flex items-center gap-3 mb-2">
-                                    <span class="bg-blue-600 text-white px-3 py-1 rounded-lg text-lg font-black border-2 border-slate-800">{{ getWarehouseShelf(order.code) }}</span>
-                                    <span class="text-sm font-bold text-slate-400">{{ order.requester }} 申請</span>
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="bg-blue-600 text-white px-3 py-0.5 rounded font-black border border-slate-800 text-xs">{{ getWarehouseShelf(order.code) }}</span>
+                                    <span class="text-[0.6rem] font-bold text-slate-400">申請: {{ order.requester }}</span>
                                 </div>
-                                <p class="font-black text-2xl text-slate-800 leading-tight">{{ order.name }}</p>
+                                <p class="font-black text-xl text-slate-800 leading-tight">{{ order.name }}</p>
                             </div>
-                            <button @click="openActionModal(order, 'process')" class="ml-4 neo-btn bg-orange-400 text-white px-8 py-5 rounded-2xl font-black text-2xl">處理</button>
+                            <button @click="openActionModal(order, 'process')" class="ml-4 neo-btn bg-orange-400 text-white px-6 py-3 rounded-xl font-black text-xl">處理</button>
                         </div>
                     </div>
                 </div>
@@ -111,27 +124,27 @@
         </div>
 
         <section class="space-y-6">
-            <div class="bg-white p-5 rounded-2xl border-4 border-slate-800 shadow-lg flex flex-col md:flex-row justify-between items-center gap-4">
-                <h3 class="font-black text-2xl text-indigo-900 italic">Today's UD Completed</h3>
-                <input type="date" v-model="filterDate" class="p-3 border-4 border-slate-800 rounded-xl font-black text-lg bg-slate-50 outline-none">
+            <div class="bg-white p-4 rounded-xl border-2 border-slate-800 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex flex-col md:flex-row justify-between items-center gap-4">
+                <h3 class="font-black text-xl text-indigo-900 italic">Today's UD Completed</h3>
+                <input type="date" v-model="filterDate" class="p-2 border-2 border-slate-800 rounded-lg font-black bg-slate-50 outline-none">
             </div>
             
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div v-for="log in todayUDLogs" :key="log.id" class="record-card shadow-[4px_4px_0px_0px_rgba(0,0,0,0.05)]">
+                <div v-for="log in todayUDLogs" :key="log.id" class="record-card">
                     <div class="flex-1">
-                        <div class="text-[0.8em] font-bold text-slate-400 flex items-center gap-2">
+                        <div class="text-[0.7em] font-bold text-slate-400 flex items-center gap-2 mb-1">
                             <span class="bg-indigo-600 text-white px-2 py-0.5 rounded font-black">{{ log.user }}</span>
                             <span>{{ log.time.split(' ')[1] }}</span>
                         </div>
-                        <p class="font-black text-slate-800 text-xl leading-tight mt-1">[{{ log.code }}] {{ log.name }}</p>
+                        <p class="font-black text-slate-800 text-lg leading-tight">[{{ log.code }}] {{ log.name }}</p>
                     </div>
                     <div class="flex items-center gap-3">
                         <div @click="openActionModal(log, 'edit')" 
-                             class="bg-blue-600 text-white font-black px-5 py-3 rounded-xl text-3xl min-w-[90px] text-center border-4 border-slate-800 cursor-pointer shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-y-1">
+                             class="bg-blue-600 text-white font-black px-4 py-2 rounded-xl text-2xl min-w-[80px] text-center border-2 border-slate-800 cursor-pointer shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-1">
                             {{ log.qty }}
                         </div>
-                        <button @click="deleteLog(log)" class="bg-red-100 text-red-600 w-14 h-14 rounded-xl flex items-center justify-center border-2 border-red-200 hover:bg-red-300 transition-colors">
-                            <i class="fa-solid fa-trash-can text-2xl"></i>
+                        <button @click="deleteLog(log)" class="bg-red-100 text-red-600 w-12 h-12 rounded-lg flex items-center justify-center border-2 border-slate-800 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-red-200">
+                            <i class="fa-solid fa-trash-can text-xl"></i>
                         </button>
                     </div>
                 </div>
@@ -139,61 +152,84 @@
         </section>
 
         <div v-if="showReview" class="modal-overlay">
-            <div class="bg-white w-full max-w-2xl rounded-[3.5rem] p-8 border-8 border-slate-800 shadow-2xl flex flex-col max-h-[90vh]">
-                <h2 class="text-3xl font-black text-slate-800 mb-6 text-center">核對點單品項</h2>
-                <div class="flex-1 overflow-y-auto space-y-3 mb-8 pr-2">
-                    <div v-for="d in selectedDrugs" :key="d.code" class="bg-slate-50 border-4 border-slate-800 rounded-2xl p-4 flex justify-between items-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+            <div class="bg-white w-full max-w-xl rounded-3xl p-6 border-4 border-slate-800 shadow-2xl flex flex-col max-h-[85vh]">
+                <h2 class="text-2xl font-black text-slate-800 mb-6 text-center italic underline decoration-yellow-400">核對點單品項</h2>
+                <div class="flex-1 overflow-y-auto space-y-3 mb-6 pr-2">
+                    <div v-for="d in selectedDrugs" :key="d.code" class="bg-slate-50 border-2 border-slate-800 rounded-xl p-4 flex justify-between items-center shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
                         <div>
-                            <span class="bg-yellow-400 text-slate-900 px-2 py-0.5 rounded font-black border-2 border-slate-800 text-xs">{{ d.shelf }}</span>
-                            <p class="text-xl font-black text-slate-800 mt-1">{{ d.name }}</p>
+                            <span class="shelf-badge mb-1 inline-block">{{ d.shelf }}</span>
+                            <p class="text-xl font-black text-slate-800 leading-tight">{{ d.name }}</p>
                         </div>
-                        <button @click="toggleSelect(d)" class="text-red-500 p-2"><i class="fa-solid fa-times-circle text-2xl"></i></button>
+                        <button @click="toggleSelect(d)" class="text-red-500 p-2"><i class="fa-solid fa-circle-xmark text-2xl"></i></button>
                     </div>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
-                    <button @click="showReview = false" class="py-5 bg-slate-200 text-slate-600 rounded-3xl font-black border-4 border-slate-400 text-xl">返回修改</button>
-                    <button @click="finalSubmitOrder" class="py-5 bg-indigo-600 text-white rounded-3xl font-black border-4 border-slate-800 text-2xl shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:scale-95">確認發送</button>
+                    <button @click="showReview = false" class="py-4 bg-slate-200 text-slate-600 rounded-xl font-black border-2 border-slate-400 text-lg">返回修改</button>
+                    <button @click="finalSubmitOrder" class="py-4 bg-indigo-600 text-white rounded-xl font-black border-2 border-slate-800 text-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">確認發送</button>
                 </div>
             </div>
         </div>
 
         <div v-if="activeEntry" class="modal-overlay">
-            <div class="bg-white w-full max-w-md rounded-[3rem] p-8 border-8 border-slate-800 shadow-2xl animate-in zoom-in duration-150">
-                <div class="flex justify-between items-start mb-6 border-b-4 border-slate-100 pb-4">
+            <div class="bg-white w-full max-w-md rounded-3xl p-6 border-4 border-slate-800 shadow-2xl animate-in zoom-in duration-100">
+                <div class="flex justify-between items-start mb-4 border-b-2 border-slate-100 pb-3">
                     <div class="flex-1">
-                        <h2 class="font-black text-2xl text-blue-700">{{ editMode === 'process' ? '撥補發藥處理' : '修改發藥數量' }}</h2>
-                        <div class="flex items-center gap-3 mt-3">
-                            <span class="bg-blue-600 text-white text-lg px-3 py-1 rounded-lg font-black border-2 border-slate-800">{{ getWarehouseShelf(activeEntry.code) }}</span>
-                            <p class="font-black text-slate-700 text-xl leading-tight">{{ activeEntry.name }}</p>
+                        <h2 class="font-black text-xl italic" :class="editMode === 'process' ? 'text-orange-600' : 'text-blue-700'">
+                            {{ editMode === 'process' ? '撥補處理' : '修改紀錄' }}
+                        </h2>
+                        <div class="flex items-center gap-2 mt-2">
+                            <span class="bg-blue-600 text-white text-sm px-2 py-0.5 rounded font-black border border-slate-800 shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]">{{ getWarehouseShelf(activeEntry.code) }}</span>
+                            <p class="font-black text-slate-700 text-lg leading-tight">{{ activeEntry.name }}</p>
                         </div>
                     </div>
-                    <button @click="activeEntry = null" class="text-5xl font-black text-slate-300 hover:text-red-500">&times;</button>
+                    <button @click="activeEntry = null" class="text-4xl font-black text-slate-300 hover:text-red-500">&times;</button>
                 </div>
                 
-                <div class="bg-slate-100 p-6 rounded-[2rem] border-4 border-slate-800 mb-6 text-right text-6xl font-black shadow-inner min-h-[1.5em] text-slate-900">{{ entryQtyStr || '0' }}</div>
+                <div class="bg-slate-100 p-4 rounded-xl border-2 border-slate-800 mb-6 text-right text-5xl font-black shadow-inner min-h-[1.5em] text-slate-900">{{ entryQtyStr || '0' }}</div>
 
-                <div class="grid grid-cols-4 gap-3 mb-8">
-                    <button @click="handleCalc('AC')" class="calc-btn btn-ac text-2xl">AC</button>
-                    <button @click="handleCalc('DEL')" class="calc-btn btn-del text-2xl"><i class="fa-solid fa-backspace"></i></button>
-                    <button @click="handleCalc('/')" class="calc-btn btn-op">÷</button>
-                    <button @click="handleCalc('*')" class="calc-btn btn-op">×</button>
-                    <button v-for="n in ['7','8','9']" @click="handleCalc(n)" class="calc-btn btn-num">{{ n }}</button>
-                    <button @click="handleCalc('-')" class="calc-btn btn-op">-</button>
-                    <button v-for="n in ['4','5','6']" @click="handleCalc(n)" class="calc-btn btn-num">{{ n }}</button>
-                    <button @click="handleCalc('+')" class="calc-btn btn-op">+</button>
-                    <button v-for="n in ['1','2','3']" @click="handleCalc(n)" class="calc-btn btn-num">{{ n }}</button>
-                    <button @click="doCalculation" class="calc-btn btn-equal row-span-2 text-5xl">=</button>
+                <div class="grid grid-cols-4 gap-3 mb-6">
+                    <button v-for="n in ['AC','DEL','/','*','7','8','9','-','4','5','6','+','1','2','3']" @click="handleCalc(n)" :class="getBtnClass(n)">{{ getBtnLabel(n) }}</button>
+                    <button @click="doCalculation" class="calc-btn btn-equal row-span-2 text-4xl">=</button>
                     <button @click="handleCalc('0')" class="calc-btn btn-num col-span-2">0</button>
                     <button @click="handleCalc('.')" class="calc-btn btn-num">.</button>
                 </div>
 
                 <div class="grid grid-cols-2 gap-4">
-                    <button @click="submitAsZero" class="py-5 bg-slate-200 text-slate-600 rounded-2xl font-black border-4 border-slate-400 text-xl" :disabled="isSaving">不領(0)</button>
-                    <button @click="submitFinalAction" class="py-5 bg-emerald-600 text-white rounded-2xl font-black border-4 border-slate-800 shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] text-2xl active:translate-y-1" :disabled="isSaving">
+                    <button @click="submitAsZero" class="py-4 bg-slate-200 text-slate-600 rounded-xl font-black border-2 border-slate-400 text-lg" :disabled="isSaving">不領(0)</button>
+                    <button @click="submitFinalAction" class="py-4 bg-emerald-600 text-white rounded-xl font-black border-2 border-slate-800 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] text-xl active:translate-y-1" :disabled="isSaving">
                         <span v-if="!isSaving">確認發藥</span>
                         <i v-else class="fa-solid fa-spinner animate-spin"></i>
                     </button>
                 </div>
+            </div>
+        </div>
+
+        <div v-if="nfcShelfId && activeNfcDrug" class="fixed inset-0 z-[500] bg-white flex flex-col p-6 overflow-hidden">
+            <div v-if="!isSubmitted" class="flex-1 flex flex-col">
+                <div class="flex-1 flex flex-col justify-center items-center text-center">
+                    <div class="bg-yellow-400 text-slate-900 text-4xl font-black px-10 py-5 rounded-[2rem] border-4 border-slate-800 mb-10 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
+                        儲位：{{ nfcShelfId }}
+                    </div>
+                    <h2 class="text-5xl md:text-7xl font-black text-slate-800 mb-6 leading-tight">{{ activeNfcDrug.name }}</h2>
+                    <p class="text-2xl font-bold text-slate-400 tracking-widest">{{ activeNfcDrug.code }}</p>
+                </div>
+
+                <div class="grid grid-cols-1 gap-5 mb-8">
+                    <button @click="quickSubmitNfc" 
+                            class="w-full py-12 bg-emerald-500 text-white border-4 border-slate-800 rounded-[3rem] shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] active:scale-95 transition-all">
+                        <span class="text-6xl font-black tracking-widest">確認點單</span>
+                    </button>
+                    
+                    <button @click="clearNfc" class="py-6 bg-slate-100 text-slate-500 border-2 border-slate-400 rounded-[2.5rem] font-black text-2xl">
+                        取消 / 回首頁
+                    </button>
+                </div>
+            </div>
+            <div v-else class="flex-1 flex flex-col justify-center items-center bg-emerald-500 -m-6 animate-in fade-in duration-300">
+                <i class="fa-solid fa-circle-check text-[15rem] text-white mb-8 animate-bounce"></i>
+                <h2 class="text-7xl font-black text-white">點單完成</h2>
+                <p class="text-2xl text-emerald-100 mt-4 italic font-bold">請關閉此分頁，或繼續下個感應</p>
+                <button @click="clearNfc" class="mt-12 px-12 py-5 bg-white border-4 border-slate-800 rounded-2xl font-black text-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">回中心首頁</button>
             </div>
         </div>
 
@@ -224,7 +260,7 @@
             const inventory = ref([]);
             const warehouse = ref([]);
             const menuSearch = ref('');
-            const currentGroup = ref('ALL'); // 當前選擇的分區
+            const currentGroup = ref('ALL');
             const selectedDrugs = ref([]);
             const pendingOrders = ref([]);
             const transferLogs = ref([]);
@@ -235,11 +271,23 @@
             const editMode = ref('process'); 
             const entryQtyStr = ref('');
             const isSaving = ref(false);
-            const baseFontSize = ref(parseFloat(localStorage.getItem('preferred_font_size')) || 1.1);
+            const baseFontSize = ref(parseFloat(localStorage.getItem('preferred_font_size')) || 1);
+
+            const nfcShelfId = ref(null);
+            const activeNfcDrug = ref(null);
+            const isSubmitted = ref(false);
 
             onMounted(() => {
                 applyFontSize();
-                onValue(dbRef(db, "inventory"), s => { inventory.value = s.val() ? Object.values(s.val()).filter(i => i.zone === 'UD') : []; });
+                const params = new URLSearchParams(window.location.search);
+                nfcShelfId.value = params.get('s');
+
+                onValue(dbRef(db, "inventory"), s => { 
+                    inventory.value = s.val() ? Object.values(s.val()).filter(i => i.zone === 'UD') : [];
+                    if (nfcShelfId.value) {
+                        activeNfcDrug.value = inventory.value.find(i => i.shelf === nfcShelfId.value);
+                    }
+                });
                 onValue(dbRef(db, "warehouse"), s => { warehouse.value = s.val() ? Object.values(s.val()) : []; });
                 onValue(dbRef(db, "replenishment_orders"), s => {
                     pendingOrders.value = s.val() ? Object.entries(s.val()).map(([id, v]) => ({ id, ...v })) : [];
@@ -252,24 +300,23 @@
 
             const applyFontSize = () => { document.documentElement.style.fontSize = `${baseFontSize.value}rem`; };
             const changeFontSize = (delta) => {
-                baseFontSize.value = Math.min(Math.max(baseFontSize.value + delta, 0.8), 2.2);
+                baseFontSize.value = Math.min(Math.max(baseFontSize.value + delta, 0.8), 2);
                 applyFontSize();
                 localStorage.setItem('preferred_font_size', baseFontSize.value);
             };
 
             const getWarehouseShelf = (code) => {
                 const d = warehouse.value.find(w => w.c === code);
-                return d ? (d.s || '??') : '無';
+                return d ? d.s || '??' : '無';
             };
 
-            // 自動取得分組列表 (A, B, C...)
             const shelfGroups = computed(() => {
                 const groups = new Set();
                 inventory.value.forEach(i => {
                     if (i.shelf) {
                         const firstChar = i.shelf.charAt(0).toUpperCase();
                         if (/[A-Z]/.test(firstChar)) groups.add(firstChar);
-                        else groups.add("其他");
+                        else if (i.shelf.includes("推車")) groups.add("推車");
                     }
                 });
                 return Array.from(groups).sort();
@@ -278,7 +325,8 @@
             const filteredUDItems = computed(() => {
                 let list = [...inventory.value];
                 if (currentGroup.value !== 'ALL') {
-                    list = list.filter(i => i.shelf && (i.shelf.charAt(0).toUpperCase() === currentGroup.value || (currentGroup.value === '其他' && !/[A-Z]/.test(i.shelf.charAt(0)))));
+                    if (currentGroup.value === '推車') list = list.filter(i => i.shelf?.includes("推車"));
+                    else list = list.filter(i => i.shelf?.charAt(0).toUpperCase() === currentGroup.value);
                 }
                 if (menuSearch.value) {
                     const k = menuSearch.value.toLowerCase();
@@ -288,17 +336,14 @@
             });
 
             const sortedPendingOrders = computed(() => {
-                return [...pendingOrders.value].sort((a, b) => {
-                    return getWarehouseShelf(a.code).localeCompare(getWarehouseShelf(b.code), 'zh-Hant');
-                });
+                return [...pendingOrders.value].sort((a, b) => getWarehouseShelf(a.code).localeCompare(getWarehouseShelf(b.code), 'zh-Hant'));
             });
 
             const todayUDLogs = computed(() => {
-                const target = filterDate.value.replace(/-/g, '/');
+                const target = filterDate.value.split('-').map(n => parseInt(n)).join('/');
                 return transferLogs.value.filter(l => {
                     const logDate = l.time.split(' ')[0].split('/').map(n => parseInt(n)).join('/');
-                    const filterDateParsed = target.split('/').map(n => parseInt(n)).join('/');
-                    return logDate === filterDateParsed && (l.user.startsWith('UD') || l.type === 'UD點單');
+                    return logDate === target && (l.user.startsWith('UD') || l.type === 'UD點單');
                 });
             });
 
@@ -315,7 +360,7 @@
                         code: d.code, name: d.name, shelf: d.shelf, requester: currentUser.value, time: new Date().toLocaleString('zh-TW', { hour12: false })
                     });
                 }
-                selectedDrugs.value = []; showReview.value = false; alert("請求已送出！");
+                selectedDrugs.value = []; showReview.value = false; alert("點單成功！");
             };
 
             const openActionModal = (item, mode) => {
@@ -332,10 +377,13 @@
 
             const doCalculation = () => {
                 if (!entryQtyStr.value) return;
-                try { entryQtyStr.value = (Math.round(eval(entryQtyStr.value.replace(/[^0-9+\-*/().]/g, '')) * 100) / 100).toString(); } catch { entryQtyStr.value = '0'; }
+                try { 
+                    let sanitized = entryQtyStr.value.replace(/[^0-9+\-*/().]/g, '');
+                    const res = eval(sanitized);
+                    entryQtyStr.value = (Math.round(res * 100) / 100).toString();
+                } catch { entryQtyStr.value = '0'; }
             };
 
-            // [發藥確認核心邏輯]
             const submitFinalAction = async () => {
                 if (!activeEntry.value || isSaving.value) return;
                 isSaving.value = true;
@@ -344,38 +392,48 @@
                 
                 try {
                     if (editMode.value === 'process') {
-                        // 1. 寫入正式完成紀錄 (重要：標記為 UD點單)
-                        const logData = {
+                        // 1. 寫入紀錄
+                        await push(dbRef(db, "transfer_logs"), {
                             time: new Date().toLocaleString('zh-TW', { hour12: false }),
                             user: `UD(${currentUser.value})`, 
                             code: activeEntry.value.code, name: activeEntry.value.name, shelf: activeEntry.value.shelf,
                             qty: q, processed: true, type: 'UD點單'
-                        };
-                        await push(dbRef(db, "transfer_logs"), logData);
-                        
-                        // 2. 移除待辦項目
-                        const taskRef = dbRef(db, `replenishment_orders/${activeEntry.value.id}`);
-                        await remove(taskRef);
+                        });
+                        // 2. 移除待辦
+                        await remove(dbRef(db, `replenishment_orders/${activeEntry.value.id}`));
                     } else {
                         // 3. 修改舊紀錄
-                        const updateRef = dbRef(db, `transfer_logs/${activeEntry.value.id}`);
-                        await update(updateRef, { qty: q });
+                        await update(dbRef(db, `transfer_logs/${activeEntry.value.id}`), { qty: q });
                     }
-                    activeEntry.value = null; // 關閉視窗
+                    activeEntry.value = null;
                 } catch (e) {
-                    alert("存檔失敗，請確認網路狀態");
-                } finally {
-                    isSaving.value = false;
-                }
+                    alert("存檔出錯");
+                } finally { isSaving.value = false; }
             };
 
             const submitAsZero = () => { entryQtyStr.value = '0'; submitFinalAction(); };
-            const deleteLog = async (log) => { if (confirm("確定刪除此筆紀錄？")) await remove(dbRef(db, `transfer_logs/${log.id}`)); };
+            const deleteLog = async (log) => { if (confirm("確定刪除紀錄？")) await remove(dbRef(db, `transfer_logs/${log.id}`)); };
+
+            const quickSubmitNfc = async () => {
+                if (isSaving.value) return;
+                isSaving.value = true;
+                try {
+                    await push(dbRef(db, "replenishment_orders"), {
+                        code: activeNfcDrug.value.code, name: activeNfcDrug.value.name, shelf: activeNfcDrug.value.shelf,
+                        requester: currentUser.value, time: new Date().toLocaleString('zh-TW', { hour12: false }), type: 'NFC'
+                    });
+                    if(navigator.vibrate) navigator.vibrate([100, 50, 100]);
+                    isSubmitted.value = true;
+                } catch (e) { alert("發送失敗"); }
+                finally { isSaving.value = false; }
+            };
 
             return {
                 currentUser, staffList, menuSearch, currentGroup, shelfGroups, filteredUDItems, sortedPendingOrders, todayUDLogs, selectedDrugs, showReview, activeEntry, entryQtyStr, editMode, isSaving, filterDate,
                 toggleSelect, isSelected, openReviewModal, finalSubmitOrder, openActionModal, handleCalc, submitFinalAction, submitAsZero, deleteLog, doCalculation, getWarehouseShelf, changeFontSize,
-                nfcShelfId: new URLSearchParams(window.location.search).get('s')
+                nfcShelfId, activeNfcDrug, isSubmitted, quickSubmitNfc, clearNfc: () => { window.location.href = window.location.pathname; },
+                getBtnClass: (n) => n === 'AC' ? 'calc-btn btn-ac' : (['/','*','-','+'].includes(n) ? 'calc-btn btn-op' : (n==='DEL'?'calc-btn btn-num text-red-500':'calc-btn btn-num')),
+                getBtnLabel: (n) => n === '*' ? '×' : (n === '/' ? '÷' : (n==='DEL'?'←':n))
             };
         }
     }).mount('#app');
