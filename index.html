@@ -83,6 +83,10 @@
                 <div class="bg-sky-50 w-14 h-14 rounded-2xl flex items-center justify-center text-sky-600 group-hover:bg-sky-600 group-hover:text-white transition-colors"><i class="fa-solid fa-truck-fast text-xl"></i></div>
                 <span class="font-bold text-slate-700">撥補/急領</span>
             </a>
+            <a href="https://amanhung.github.io/drink/" target="_blank" class="nav-card bg-white p-5 rounded-[1.5rem] shadow-sm border border-slate-100 flex items-center gap-4 group">
+                <div class="bg-orange-50 w-14 h-14 rounded-2xl flex items-center justify-center text-orange-600 group-hover:bg-orange-600 group-hover:text-white transition-colors"><i class="fa-solid fa-glass-cheers text-xl"></i></div>
+                <span class="font-bold text-slate-700">盤點日快樂</span>
+            </a>
         </div>
     </section>
 
@@ -223,13 +227,11 @@
 
             const checkNewRecords = async () => {
                 try {
-                    // 【關鍵修正】在網址後加上隨機數，避免瀏覽器緩存
                     const cacheBuster = `?nocache=${Date.now()}`;
                     const response = await fetch(GAS_URL + cacheBuster);
                     const data = await response.json();
                     
                     data.forEach(item => {
-                        // 修正 T/Z 格式轉換問題
                         const recordDate = new Date(item.time.toString().replace(/-/g, '/').replace('T', ' ').split('.')[0]);
                         const now = new Date();
                         const diffMinutes = (now - recordDate) / 1000 / 60;
