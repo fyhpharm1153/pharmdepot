@@ -3,34 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="藥劑科管理">
-    <title>藥劑科管理系統入口 v3.6</title>
+    <title>藥劑科即時通報系統 v4.0 (Firebase 版)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.esm-browser.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
     <style>
         :root { --base-size: 16px; }
         [v-cloak] { display: none; }
         body { background-color: #f1f5f9; font-size: var(--base-size); transition: font-size 0.2s ease; -webkit-tap-highlight-color: transparent; }
         
         /* 跑馬燈專用動畫 */
-        .marquee-container {
-            overflow: hidden;
-            white-space: nowrap;
-            display: flex;
-            align-items: center;
-        }
-        .marquee-content {
-            display: inline-block;
-            padding-left: 100%;
-            animation: marquee 15s linear infinite;
-        }
-        @keyframes marquee {
-            0% { transform: translateX(0); }
-            100% { transform: translateX(-100%); }
-        }
+        .marquee-container { overflow: hidden; white-space: nowrap; display: flex; align-items: center; }
+        .marquee-content { display: inline-block; padding-left: 100%; animation: marquee 12s linear infinite; }
+        @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
 
         .nav-card { transition: all 0.2s ease; }
         .nav-card:active { transform: scale(0.96); }
@@ -48,13 +34,13 @@
 
 <div id="app" v-cloak>
     <transition name="slide-down">
-        <div v-if="latestNote.length > 0" class="fixed top-0 left-0 right-0 z-[100] bg-slate-900 text-yellow-400 py-3 shadow-2xl border-b-2 border-yellow-500">
+        <div v-if="latestNote" class="fixed top-0 left-0 right-0 z-[100] bg-slate-900 text-yellow-400 py-3 shadow-2xl border-b-2 border-yellow-500">
             <div class="marquee-container relative h-8">
                 <div class="absolute left-0 bg-slate-900 px-4 z-10 text-white font-black border-r border-slate-700">
                     <i class="fa-solid fa-bullhorn fa-shake"></i>
                 </div>
                 <div class="marquee-content text-lg font-black tracking-widest">
-                    【{{ latestNote[0].time }}】 {{ latestNote[0].message }} ——— 請同仁留意 ———
+                    【{{ latestNote.time }}】 {{ latestNote.message }} ——— 請同仁留意 ———
                 </div>
                 <button @click="closeNotification" class="absolute right-0 bg-slate-900 px-4 z-10 text-slate-400 hover:text-white">
                     <i class="fa-solid fa-circle-xmark text-xl"></i>
@@ -63,18 +49,18 @@
         </div>
     </transition>
 
-    <div class="max-w-4xl mx-auto py-8 px-4 transition-all duration-500" :class="{'mt-14': latestNote.length > 0}">
+    <div class="max-w-4xl mx-auto py-8 px-4 transition-all duration-500" :class="{'mt-14': latestNote}">
         
         <div class="flex justify-between items-center mb-6">
             <div class="flex flex-col gap-1">
                 <div @click="unlockVoice" class="cursor-pointer flex items-center gap-2 px-3 py-1 bg-white rounded-full border border-slate-200 shadow-sm">
                     <div :class="['w-2 h-2 rounded-full', voiceEnabled ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500']"></div>
                     <span class="text-[0.6em] font-black text-slate-500 uppercase tracking-tighter">
-                        {{ voiceEnabled ? '語音已監控' : '點此啟動語音' }}
+                        {{ voiceEnabled ? '即時通訊已連線' : '點此啟動語音監聽' }}
                     </span>
                 </div>
-                <div class="px-3 text-[0.55em] font-bold text-slate-400">
-                    <i class="fa-solid fa-rotate mr-1"></i> 自動同步倒數：{{ syncTimer }}s
+                <div class="px-3 text-[0.55em] font-bold text-slate-400 uppercase">
+                    <i class="fa-solid fa-bolt mr-1"></i> Firebase Realtime Mode
                 </div>
             </div>
             <div class="flex items-center gap-3">
@@ -163,147 +149,128 @@
                 <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" @click="showLogModal = false"></div>
                 <div class="relative bg-white rounded-[2rem] shadow-2xl w-full max-w-md p-6">
                     <div class="flex justify-between items-center mb-6">
-                        <h3 class="text-xl font-black text-slate-800">發送消息/語音</h3>
-                        <button @click="openSheet" class="text-emerald-600 font-bold text-sm">歷史紀錄</button>
+                        <h3 class="text-xl font-black text-slate-800">即時推播/語音</h3>
+                        <i class="fa-solid fa-paper-plane text-blue-600"></i>
                     </div>
-                    <textarea v-model="logNote" class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl mb-4" rows="3" placeholder="輸入自定義備註..."></textarea>
+                    <textarea v-model="logNote" class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl mb-4" rows="3" placeholder="輸入備註內容..."></textarea>
                     
                     <div class="flex flex-col gap-3">
-                        <button @click="addLog('一般訊息')" :disabled="isSending || !logNote.trim()" class="py-3 bg-slate-700 text-white rounded-2xl font-black disabled:opacity-40 shadow-md">發送純文字備註</button>
-                        
+                        <button @click="addLog('一般訊息')" :disabled="!logNote.trim()" class="py-3 bg-slate-700 text-white rounded-2xl font-black disabled:opacity-40">發送文字備註</button>
                         <div class="grid grid-cols-3 gap-2">
-                            <button v-for="type in ['支援調劑', '支援check', '支援發藥']" @click="addLog(type)" :disabled="isSending" class="py-4 bg-indigo-600 text-white rounded-xl font-black text-xs active:scale-95 transition-all shadow-md">{{ type }}</button>
+                            <button v-for="type in ['支援調劑', '支援check', '支援發藥']" @click="addLog(type)" class="py-4 bg-indigo-600 text-white rounded-xl font-black text-xs">{{ type }}</button>
                         </div>
-
-                        <button @click="addLog('電梯很滿，請清空升降梯')" :disabled="isSending" class="py-4 bg-rose-600 text-white rounded-xl font-black text-sm active:scale-95 transition-all shadow-lg flex items-center justify-center gap-2">
+                        <button @click="addLog('電梯很滿，請清空升降梯')" class="py-4 bg-rose-600 text-white rounded-xl font-black text-sm flex items-center justify-center gap-2">
                             <i class="fa-solid fa-elevator"></i> 電梯很滿，請清空升降梯
                         </button>
                     </div>
-                    
-                    <div class="mt-6 text-center"><button @click="showLogModal = false" class="text-slate-400 font-bold">返回首頁</button></div>
                 </div>
             </div>
         </transition>
 
         <footer class="mt-16 text-center pb-12 border-t border-slate-200 pt-8">
-            <div class="flex justify-center gap-4 mb-6">
-                <div class="stats-badge">
-                    <span class="text-[0.6em] text-slate-400 font-bold uppercase tracking-wider">訪客總人數</span>
-                    <span class="text-[1.2em] font-black text-blue-600" id="busuanzi_value_site_uv">--</span>
-                </div>
-                <div class="stats-badge">
-                    <span class="text-[0.6em] text-slate-400 font-bold uppercase tracking-wider">總瀏覽次數</span>
-                    <span class="text-[1.2em] font-black text-slate-700" id="busuanzi_value_site_pv">--</span>
-                </div>
+            <div class="stats-badge mx-auto w-fit">
+                <span class="text-[0.6em] text-slate-400 font-bold uppercase tracking-wider">總瀏覽次數</span>
+                <span class="text-[1.2em] font-black text-slate-700" id="busuanzi_value_site_pv">--</span>
             </div>
-            <p class="text-slate-400 text-[0.6em] font-bold italic">Version 3.6 (Elevator Alert Added)</p>
+            <p class="text-slate-400 text-[0.6em] font-bold mt-4">Version 4.0 (Firebase Realtime Engine)</p>
             <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
         </footer>
     </div>
 </div>
 
 <script type="module">
-    import { createApp, ref, onMounted } from 'https://unpkg.com/vue@3/dist/vue.esm-browser.js';
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getDatabase, ref, push, set, onChildAdded, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+    import { createApp, ref as vRef, onMounted } from 'https://unpkg.com/vue@3/dist/vue.esm-browser.js';
 
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbyw9mwwO1dXFfgGWSgDH1Ppl_-z6F661Z1a4fyInZ9k2G5054yd5kEEboO8MH1Wa6_m/exec";
+    // ----------------------------------------------------------------
+    // ⚠ 請在此填入您的 Firebase 設定 (從 Firebase Console 取得)
+    // ----------------------------------------------------------------
+    const firebaseConfig = {
+        apiKey: "YOUR_API_KEY",
+        authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+        databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
+        projectId: "YOUR_PROJECT_ID",
+        storageBucket: "YOUR_PROJECT_ID.appspot.com",
+        messagingSenderId: "YOUR_ID",
+        appId: "YOUR_APP_ID"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const logsRef = ref(db, 'logs');
 
     createApp({
         setup() {
-            const currentSize = ref(16);
-            const showLogModal = ref(false);
-            const logNote = ref('');
-            const isSending = ref(false);
-            const latestNote = ref([]); 
-            const lastSyncId = ref(0);
-            const voiceEnabled = ref(false);
-            const syncTimer = ref(10);
+            const currentSize = vRef(16);
+            const showLogModal = vRef(false);
+            const logNote = vRef('');
+            const latestNote = vRef(null);
+            const voiceEnabled = vRef(false);
+            const isFirstLoad = vRef(true); // 用於防止一開啟網頁就念出舊訊息
 
             onMounted(() => {
-                const saved = localStorage.getItem('fyh-font-size');
-                if (saved) { applyFontSize(parseInt(saved)); }
-                startSyncTimer();
-                checkNewRecords(); 
+                const savedSize = localStorage.getItem('fyh-font-size');
+                if (savedSize) applyFontSize(parseInt(savedSize));
+
+                // 點擊解鎖語音
                 window.addEventListener('click', unlockVoice, { once: true });
+
+                // 重要：監聽 Firebase 新資料
+                onChildAdded(logsRef, (snapshot) => {
+                    const data = snapshot.val();
+                    
+                    // 如果網頁剛打開，只紀錄 ID 不跳通知 (防止補噴舊訊息)
+                    if (isFirstLoad.value) {
+                        return;
+                    }
+
+                    triggerUI(data.type, data.note, data.time);
+                });
+
+                // 標記第一次載入完成
+                setTimeout(() => { isFirstLoad.value = false; }, 3000);
             });
 
             const unlockVoice = () => {
                 if (voiceEnabled.value) return;
-                const utter = new SpeechSynthesisUtterance('');
-                window.speechSynthesis.speak(utter);
+                window.speechSynthesis.speak(new SpeechSynthesisUtterance(''));
                 voiceEnabled.value = true;
             };
 
-            const startSyncTimer = () => {
-                setInterval(() => {
-                    if (syncTimer.value > 0) {
-                        syncTimer.value--;
-                    } else {
-                        syncTimer.value = 10;
-                        checkNewRecords();
-                    }
-                }, 1000);
-            };
-
-            const formatTime = (input) => {
-                const date = new Date(input);
-                if (isNaN(date.getTime())) return input;
-                return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}:${date.getSeconds().toString().padStart(2, '0')}`;
-            };
-
-            const checkNewRecords = async () => {
-                try {
-                    const response = await fetch(`${GAS_URL}?nocache=${Date.now()}`);
-                    const data = await response.json();
-                    data.forEach(item => {
-                        const recordDate = new Date(item.time.toString().replace(/-/g, '/').replace('T', ' ').split('.')[0]);
-                        const diffMinutes = (new Date() - recordDate) / 1000 / 60;
-                        if (item.id > lastSyncId.value) {
-                            if (lastSyncId.value !== 0 && diffMinutes <= 5) { 
-                                triggerUI(item.type, item.note, item.time, item.id);
-                            }
-                            lastSyncId.value = item.id;
-                        }
-                    });
-                } catch (e) { console.warn("同步失敗"); }
-            };
-
-            const triggerUI = (type, note, rawTime, id) => {
-                const displayTime = formatTime(rawTime);
-                const displayMsg = type === '一般訊息' ? `訊息：${note}` : `${type} ${note ? '('+note+')' : ''}`;
-                const voiceMsg = (type === '一般訊息') ? note : type;
+            const triggerUI = (type, note, rawTime) => {
+                const msg = type === '一般訊息' ? note : `${type}${note ? '('+note+')' : ''}`;
                 
-                latestNote.value = [{ id, message: displayMsg, time: displayTime }];
-                if (voiceEnabled.value) { speak(voiceMsg); }
-                
-                setTimeout(() => {
-                    if (latestNote.value.length > 0 && latestNote.value[0].id === id) { latestNote.value = []; }
-                }, 60000);
+                // 顯示跑馬燈
+                latestNote.value = {
+                    time: new Date(rawTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'}),
+                    message: msg
+                };
+
+                // 播放語音
+                if (voiceEnabled.value) {
+                    window.speechSynthesis.cancel();
+                    const utter = new SpeechSynthesisUtterance(type === '一般訊息' ? note : type);
+                    utter.lang = 'zh-TW';
+                    window.speechSynthesis.speak(utter);
+                }
+
+                // 60秒後自動移除跑馬燈
+                setTimeout(() => { latestNote.value = null; }, 60000);
             };
 
             const addLog = async (type) => {
-                isSending.value = true;
-                const now = new Date();
-                const ts = `${now.getFullYear()}/${now.getMonth()+1}/${now.getDate()} ${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`;
-                const payload = { time: ts, type: type, note: logNote.value };
-                try {
-                    await fetch(GAS_URL, { method: 'POST', body: JSON.stringify(payload) });
-                    triggerUI(type, logNote.value, now, Date.now());
-                } catch (e) {}
-                logNote.value = ''; isSending.value = false; showLogModal.value = false;
+                const newLogRef = push(logsRef);
+                await set(newLogRef, {
+                    type: type,
+                    note: logNote.value,
+                    time: serverTimestamp()
+                });
+                logNote.value = '';
+                showLogModal.value = false;
             };
 
-            const speak = (text) => {
-                if ('speechSynthesis' in window) {
-                    window.speechSynthesis.cancel();
-                    const utter = new SpeechSynthesisUtterance(text);
-                    utter.lang = 'zh-TW';
-                    utter.rate = 1.0;
-                    window.speechSynthesis.speak(utter);
-                }
-            };
-
-            const closeNotification = () => { latestNote.value = []; window.speechSynthesis.cancel(); };
-            const openSheet = () => { window.open(GAS_URL.replace("/exec", "/edit"), "_blank"); };
+            const closeNotification = () => { latestNote.value = null; window.speechSynthesis.cancel(); };
             const changeFont = (delta) => {
                 currentSize.value = Math.max(12, Math.min(32, currentSize.value + delta));
                 applyFontSize(currentSize.value);
@@ -314,8 +281,8 @@
             };
 
             return { 
-                changeFont, showLogModal, logNote, addLog, isSending, latestNote, 
-                closeNotification, openSheet, voiceEnabled, syncTimer, unlockVoice 
+                currentSize, showLogModal, logNote, latestNote, voiceEnabled,
+                addLog, closeNotification, changeFont, unlockVoice
             };
         }
     }).mount('#app');
