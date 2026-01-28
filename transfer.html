@@ -45,18 +45,28 @@
             <i class="fa-solid fa-triangle-exclamation text-4xl"></i>
         </div>
 
-        <header class="flex justify-between items-center mb-6 gap-4 bg-white p-4 rounded-2xl border-2 border-slate-800 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.1)]">
+        <header class="flex flex-wrap justify-between items-center mb-6 gap-4 bg-white p-4 rounded-2xl border-2 border-slate-800 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.1)]">
             <div class="flex items-center gap-3">
-                <button @click="goBack" class="w-12 h-12 border-2 border-slate-800 rounded-xl bg-white flex items-center justify-center shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"><i class="fa-solid fa-arrow-left"></i></button>
-                <h1 class="text-2xl font-black text-slate-800">藥品撥補系統</h1>
+                <button @click="goBack" class="w-12 h-12 border-2 border-slate-800 rounded-xl bg-white flex items-center justify-center shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+                <div class="flex flex-wrap items-center gap-3">
+                    <h1 class="text-2xl font-black text-slate-800">藥品撥補系統</h1>
+                    <a href="https://fyhpharm1153.github.io/pharmdepot/udorder.html" 
+                       class="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-xl font-bold text-sm border-2 border-slate-800 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:bg-indigo-700 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all">
+                        <i class="fa-solid fa-utensils"></i>
+                        UD點餐單
+                    </a>
+                </div>
             </div>
             <div class="flex gap-2">
                 <button @click="changeFontSize(-0.1)" class="px-4 py-1 border-2 border-slate-800 rounded-xl font-bold bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">A-</button>
                 <button @click="changeFontSize(0.1)" class="px-4 py-1 border-2 border-slate-800 rounded-xl font-bold bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">A+</button>
-                <button @click="showManager = true" class="w-12 h-12 bg-slate-800 text-white border-2 border-slate-800 rounded-xl flex items-center justify-center shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"><i class="fa-solid fa-cog"></i></button>
+                <button @click="showManager = true" class="w-12 h-12 bg-slate-800 text-white border-2 border-slate-800 rounded-xl flex items-center justify-center shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
+                    <i class="fa-solid fa-cog"></i>
+                </button>
             </div>
         </header>
-
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start mb-8 text-[1em]">
             <section class="bg-white p-6 rounded-[2rem] border-2 border-slate-800 shadow-xl space-y-5">
                 <div>
@@ -315,7 +325,6 @@
             const baseFontSize = ref(1.1);
             const newStaffName = ref('');
 
-            // 📢 語音控制與頻率
             const vSettings = ref({ 
                 superOn: true, superText: '超急領快領藥', superSec: 5, 
                 normalOn: true, normalText: '一般叫藥', normalSec: 20 
@@ -362,7 +371,6 @@
             const pendingER = computed(() => history.value.filter(l => l.isER && !l.processed));
             const filteredHistory = computed(() => history.value.filter(l => (!l.isUrgent && !l.isSuperUrgent && !l.isER) || l.processed).slice(0, 20));
 
-            // 👁️ 監控 超急領 狀態與頻率
             watch([() => pendingSuper.value.length, () => vSettings.value.superOn, () => vSettings.value.superSec], ([count, on, sec]) => {
                 clearInterval(superTimer); superTimer = null;
                 if (count > 0 && on) {
@@ -371,7 +379,6 @@
                 }
             }, { immediate: true });
 
-            // 👁️ 監控 急領 狀態與頻率
             watch([() => pendingNormal.value.length, () => vSettings.value.normalOn, () => vSettings.value.normalSec], ([count, on, sec]) => {
                 clearInterval(normalTimer); normalTimer = null;
                 if (count > 0 && on) {
