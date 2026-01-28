@@ -2,147 +2,91 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>醫院藥劑科 - 即時通報系統</title>
+    <title>豐原醫院藥劑科 - 即時通報系統</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <style>
-        .msg-enter { animation: slideIn 0.3s ease-out; }
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .btn-active:active { transform: scale(0.95); }
-    </style>
 </head>
-<body class="bg-slate-50 min-h-screen font-sans">
-
-    <div class="max-w-4xl mx-auto p-4 md:p-6">
-        <header class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-6 flex flex-col md:flex-row justify-between items-center gap-4">
-            <div>
-                <h1 class="text-2xl font-black text-slate-800 tracking-tight">🏥 藥劑科即時語音看板</h1>
-                <p id="voice-status" class="text-amber-600 text-sm font-bold mt-1">⚠️ 語音系統待命：請點擊頁面任意處啟動</p>
-            </div>
-            <button onclick="exportToExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-xl font-bold transition shadow-md flex items-center gap-2">
-                📊 匯出 Excel
-            </button>
+<body class="bg-slate-50 min-h-screen p-4">
+    <div class="max-w-4xl mx-auto">
+        <header class="bg-white p-6 rounded-2xl shadow-sm mb-6 flex justify-between items-center border border-slate-200">
+            <h1 class="text-2xl font-black text-slate-800">🏥 藥劑科即時看板</h1>
+            <button onclick="exportToExcel()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg font-bold">匯出 Excel</button>
         </header>
 
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <button onclick="sendPush('請支援發藥', true)" class="btn-active h-24 bg-red-500 hover:bg-red-600 text-white rounded-2xl shadow-lg text-xl font-black transition-all">💊 支援發藥</button>
-            <button onclick="sendPush('請支援 Check', true)" class="btn-active h-24 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl shadow-lg text-xl font-black transition-all">✅ 支援 Check</button>
-            <button onclick="sendPush('請支援中藥', true)" class="btn-active h-24 bg-amber-500 hover:bg-amber-600 text-white rounded-2xl shadow-lg text-xl font-black transition-all">🌿 支援中藥</button>
-            <button onclick="sendPush('請支援調劑', true)" class="btn-active h-24 bg-blue-500 hover:bg-blue-600 text-white rounded-2xl shadow-lg text-xl font-black transition-all">🧪 支援調劑</button>
+            <button onclick="sendPush('請支援發藥', true)" class="h-20 bg-red-500 text-white rounded-xl shadow-md text-xl font-bold active:scale-95 transition">💊 發藥</button>
+            <button onclick="sendPush('請支援 Check', true)" class="h-20 bg-emerald-500 text-white rounded-xl shadow-md text-xl font-bold active:scale-95 transition">✅ Check</button>
+            <button onclick="sendPush('請支援中藥', true)" class="h-20 bg-orange-500 text-white rounded-xl shadow-md text-xl font-bold active:scale-95 transition">🌿 中藥</button>
+            <button onclick="sendPush('請支援調劑', true)" class="h-20 bg-blue-500 text-white rounded-xl shadow-md text-xl font-bold active:scale-95 transition">🧪 調劑</button>
         </div>
 
-        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 mb-8">
-            <div class="flex flex-col md:flex-row gap-4 items-center">
-                <input type="text" id="customTxt" placeholder="輸入通報事項..." class="w-full flex-1 border-2 border-slate-100 p-3 rounded-xl outline-none focus:border-blue-400 text-lg transition-all">
-                <div class="flex items-center gap-4 w-full md:w-auto">
-                    <label class="flex items-center cursor-pointer font-bold text-slate-600 shrink-0">
-                        <input type="checkbox" id="voiceToggle" checked class="w-6 h-6 mr-2 accent-blue-500"> 🔊 語音
-                    </label>
-                    <button onclick="sendManual()" class="w-full md:w-28 bg-slate-800 hover:bg-slate-900 text-white py-3 rounded-xl font-bold shadow-md transition-all">發送</button>
-                </div>
-            </div>
-        </div>
-
-        <div class="space-y-4">
-            <h2 class="text-sm font-black text-slate-400 uppercase tracking-widest ml-1">最新通報紀錄</h2>
-            <div id="msgContainer" class="space-y-3">
-                </div>
+        <div id="msgList" class="space-y-3">
+            <p class="text-center text-slate-400">正在連線至雲端資料庫...</p>
         </div>
     </div>
 
     <script>
-        // Supabase 設定
         const SB_URL = 'https://zgfahzuocfmbssxckctj.supabase.co';
         const SB_KEY = 'sb_publishable_FX0MXRN8eY_oI_N3ypYn6A_uLrTsqo7';
-        const client = supabase.createClient(SB_URL, SB_KEY);
+        const _client = supabase.createClient(SB_URL, SB_KEY);
 
-        let messages = [];
+        let msgs = [];
 
-        // 初始化連線
         async function init() {
-            // 1. 抓取最近 50 筆
-            const { data } = await client.from('messages').select('*').order('created_at', { ascending: false }).limit(50);
-            if (data) {
-                messages = data;
-                render();
+            // 抓取資料測試
+            const { data, error } = await _client.from('messages').select('*').order('created_at', { ascending: false }).limit(20);
+            
+            if (error) {
+                document.getElementById('msgList').innerHTML = `<div class="bg-red-100 p-4 text-red-700 rounded-lg text-center font-bold">連線失敗：${error.message}<br>請檢查 Supabase 是否有 messages 表格且 RLS 已關閉。</div>`;
+                return;
             }
 
-            // 2. 訂閱 Realtime 即時變動
-            client.channel('public:messages')
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
-                const newMsg = payload.new;
-                messages.unshift(newMsg);
-                if (messages.length > 50) messages.pop();
+            msgs = data || [];
+            render();
+
+            // 即時監聽
+            _client.channel('public:messages')
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, p => {
+                msgs.unshift(p.new);
                 render();
-                if (newMsg.voice) playVoice(newMsg.text);
+                if (p.new.voice) speak(p.new.text);
             })
             .subscribe();
         }
 
-        // 發送訊息到雲端
         async function sendPush(text, voice) {
-            const { error } = await client.from('messages').insert([{ text, voice }]);
-            if (error) {
-                console.error(error);
-                alert("發送失敗，請檢查 Supabase 的 RLS 權限是否已關閉 (Disabled)。");
-            }
+            await _client.from('messages').insert([{ text, voice }]);
         }
 
-        function sendManual() {
-            const el = document.getElementById('customTxt');
-            const voice = document.getElementById('voiceToggle').checked;
-            if (!el.value.trim()) return;
-            sendPush(el.value, voice);
-            el.value = '';
-        }
-
-        // 畫面渲染
         function render() {
-            const container = document.getElementById('msgContainer');
-            container.innerHTML = messages.map(m => `
-                <div class="msg-enter bg-white p-5 rounded-2xl shadow-sm border-l-8 ${m.voice ? 'border-blue-500' : 'border-slate-200'} flex justify-between items-center">
-                    <div>
-                        <div class="text-xl font-black text-slate-800">${m.text}</div>
-                        <div class="text-xs font-bold text-slate-400 mt-1">${new Date(m.created_at).toLocaleString()}</div>
-                    </div>
-                    ${m.voice ? '<span class="text-2xl animate-pulse">📢</span>' : ''}
+            const list = document.getElementById('msgList');
+            if (msgs.length === 0) {
+                list.innerHTML = '<p class="text-center text-slate-400">目前沒有訊息</p>';
+                return;
+            }
+            list.innerHTML = msgs.map(m => `
+                <div class="bg-white p-4 rounded-xl shadow-sm border-l-8 ${m.voice ? 'border-blue-500' : 'border-slate-300'}">
+                    <div class="text-lg font-bold">${m.text}</div>
+                    <div class="text-xs text-slate-400">${new Date(m.created_at).toLocaleString()}</div>
                 </div>
             `).join('');
         }
 
-        // 語音播報
-        function playVoice(text) {
-            const msg = new SpeechSynthesisUtterance(text);
-            msg.lang = 'zh-TW';
-            msg.rate = 1.0;
-            window.speechSynthesis.speak(msg);
+        function speak(t) {
+            const u = new SpeechSynthesisUtterance(t);
+            u.lang = 'zh-TW';
+            window.speechSynthesis.speak(u);
         }
 
-        // 點擊解鎖語音
-        document.body.addEventListener('click', () => {
-            const status = document.getElementById('voice-status');
-            status.innerText = "✅ 語音系統已就緒";
-            status.className = "text-emerald-600 text-sm font-bold mt-1";
-        }, { once: true });
-
-        // 匯出 Excel (xlsx 格式)
         function exportToExcel() {
-            const dataToExport = messages.map(m => ({
-                "時間": new Date(m.created_at).toLocaleString(),
-                "通報內容": m.text,
-                "是否播放語音": m.voice ? "是" : "否"
-            }));
-            const ws = XLSX.utils.json_to_sheet(dataToExport);
+            const ws = XLSX.utils.json_to_sheet(msgs.map(m => ({ "時間": new Date(m.created_at).toLocaleString(), "內容": m.text })));
             const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "交班通報紀錄");
-            XLSX.writeFile(wb, `藥劑科通報紀錄_${new Date().toISOString().slice(0,10)}.xlsx`);
+            XLSX.utils.book_append_sheet(wb, ws, "紀錄");
+            XLSX.writeFile(wb, "交班紀錄.xlsx");
         }
 
+        document.body.addEventListener('click', () => {}, {once: true});
         init();
     </script>
 </body>
