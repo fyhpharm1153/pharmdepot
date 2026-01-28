@@ -25,7 +25,7 @@
         .name-text { @apply text-xl font-black text-slate-800 leading-tight mt-2; }
         .modal-overlay { @apply fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm; }
         .record-card { border-left: 8px solid #4f46e5; @apply bg-white p-3 rounded-xl shadow border-2 border-slate-800 flex items-center gap-4; }
-        .tab-scroll-container { @apply flex flex-nowrap overflow-x-auto gap-2 pb-3 mb-2; -webkit-overflow-scrolling: touch; }
+        .tab-scroll-container { @apply flex flex-nowrap overflow-x-auto gap-2 pb-3 mb-2; }
         .tab-btn { @apply px-5 py-2 border-2 border-slate-800 rounded-lg font-black text-sm transition-all bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex-shrink-0; }
         .tab-btn.active { @apply bg-indigo-600 text-white shadow-none translate-x-[1px] translate-y-[1px]; }
         .admin-table th { @apply bg-slate-100 p-2 text-left text-xs font-black border-b-2 border-slate-800 sticky top-0; }
@@ -110,7 +110,7 @@
                         <button @click="deleteLog(log)" class="bg-red-100 text-red-600 w-12 h-12 rounded-lg flex items-center justify-center border-2 border-slate-800 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-red-200 transition-colors"><i class="fa-solid fa-trash-can text-xl"></i></button>
                     </div>
                 </div>
-                <div v-if="todayUDLogs.length === 0" class="col-span-full text-center py-10 text-slate-300 font-bold italic font-xl">目前尚無完成紀錄</div>
+                <div v-if="todayUDLogs.length === 0" class="col-span-full text-center py-10 text-slate-300 font-bold italic">目前尚無完成紀錄</div>
             </div>
         </section>
 
@@ -123,17 +123,11 @@
                 <div class="flex-1 overflow-y-auto p-6 space-y-8">
                     <section>
                         <h3 class="text-lg font-black mb-3 text-indigo-700 flex items-center gap-2"><i class="fa-solid fa-users"></i>人員管理</h3>
-                        <div class="flex gap-2 mb-4">
-                            <input v-model="newStaff" placeholder="輸入姓名..." class="flex-1 p-2 border-2 border-slate-800 rounded-lg font-bold">
-                            <button @click="addStaff" class="bg-indigo-600 text-white px-5 rounded-lg font-black">新增</button>
-                        </div>
+                        <div class="flex gap-2 mb-4"><input v-model="newStaff" placeholder="姓名..." class="flex-1 p-2 border-2 border-slate-800 rounded-lg font-bold"><button @click="addStaff" class="bg-indigo-600 text-white px-5 rounded-lg font-black">新增</button></div>
                         <div class="flex flex-wrap gap-2"><span v-for="(name, idx) in staffList" :key="idx" class="bg-slate-50 border border-slate-800 px-3 py-1 rounded-lg font-bold flex items-center gap-2">{{ name }} <i @click="removeStaff(idx)" class="fa-solid fa-times text-red-500 cursor-pointer"></i></span></div>
                     </section>
                     <section class="pt-6 border-t border-dashed border-slate-300">
-                        <div class="flex justify-between items-end mb-3">
-                            <h3 class="text-lg font-black text-blue-700"><i class="fa-solid fa-pills mr-1"></i>單品儲位維護</h3>
-                            <input v-model="adminSearch" placeholder="搜尋代碼/藥名..." class="p-1.5 border-2 border-slate-800 rounded-lg font-bold text-xs outline-none">
-                        </div>
+                        <div class="flex justify-between items-end mb-3"><h3 class="text-lg font-black text-blue-700"><i class="fa-solid fa-pills mr-1"></i>單品儲位維護</h3><input v-model="adminSearch" placeholder="搜尋..." class="p-1.5 border-2 border-slate-800 rounded-lg font-bold text-xs outline-none"></div>
                         <div class="bg-blue-50 p-4 rounded-xl border-2 border-slate-800 mb-4 grid grid-cols-1 md:grid-cols-4 gap-2">
                             <input v-model="editDrug.code" placeholder="代碼" class="p-2 border-2 border-slate-800 rounded-lg font-bold text-sm">
                             <input v-model="editDrug.name" placeholder="藥名" class="p-2 border-2 border-slate-800 rounded-lg font-bold text-sm">
@@ -143,20 +137,46 @@
                         <div class="max-h-64 overflow-y-auto border-2 border-slate-800 rounded-xl"><table class="w-full admin-table text-left"><thead><tr><th>代碼</th><th>藥名</th><th>儲位</th><th>操作</th></tr></thead><tbody><tr v-for="drug in adminFilteredInventory" :key="drug.id"><td>{{ drug.code }}</td><td>{{ drug.name }}</td><td>{{ drug.shelf }}</td><td class="flex gap-4"><button @click="prepareEdit(drug)" class="text-blue-600"><i class="fa-solid fa-edit"></i></button><button @click="deleteSingleDrug(drug)" class="text-red-500"><i class="fa-solid fa-trash"></i></button></td></tr></tbody></table></div>
                     </section>
                     <section class="pt-6 border-t border-dashed border-slate-300">
-                        <h3 class="text-lg font-black mb-3 text-emerald-700"><i class="fa-solid fa-file-excel mr-1"></i>Excel 批次匯入 (防亂碼)</h3>
-                        <div class="grid grid-cols-2 gap-3"><div class="relative"><input type="file" @change="importExcel" accept=".xlsx, .xls" class="absolute inset-0 opacity-0 cursor-pointer"><div class="neo-btn bg-emerald-50 p-4 text-center rounded-xl font-black text-sm">選擇 Excel 檔案</div></div><button @click="exportInventory" class="neo-btn bg-blue-50 p-4 rounded-xl font-black text-sm text-blue-800">匯出目前對應表</button></div>
+                        <h3 class="text-lg font-black mb-3 text-emerald-700"><i class="fa-solid fa-file-excel mr-1"></i>Excel 匯入 (防亂碼)</h3>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="relative"><input type="file" @change="importExcel" accept=".xlsx, .xls" class="absolute inset-0 opacity-0 cursor-pointer"><div class="neo-btn bg-emerald-50 p-4 text-center rounded-xl font-black text-sm">選擇 Excel</div></div>
+                            <button @click="exportInventory" class="neo-btn bg-blue-50 p-4 rounded-xl font-black text-sm text-blue-800">匯出目前對應表</button>
+                        </div>
                     </section>
-                    <button @click="exportTodayReport" class="w-full py-4 neo-btn bg-slate-800 text-white rounded-xl font-black">匯出今日報表 (.xlsx)</button>
                 </div>
             </div>
         </div>
 
         <div v-if="activeEntry" class="modal-overlay">
             <div class="bg-white w-full max-w-md rounded-3xl p-6 border-4 border-slate-800 shadow-2xl">
-                <div class="flex justify-between items-start mb-4 border-b-2 pb-3"><div class="flex-1"><h2 class="font-black text-xl italic" :class="editMode === 'process' ? 'text-orange-600' : 'text-blue-700'">{{ editMode === 'process' ? '撥補處理' : '修改紀錄' }}</h2><p class="font-black text-slate-700 text-lg leading-tight mt-2">{{ activeEntry.name }}</p></div><button @click="activeEntry = null" class="text-4xl font-black text-slate-300 hover:text-red-500">&times;</button></div>
+                <div class="flex justify-between items-start mb-4 border-b-2 pb-3">
+                    <div class="flex-1"><h2 class="font-black text-xl italic" :class="editMode === 'process' ? 'text-orange-600' : 'text-blue-700'">{{ editMode === 'process' ? '撥補處理' : '修改紀錄' }}</h2><p class="font-black text-slate-700 text-lg leading-tight mt-2">{{ activeEntry.name }}</p></div>
+                    <button @click="activeEntry = null" class="text-4xl font-black text-slate-300 hover:text-red-500">&times;</button>
+                </div>
                 <div class="bg-slate-100 p-4 rounded-xl border-2 border-slate-800 mb-6 text-right text-5xl font-black shadow-inner min-h-[1.5em] text-slate-900">{{ entryQtyStr || '0' }}</div>
                 <div class="grid grid-cols-4 gap-3 mb-6"><button v-for="n in ['AC','DEL','/','*','7','8','9','-','4','5','6','+','1','2','3']" @click="handleCalc(n)" :class="getBtnClass(n)">{{ getBtnLabel(n) }}</button><button @click="doCalculation" class="calc-btn btn-equal row-span-2 text-4xl">=</button><button @click="handleCalc('0')" class="calc-btn btn-num col-span-2">0</button><button @click="handleCalc('.')" class="calc-btn btn-num">.</button></div>
                 <div class="grid grid-cols-2 gap-4"><button @click="submitAsZero" class="py-4 bg-slate-200 text-slate-600 rounded-xl font-black border-2 border-slate-400 text-lg">不領(0)</button><button @click="submitFinalAction" class="py-4 bg-emerald-600 text-white rounded-xl font-black border-2 border-slate-800 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] text-xl active:translate-y-1">確認</button></div>
+            </div>
+        </div>
+
+        <div v-if="nfcShelfId && activeNfcDrug" class="fixed inset-0 z-[500] bg-white flex flex-col p-6 overflow-hidden">
+            <div v-if="!isSubmitted" class="flex-1 flex flex-col">
+                <div class="flex-1 flex flex-col justify-center items-center text-center">
+                    <div class="bg-yellow-400 text-slate-900 text-4xl font-black px-10 py-5 rounded-[2rem] border-4 border-slate-800 mb-10 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">{{ nfcShelfId }}</div>
+                    <h2 class="text-4xl md:text-6xl font-black text-slate-800 mb-6 leading-tight">{{ activeNfcDrug.name }}</h2>
+                    <p class="text-2xl font-bold text-slate-400 tracking-widest">{{ activeNfcDrug.code }}</p>
+                </div>
+                <div class="grid grid-cols-1 gap-5 mb-8">
+                    <button @click="quickSubmitNfc" class="w-full py-12 bg-emerald-500 text-white border-4 border-slate-800 rounded-[3rem] shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:scale-95 transition-all">
+                        <span class="text-5xl font-black tracking-widest">確認點單</span>
+                    </button>
+                    <button @click="clearNfc" class="py-6 bg-slate-100 text-slate-500 border-2 border-slate-400 rounded-[2.5rem] font-black text-2xl">取消 / 回中心</button>
+                </div>
+            </div>
+            <div v-else class="flex-1 flex flex-col justify-center items-center bg-emerald-500 -m-6">
+                <i class="fa-solid fa-circle-check text-[15rem] text-white mb-8"></i>
+                <h2 class="text-7xl font-black text-white">點單完成</h2>
+                <button @click="clearNfc" class="mt-12 px-12 py-5 bg-white border-4 border-slate-800 rounded-2xl font-black text-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">回首頁</button>
             </div>
         </div>
 
@@ -206,16 +226,24 @@
             const editDrug = ref({ code: '', name: '', shelf: '', isEdit: false, id: null });
             const baseFontSize = ref(parseFloat(localStorage.getItem('preferred_font_size')) || 1);
 
+            const nfcShelfId = ref(null);
+            const activeNfcDrug = ref(null);
+            const isSubmitted = ref(false);
+
             onMounted(() => {
                 applyFontSize();
+                const params = new URLSearchParams(window.location.search);
+                nfcShelfId.value = params.get('s');
+
                 onValue(dbRef(db, "inventory"), s => { 
-                    inventory.value = s.val() ? Object.entries(s.val()).map(([id, v]) => ({ id, ...v })).filter(i => i.zone === 'UD') : [];
+                    const list = s.val() ? Object.entries(s.val()).map(([id, v]) => ({ id, ...v })).filter(i => i.zone === 'UD') : [];
+                    inventory.value = list;
+                    if (nfcShelfId.value) activeNfcDrug.value = list.find(i => i.shelf === nfcShelfId.value);
                 });
                 onValue(dbRef(db, "warehouse"), s => { warehouse.value = s.val() ? Object.values(s.val()) : []; });
                 onValue(dbRef(db, "replenishment_orders"), s => {
                     pendingOrders.value = s.val() ? Object.entries(s.val()).map(([id, v]) => ({ id, ...v })) : [];
                 });
-                // 這裡採用 limitToLast(100) 確保能抓到最近的資料
                 onValue(query(dbRef(db, "transfer_logs"), limitToLast(100)), s => {
                     transferLogs.value = s.val() ? Object.entries(s.val()).map(([id, v]) => ({ id, ...v })).reverse() : [];
                 });
@@ -234,18 +262,17 @@
                 return d ? d.s || '??' : '無';
             };
 
-            // 擴充儲位分區邏輯
             const shelfGroups = computed(() => {
                 const groups = new Set();
                 inventory.value.forEach(i => {
-                    const s = i.shelf || "";
+                    const s = (i.shelf || "").toUpperCase();
                     if (s.includes("推車")) groups.add("推車");
                     else if (s.includes("冰一般")) groups.add("冰一般");
-                    else if (s.includes("冰Check")) groups.add("冰Check");
+                    else if (s.includes("冰CHECK")) groups.add("冰Check");
                     else if (s.includes("冰疫自")) groups.add("冰疫自");
                     else if (s.includes("冰高")) groups.add("冰高");
-                    else if (/[A-Za-z]/.test(s.charAt(0))) groups.add(s.charAt(0).toUpperCase() + "區");
-                    else groups.add("其他");
+                    else if (/[A-Z]/.test(s.charAt(0))) groups.add(s.charAt(0).toUpperCase() + "區");
+                    else if (s) groups.add("其他");
                 });
                 return Array.from(groups).sort();
             });
@@ -253,20 +280,18 @@
             const filteredUDItems = computed(() => {
                 let list = [...inventory.value];
                 if (currentGroup.value !== 'ALL') {
-                    if (currentGroup.value === "其他") list = list.filter(i => !/[A-Za-z]/.test(i.shelf?.charAt(0)) && !i.shelf?.includes("推車") && !i.shelf?.includes("冰"));
-                    else if (currentGroup.value.endsWith("區")) list = list.filter(i => i.shelf?.charAt(0).toUpperCase() === currentGroup.value.charAt(0));
-                    else list = list.filter(i => i.shelf?.includes(currentGroup.value));
+                    if (currentGroup.value === "其他") list = list.filter(i => !/[A-Z]/.test((i.shelf||'').charAt(0).toUpperCase()) && !i.shelf?.includes("推車") && !i.shelf?.includes("冰"));
+                    else if (currentGroup.value.endsWith("區")) list = list.filter(i => (i.shelf||'').charAt(0).toUpperCase() === currentGroup.value.charAt(0));
+                    else list = list.filter(i => (i.shelf||'').includes(currentGroup.value));
                 }
                 if (menuSearch.value) {
                     const k = menuSearch.value.toLowerCase();
                     list = list.filter(i => i.name.toLowerCase().includes(k) || i.code.toLowerCase().includes(k));
                 }
-                return list.sort((a, b) => a.shelf.localeCompare(b.shelf, 'zh-Hant'));
+                return list.sort((a, b) => (a.shelf || '').localeCompare(b.shelf || '', 'zh-Hant'));
             });
 
-            // 關鍵：採用您驗證為正確的過濾邏輯
             const todayUDLogs = computed(() => {
-                // 將 2026-01-28 轉為 2026/1/28 格式以匹配
                 const target = filterDate.value.split('-').map(n => parseInt(n)).join('/');
                 return transferLogs.value.filter(l => {
                     const logDate = l.time.split(' ')[0].split('/').map(n => parseInt(n)).join('/');
@@ -294,7 +319,7 @@
             const finalSubmitOrder = async () => {
                 for (const d of selectedDrugs.value) {
                     await push(dbRef(db, "replenishment_orders"), {
-                        code: d.code, name: d.name, shelf: d.shelf, requester: currentUser.value, time: new Date().toLocaleString('zh-TW', { hour12: false })
+                        code: d.code, name: d.name, shelf: d.shelf, requester: currentUser.value, time: new Date().toLocaleString('zh-TW', { hour12: false }), type: 'UD'
                     });
                 }
                 selectedDrugs.value = []; showReview.value = false; alert("點單成功！");
@@ -321,15 +346,14 @@
 
             const submitFinalAction = async () => {
                 if (!activeEntry.value || isSaving.value) return;
-                isSaving.value = true;
-                doCalculation();
+                isSaving.value = true; doCalculation();
                 const q = Number(entryQtyStr.value) || 0;
                 try {
                     if (editMode.value === 'process') {
                         await push(dbRef(db, "transfer_logs"), {
                             time: new Date().toLocaleString('zh-TW', { hour12: false }),
                             user: `UD(${currentUser.value})`, 
-                            code: activeEntry.value.code, name: activeEntry.value.name, shelf: activeEntry.value.shelf,
+                            code: activeEntry.value.code, name: activeEntry.value.name, shelf: activeEntry.value.shelf || '',
                             qty: q, processed: true, type: 'UD點單'
                         });
                         await remove(dbRef(db, `replenishment_orders/${activeEntry.value.id}`));
@@ -340,15 +364,25 @@
                 } catch (e) { alert("存檔錯誤"); } finally { isSaving.value = false; }
             };
 
-            const deleteLog = async (log) => { if (confirm("確定刪除紀錄？")) await remove(dbRef(db, `transfer_logs/${log.id}`)); };
-            const deletePendingOrder = async (order) => { if (confirm(`確定刪除？`)) await remove(dbRef(db, `replenishment_orders/${order.id}`)); };
+            const quickSubmitNfc = async () => {
+                if (isSaving.value) return; isSaving.value = true;
+                try {
+                    await push(dbRef(db, "replenishment_orders"), {
+                        code: activeNfcDrug.value.code, name: activeNfcDrug.value.name, shelf: activeNfcDrug.value.shelf,
+                        requester: currentUser.value, time: new Date().toLocaleString('zh-TW', { hour12: false }), type: 'NFC'
+                    });
+                    if(navigator.vibrate) navigator.vibrate([100, 50, 100]);
+                    isSubmitted.value = true;
+                } catch (e) { alert("發送失敗"); } finally { isSaving.value = false; }
+            };
+
+            const deleteLog = async (log) => { if (confirm("確定刪除？")) await remove(dbRef(db, `transfer_logs/${log.id}`)); };
             const addStaff = async () => { if(newStaff.value){ staffList.value.push(newStaff.value); await set(dbRef(db, "staff_list"), staffList.value); newStaff.value = ''; } };
             const removeStaff = async (idx) => { staffList.value.splice(idx, 1); await set(dbRef(db, "staff_list"), staffList.value); };
-
             const prepareEdit = (drug) => { editDrug.value = { ...drug, isEdit: true }; };
             const resetEdit = () => { editDrug.value = { code: '', name: '', shelf: '', isEdit: false, id: null }; };
             const saveSingleDrug = async () => {
-                if (!editDrug.value.code || !editDrug.value.name) return alert("請輸入代碼與名稱");
+                if (!editDrug.value.code || !editDrug.value.name) return alert("輸入代碼與名稱");
                 const data = { code: editDrug.value.code.trim(), name: editDrug.value.name.trim(), shelf: (editDrug.value.shelf||'').trim(), zone: 'UD' };
                 if (editDrug.value.isEdit) await update(dbRef(db, `inventory/${editDrug.value.id}`), data);
                 else await push(dbRef(db, "inventory"), data);
@@ -358,49 +392,34 @@
 
             const importExcel = (e) => {
                 const file = e.target.files[0];
-                if (!file) return;
                 const reader = new FileReader();
                 reader.onload = async (res) => {
-                    try {
-                        const data = new Uint8Array(res.target.result);
-                        const workbook = XLSX.read(data, { type: 'array' });
-                        const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
-                        const newInv = jsonData.map(row => ({
-                            code: String(row.code || row['代碼'] || '').trim(),
-                            name: String(row.name || row['名稱'] || '').trim(),
-                            shelf: String(row.shelf || row['儲位'] || '').trim(), zone: 'UD'
-                        })).filter(i => i.code && i.name);
-                        if(confirm(`解析完成，準備更新 ${newInv.length} 筆資料？`)) {
-                            const s = await get(dbRef(db, "inventory"));
-                            const otherZone = (s.val() ? Object.values(s.val()) : []).filter(i => i.zone !== 'UD');
-                            await set(dbRef(db, "inventory"), [...otherZone, ...newInv]);
-                            alert("匯入成功");
-                        }
-                    } catch (err) { alert("讀取失敗"); }
+                    const data = new Uint8Array(res.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+                    const newInv = jsonData.map(row => ({
+                        code: String(row.code || row['代碼'] || '').trim(),
+                        name: String(row.name || row['名稱'] || '').trim(),
+                        shelf: String(row.shelf || row['儲位'] || '').trim(), zone: 'UD'
+                    })).filter(i => i.code && i.name);
+                    if(confirm(`更新 ${newInv.length} 筆？`)) {
+                        const s = await get(dbRef(db, "inventory"));
+                        const otherZone = (s.val() ? Object.values(s.val()) : []).filter(i => i.zone !== 'UD');
+                        await set(dbRef(db, "inventory"), [...otherZone, ...newInv]);
+                        alert("匯入成功");
+                    }
                 };
                 reader.readAsArrayBuffer(file);
-            };
-
-            const exportInventory = () => {
-                const ws = XLSX.utils.json_to_sheet(inventory.value.map(i => ({ code: i.code, name: i.name, shelf: i.shelf })));
-                const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "UD儲位");
-                XLSX.writeFile(wb, "UD儲位表.xlsx");
-            };
-
-            const exportTodayReport = async () => {
-                const s = await get(dbRef(db, "transfer_logs")); if (!s.val()) return alert("無資料");
-                const target = filterDate.value.split('-').map(n => parseInt(n)).join('/');
-                const logs = Object.values(s.val()).filter(l => l.time.startsWith(target) && (l.user.includes('UD') || l.type === 'UD點單'));
-                const ws = XLSX.utils.json_to_sheet(logs.map(l => ({ '時間': l.time, '人員': l.user, '代碼': l.code, '名稱': l.name, '數量': l.qty })));
-                const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "UD報表");
-                XLSX.writeFile(wb, `UD報表_${filterDate.value}.xlsx`);
             };
 
             return {
                 currentUser, staffList, menuSearch, adminSearch, currentGroup, shelfGroups, filteredUDItems, adminFilteredInventory, sortedPendingOrders, todayUDLogs, selectedDrugs, showReview, showManager, activeEntry, entryQtyStr, editMode, isSaving, filterDate, newStaff,
                 inventory, editDrug, prepareEdit, saveSingleDrug, deleteSingleDrug, resetEdit,
-                toggleSelect, isSelected, openReviewModal, finalSubmitOrder, openActionModal, handleCalc, submitFinalAction, submitAsZero: () => { entryQtyStr.value='0'; submitFinalAction(); }, deletePendingOrder, deleteLog, doCalculation, getWarehouseShelf, changeFontSize,
-                addStaff, removeStaff, importExcel, exportInventory, exportTodayReport, saveUser: () => localStorage.setItem('preferred_user', currentUser.value),
+                toggleSelect, isSelected, openReviewModal, finalSubmitOrder, openActionModal, handleCalc, submitFinalAction, submitAsZero: () => { entryQtyStr.value='0'; submitFinalAction(); }, deleteLog, doCalculation, getWarehouseShelf, changeFontSize,
+                addStaff, removeStaff, importExcel, exportInventory: () => { const ws = XLSX.utils.json_to_sheet(inventory.value.map(i => ({ code: i.code, name: i.name, shelf: i.shelf }))); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "UD"); XLSX.writeFile(wb, "UD儲位表.xlsx"); },
+                exportTodayReport: async () => { const s = await get(dbRef(db, "transfer_logs")); const target = filterDate.value.split('-').map(n => parseInt(n)).join('/'); const logs = Object.values(s.val()||{}).filter(l => l.time.startsWith(target) && (l.user.includes('UD') || l.type === 'UD點單')); const ws = XLSX.utils.json_to_sheet(logs.map(l => ({ '時間': l.time, '人員': l.user, '代碼': l.code, '名稱': l.name, '數量': l.qty }))); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Report"); XLSX.writeFile(wb, `UD報表_${filterDate.value}.xlsx`); },
+                saveUser: () => localStorage.setItem('preferred_user', currentUser.value),
+                nfcShelfId, activeNfcDrug, isSubmitted, quickSubmitNfc, clearNfc: () => { window.location.href = window.location.pathname; },
                 getBtnClass: (n) => n === 'AC' ? 'calc-btn btn-ac' : (['/','*','-','+'].includes(n) ? 'calc-btn btn-op' : (n==='DEL'?'calc-btn btn-num text-red-500':'calc-btn btn-num')),
                 getBtnLabel: (n) => n === '*' ? '×' : (n === '/' ? '÷' : (n==='DEL'?'←':n))
             };
