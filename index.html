@@ -3,287 +3,192 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>藥劑科即時通報系統 v4.0 (Firebase 版)</title>
+    <title>藥劑科管理系統 v5.0</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/vue@3/dist/vue.esm-browser.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     
     <style>
+        /* 基礎變數：用於字體縮放 */
         :root { --base-size: 16px; }
         [v-cloak] { display: none; }
-        body { background-color: #f1f5f9; font-size: var(--base-size); transition: font-size 0.2s ease; -webkit-tap-highlight-color: transparent; }
         
-        /* 跑馬燈專用動畫 */
-        .marquee-container { overflow: hidden; white-space: nowrap; display: flex; align-items: center; }
-        .marquee-content { display: inline-block; padding-left: 100%; animation: marquee 12s linear infinite; }
-        @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
+        body { 
+            background-color: #f8fafc; 
+            font-size: var(--base-size); 
+            transition: font-size 0.2s ease; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
 
-        .nav-card { transition: all 0.2s ease; }
+        /* 響應式網格佈局 */
+        .responsive-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); 
+            gap: 1.25rem; 
+        }
+
+        /* 卡片樣式優化 */
+        .nav-card { 
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+            background: white;
+            border-radius: 1.5rem;
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .nav-card:hover { 
+            transform: translateY(-4px); 
+            box-shadow: 0 12px 20px -5px rgba(0, 0, 0, 0.1); 
+            border-color: #3b82f6; 
+        }
         .nav-card:active { transform: scale(0.96); }
-        .responsive-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 0.75rem; }
-        .font-btn { @apply w-10 h-10 rounded-full border border-slate-200 bg-white flex items-center justify-center text-slate-600 font-bold active:bg-blue-600 active:text-white transition-all shadow-sm; }
-        .stats-badge { @apply bg-white px-4 py-2 rounded-2xl border border-slate-200 shadow-sm flex flex-col items-center min-w-[120px]; }
-        
-        .fade-enter-active, .fade-leave-active { transition: opacity 0.5s ease; }
-        .fade-enter-from, .fade-leave-to { opacity: 0; }
-        .slide-down-enter-active, .slide-down-leave-active { transition: all 0.5s ease; }
-        .slide-down-enter-from, .slide-down-leave-to { transform: translateY(-100%); }
+
+        .icon-box {
+            width: 3.5rem;
+            height: 3.5rem;
+            border-radius: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            transition: all 0.3s;
+        }
+
+        /* 字體按鈕 */
+        .font-btn { 
+            @apply w-12 h-12 rounded-full border-2 border-slate-200 bg-white flex items-center justify-center text-slate-600 font-bold hover:bg-blue-50 active:bg-blue-600 active:text-white transition-all shadow-md; 
+        }
     </style>
 </head>
 <body class="min-h-screen">
 
 <div id="app" v-cloak>
-    <transition name="slide-down">
-        <div v-if="latestNote" class="fixed top-0 left-0 right-0 z-[100] bg-slate-900 text-yellow-400 py-3 shadow-2xl border-b-2 border-yellow-500">
-            <div class="marquee-container relative h-8">
-                <div class="absolute left-0 bg-slate-900 px-4 z-10 text-white font-black border-r border-slate-700">
-                    <i class="fa-solid fa-bullhorn fa-shake"></i>
-                </div>
-                <div class="marquee-content text-lg font-black tracking-widest">
-                    【{{ latestNote.time }}】 {{ latestNote.message }} ——— 請同仁留意 ———
-                </div>
-                <button @click="closeNotification" class="absolute right-0 bg-slate-900 px-4 z-10 text-slate-400 hover:text-white">
-                    <i class="fa-solid fa-circle-xmark text-xl"></i>
-                </button>
-            </div>
-        </div>
-    </transition>
-
-    <div class="max-w-4xl mx-auto py-8 px-4 transition-all duration-500" :class="{'mt-14': latestNote}">
+    <div class="max-w-6xl mx-auto py-8 px-4">
         
-        <div class="flex justify-between items-center mb-6">
-            <div class="flex flex-col gap-1">
-                <div @click="unlockVoice" class="cursor-pointer flex items-center gap-2 px-3 py-1 bg-white rounded-full border border-slate-200 shadow-sm">
-                    <div :class="['w-2 h-2 rounded-full', voiceEnabled ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500']"></div>
-                    <span class="text-[0.6em] font-black text-slate-500 uppercase tracking-tighter">
-                        {{ voiceEnabled ? '即時通訊已連線' : '點此啟動語音監聽' }}
-                    </span>
-                </div>
-                <div class="px-3 text-[0.55em] font-bold text-slate-400 uppercase">
-                    <i class="fa-solid fa-bolt mr-1"></i> Firebase Realtime Mode
-                </div>
-            </div>
-            <div class="flex items-center gap-3">
-                <span class="text-[0.7em] font-bold text-slate-400 uppercase tracking-tighter">字體</span>
-                <button @click="changeFont(-2)" class="font-btn">A-</button>
-                <button @click="changeFont(2)" class="font-btn">A+</button>
-            </div>
+        <div class="flex justify-end items-center mb-8 gap-4">
+            <span class="text-sm font-bold text-slate-400 uppercase tracking-tighter">友善字體</span>
+            <button @click="changeFont(-2)" class="font-btn"><i class="fa-solid fa-minus"></i></button>
+            <button @click="changeFont(2)" class="font-btn"><i class="fa-solid fa-plus"></i></button>
         </div>
 
-        <header class="text-center mb-10">
-            <div @click="showLogModal = true" class="inline-block bg-blue-600 p-5 rounded-[2rem] shadow-xl mb-4 text-white cursor-pointer hover:bg-blue-700 active:scale-95 transition-all">
-                <i class="fa-solid fa-hospital text-4xl"></i>
+        <header class="text-center mb-12">
+            <div class="inline-block bg-blue-600 p-6 rounded-[2.5rem] shadow-xl mb-4 text-white">
+                <i class="fa-solid fa-hospital-user text-5xl"></i>
             </div>
-            <h1 class="text-[1.8em] font-black text-slate-800 tracking-tighter leading-tight">藥劑科管理系統</h1>
-            <p class="text-slate-500 text-[0.8em] mt-1 uppercase tracking-widest">Feng Yuan Hospital Pharmacy</p>
+            <h1 class="text-[2em] font-black text-slate-800 tracking-tight">藥劑科管理系統</h1>
+            <p class="text-slate-500 text-sm mt-2 uppercase tracking-[0.3em]">Feng Yuan Hospital Pharmacy</p>
         </header>
 
-        <section class="mb-10">
-            <h2 class="text-slate-400 text-[0.7em] font-black uppercase tracking-[0.2em] mb-4 px-2"><i class="fa-solid fa-gears"></i> 一、行政管理與查詢</h2>
+        <section class="mb-12">
+            <h2 class="text-blue-600 font-black uppercase tracking-widest mb-6 px-2 flex items-center gap-2">
+                <i class="fa-solid fa-square-poll-vertical"></i> 一、行政管理與查詢
+            </h2>
             <div class="responsive-grid">
-                <a href="https://amanhung.github.io/schedule/" target="_blank" class="nav-card bg-white p-5 rounded-[1.5rem] shadow-sm border border-slate-100 flex items-center gap-4 group">
-                    <div class="bg-indigo-50 w-14 h-14 rounded-2xl flex items-center justify-center text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-colors"><i class="fa-solid fa-calendar-check text-xl"></i></div>
-                    <span class="font-bold text-slate-700">線上排班系統</span>
+                <a href="https://amanhung.github.io/schedule/" target="_blank" class="nav-card group">
+                    <div class="icon-box bg-indigo-50 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white"><i class="fa-solid fa-calendar-check"></i></div>
+                    <span class="font-bold text-slate-700 text-[1.1em]">線上排班系統</span>
                 </a>
-                <a href="https://fyhpharm1153.github.io/pharmdepot/newdrugstatus.html" target="_blank" class="nav-card bg-white p-5 rounded-[1.5rem] shadow-sm border border-slate-100 flex items-center gap-4 group">
-                    <div class="bg-blue-50 w-14 h-14 rounded-2xl flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors"><i class="fa-solid fa-flask-vial text-xl"></i></div>
-                    <span class="font-bold text-slate-700">114Q4 新藥進度</span>
+                <a href="https://fyhpharm1153.github.io/pharmdepot/newdrugstatus.html" target="_blank" class="nav-card group">
+                    <div class="icon-box bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white"><i class="fa-solid fa-flask-vial"></i></div>
+                    <span class="font-bold text-slate-700 text-[1.1em]">114Q4 新藥進度</span>
                 </a>
-                <a href="https://amanhung.github.io/hospital-drug-search/" target="_blank" class="nav-card bg-white p-5 rounded-[1.5rem] shadow-sm border border-slate-100 flex items-center gap-4 group">
-                    <div class="bg-blue-50 w-14 h-14 rounded-2xl flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors"><i class="fa-solid fa-book-medical text-xl"></i></div>
-                    <span class="font-bold text-slate-700">院內處方集</span>
+                <a href="https://amanhung.github.io/hospital-drug-search/" target="_blank" class="nav-card group">
+                    <div class="icon-box bg-cyan-50 text-cyan-600 group-hover:bg-cyan-600 group-hover:text-white"><i class="fa-solid fa-book-medical"></i></div>
+                    <span class="font-bold text-slate-700 text-[1.1em]">院內處方集</span>
                 </a>
-                <a href="https://amanhung.github.io/Inventory/" target="_blank" class="nav-card bg-white p-5 rounded-[1.5rem] shadow-sm border border-slate-100 flex items-center gap-4 group">
-                    <div class="bg-blue-50 w-14 h-14 rounded-2xl flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors"><i class="fa-solid fa-list-check text-xl"></i></div>
-                    <span class="font-bold text-slate-700">盤點系統</span>
+                <a href="https://amanhung.github.io/Inventory/" target="_blank" class="nav-card group">
+                    <div class="icon-box bg-emerald-50 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white"><i class="fa-solid fa-list-check"></i></div>
+                    <span class="font-bold text-slate-700 text-[1.1em]">盤點系統</span>
                 </a>
-                <a href="search.html" class="nav-card bg-white p-5 rounded-[1.5rem] shadow-sm border border-slate-100 flex items-center gap-4 group">
-                    <div class="bg-emerald-50 w-14 h-14 rounded-2xl flex items-center justify-center text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-colors"><i class="fa-solid fa-magnifying-glass text-xl"></i></div>
-                    <span class="font-bold text-slate-700">儲位搜尋</span>
+                <a href="search.html" class="nav-card group">
+                    <div class="icon-box bg-teal-50 text-teal-600 group-hover:bg-teal-600 group-hover:text-white"><i class="fa-solid fa-magnifying-glass"></i></div>
+                    <span class="font-bold text-slate-700 text-[1.1em]">儲位搜尋</span>
                 </a>
-                <a href="https://fyhpharm1153.github.io/pharmdepot/transfer.html" target="_blank" class="nav-card bg-white p-5 rounded-[1.5rem] shadow-sm border border-slate-100 flex items-center gap-4 group">
-                    <div class="bg-sky-50 w-14 h-14 rounded-2xl flex items-center justify-center text-sky-600 group-hover:bg-sky-600 group-hover:text-white transition-colors"><i class="fa-solid fa-truck-fast text-xl"></i></div>
-                    <span class="font-bold text-slate-700">撥補/急領</span>
+                <a href="https://fyhpharm1153.github.io/pharmdepot/transfer.html" target="_blank" class="nav-card group">
+                    <div class="icon-box bg-sky-50 text-sky-600 group-hover:bg-sky-600 group-hover:text-white"><i class="fa-solid fa-truck-fast"></i></div>
+                    <span class="font-bold text-slate-700 text-[1.1em]">撥補/急領</span>
                 </a>
-                <a href="https://fyhpharm1153.github.io/pharmdepot/udorder.html" target="_blank" class="nav-card bg-white p-5 rounded-[1.5rem] shadow-sm border border-slate-100 flex items-center gap-4 group">
-                    <div class="bg-amber-50 w-14 h-14 rounded-2xl flex items-center justify-center text-amber-600 group-hover:bg-amber-600 group-hover:text-white transition-colors"><i class="fa-solid fa-utensils text-xl"></i></div>
-                    <span class="font-bold text-slate-700">UD 點餐單</span>
+                <a href="https://fyhpharm1153.github.io/pharmdepot/udorder.html" target="_blank" class="nav-card group">
+                    <div class="icon-box bg-amber-50 text-amber-600 group-hover:bg-amber-600 group-hover:text-white"><i class="fa-solid fa-utensils"></i></div>
+                    <span class="font-bold text-slate-700 text-[1.1em]">UD 點餐單</span>
                 </a>
-                <a href="https://amanhung.github.io/drink/" target="_blank" class="nav-card bg-white p-5 rounded-[1.5rem] shadow-sm border border-slate-100 flex items-center gap-4 group">
-                    <div class="bg-orange-50 w-14 h-14 rounded-2xl flex items-center justify-center text-orange-600 group-hover:bg-orange-600 group-hover:text-white transition-colors"><i class="fa-solid fa-glass-cheers text-xl"></i></div>
-                    <span class="font-bold text-slate-700">盤點日快樂</span>
+                <a href="https://amanhung.github.io/drink/" target="_blank" class="nav-card group border-orange-200 bg-orange-50">
+                    <div class="icon-box bg-orange-500 text-white"><i class="fa-solid fa-mug-hot"></i></div>
+                    <span class="font-black text-orange-700 text-[1.1em]">盤點日快樂</span>
                 </a>
             </div>
         </section>
 
-        <section class="mb-10">
-            <h2 class="text-slate-400 text-[0.7em] font-black uppercase tracking-[0.2em] mb-4 px-2"><i class="fa-solid fa-clipboard-check"></i> 二、品質通報專區</h2>
+        <section class="mb-12">
+            <h2 class="text-rose-600 font-black uppercase tracking-widest mb-6 px-2 flex items-center gap-2">
+                <i class="fa-solid fa-circle-check"></i> 二、品質通報專區
+            </h2>
             <div class="responsive-grid">
-                <a href="https://tinyurl.com/110fyhmissrx" target="_blank" class="nav-card bg-white p-5 rounded-[1.5rem] shadow-sm border border-slate-100 flex items-center gap-4 group">
-                    <div class="bg-rose-50 w-14 h-14 rounded-2xl flex items-center justify-center text-rose-600 group-hover:bg-rose-600 group-hover:text-white transition-colors"><i class="fa-solid fa-circle-question text-xl"></i></div>
-                    <span class="font-bold text-slate-700">疑義處方登記</span>
+                <a href="https://tinyurl.com/110fyhmissrx" target="_blank" class="nav-card group">
+                    <div class="icon-box bg-rose-50 text-rose-600 group-hover:bg-rose-600 group-hover:text-white"><i class="fa-solid fa-circle-question"></i></div>
+                    <span class="font-bold text-slate-700 text-[1.1em]">疑義處方登記</span>
                 </a>
-                <a href="https://forms.gle/P8CAU19HgGF4CVEf9" target="_blank" class="nav-card bg-white p-5 rounded-[1.5rem] shadow-sm border border-slate-100 flex items-center gap-4 group">
-                    <div class="bg-orange-50 w-14 h-14 rounded-2xl flex items-center justify-center text-orange-600 group-hover:bg-orange-600 group-hover:text-white transition-colors"><i class="fa-solid fa-triangle-exclamation text-xl"></i></div>
-                    <span class="font-bold text-slate-700">調劑錯誤登記</span>
+                <a href="https://forms.gle/P8CAU19HgGF4CVEf9" target="_blank" class="nav-card group">
+                    <div class="icon-box bg-orange-50 text-orange-600 group-hover:bg-orange-600 group-hover:text-white"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                    <span class="font-bold text-slate-700 text-[1.1em]">調劑錯誤登記</span>
                 </a>
             </div>
         </section>
 
-        <section class="mb-10">
-            <h2 class="text-slate-400 text-[0.7em] font-black uppercase tracking-[0.2em] mb-4 px-2"><i class="fa-solid fa-comment-medical"></i> 三、民眾藥務諮詢</h2>
+        <section class="mb-12">
+            <h2 class="text-emerald-600 font-black uppercase tracking-widest mb-6 px-2 flex items-center gap-2">
+                <i class="fa-solid fa-comment-medical"></i> 三、民眾藥務諮詢
+            </h2>
             <div class="responsive-grid">
-                <a href="https://cw-chen122.github.io/wegovy-cal/" target="_blank" class="nav-card bg-white p-5 rounded-[1.5rem] shadow-sm border border-slate-100 flex items-center gap-4 group">
-                    <div class="bg-cyan-50 w-14 h-14 rounded-2xl flex items-center justify-center text-cyan-600 group-hover:bg-cyan-600 group-hover:text-white transition-colors"><i class="fa-solid fa-calculator text-xl"></i></div>
-                    <span class="font-bold text-slate-700">Wegovy 劑量換算器</span>
+                <a href="https://cw-chen122.github.io/wegovy-cal/" target="_blank" class="nav-card group">
+                    <div class="icon-box bg-cyan-50 text-cyan-600 group-hover:bg-cyan-600 group-hover:text-white"><i class="fa-solid fa-calculator"></i></div>
+                    <span class="font-bold text-slate-700 text-[1.1em]">Wegovy 劑量換算器</span>
                 </a>
-                <a href="https://amanhung.github.io/Formulary/" target="_blank" class="nav-card bg-white p-5 rounded-[1.5rem] shadow-sm border border-slate-100 flex items-center gap-4 group">
-                    <div class="bg-emerald-50 w-14 h-14 rounded-2xl flex items-center justify-center text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-colors"><i class="fa-solid fa-users text-xl"></i></div>
-                    <span class="font-bold text-slate-700">民眾藥品查詢</span>
+                <a href="https://amanhung.github.io/Formulary/" target="_blank" class="nav-card group">
+                    <div class="icon-box bg-emerald-50 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white"><i class="fa-solid fa-users-viewfinder"></i></div>
+                    <span class="font-bold text-slate-700 text-[1.1em]">民眾藥品查詢</span>
                 </a>
             </div>
         </section>
 
-        <transition name="fade">
-            <div v-if="showLogModal" class="fixed inset-0 z-[110] flex items-center justify-center p-4">
-                <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" @click="showLogModal = false"></div>
-                <div class="relative bg-white rounded-[2rem] shadow-2xl w-full max-w-md p-6">
-                    <div class="flex justify-between items-center mb-6">
-                        <h3 class="text-xl font-black text-slate-800">即時推播/語音</h3>
-                        <i class="fa-solid fa-paper-plane text-blue-600"></i>
-                    </div>
-                    <textarea v-model="logNote" class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl mb-4" rows="3" placeholder="輸入備註內容..."></textarea>
-                    
-                    <div class="flex flex-col gap-3">
-                        <button @click="addLog('一般訊息')" :disabled="!logNote.trim()" class="py-3 bg-slate-700 text-white rounded-2xl font-black disabled:opacity-40">發送文字備註</button>
-                        <div class="grid grid-cols-3 gap-2">
-                            <button v-for="type in ['支援調劑', '支援check', '支援發藥']" @click="addLog(type)" class="py-4 bg-indigo-600 text-white rounded-xl font-black text-xs">{{ type }}</button>
-                        </div>
-                        <button @click="addLog('電梯很滿，請清空升降梯')" class="py-4 bg-rose-600 text-white rounded-xl font-black text-sm flex items-center justify-center gap-2">
-                            <i class="fa-solid fa-elevator"></i> 電梯很滿，請清空升降梯
-                        </button>
-                    </div>
+        <footer class="mt-16 text-center pb-12 border-t border-slate-200 pt-10">
+            <div class="inline-flex flex-col items-center bg-white px-8 py-4 rounded-3xl border border-slate-200 shadow-sm">
+                <span class="text-[0.7rem] text-slate-400 font-black uppercase tracking-widest mb-1">總瀏覽人次</span>
+                <div class="flex items-baseline gap-1 text-slate-700">
+                    <span class="text-2xl font-black" id="busuanzi_value_site_pv">--</span>
+                    <span class="text-xs font-bold">次</span>
                 </div>
             </div>
-        </transition>
-
-        <footer class="mt-16 text-center pb-12 border-t border-slate-200 pt-8">
-            <div class="stats-badge mx-auto w-fit">
-                <span class="text-[0.6em] text-slate-400 font-bold uppercase tracking-wider">總瀏覽次數</span>
-                <span class="text-[1.2em] font-black text-slate-700" id="busuanzi_value_site_pv">--</span>
-            </div>
-            <p class="text-slate-400 text-[0.6em] font-bold mt-4">Version 4.0 (Firebase Realtime Engine)</p>
+            <p class="text-slate-400 text-[0.7rem] font-bold mt-6 tracking-widest uppercase">FYH Pharmacy Portal v5.0</p>
+            
             <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
         </footer>
     </div>
 </div>
 
 <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getDatabase, ref, push, set, onChildAdded, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-    import { createApp, ref as vRef, onMounted } from 'https://unpkg.com/vue@3/dist/vue.esm-browser.js';
-
-    // ----------------------------------------------------------------
-    // ⚠ 請在此填入您的 Firebase 設定 (從 Firebase Console 取得)
-    // ----------------------------------------------------------------
-    const firebaseConfig = {
-        apiKey: "YOUR_API_KEY",
-        authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-        databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
-        projectId: "YOUR_PROJECT_ID",
-        storageBucket: "YOUR_PROJECT_ID.appspot.com",
-        messagingSenderId: "YOUR_ID",
-        appId: "YOUR_APP_ID"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
-    const logsRef = ref(db, 'logs');
+    import { createApp, ref } from 'https://unpkg.com/vue@3/dist/vue.esm-browser.js';
 
     createApp({
         setup() {
-            const currentSize = vRef(16);
-            const showLogModal = vRef(false);
-            const logNote = vRef('');
-            const latestNote = vRef(null);
-            const voiceEnabled = vRef(false);
-            const isFirstLoad = vRef(true); // 用於防止一開啟網頁就念出舊訊息
+            const currentSize = ref(16);
 
-            onMounted(() => {
-                const savedSize = localStorage.getItem('fyh-font-size');
-                if (savedSize) applyFontSize(parseInt(savedSize));
+            // 初始化字體大小
+            const savedSize = localStorage.getItem('fyh-portal-fontsize');
+            if (savedSize) {
+                currentSize.value = parseInt(savedSize);
+                document.documentElement.style.setProperty('--base-size', `${currentSize.value}px`);
+            }
 
-                // 點擊解鎖語音
-                window.addEventListener('click', unlockVoice, { once: true });
-
-                // 重要：監聽 Firebase 新資料
-                onChildAdded(logsRef, (snapshot) => {
-                    const data = snapshot.val();
-                    
-                    // 如果網頁剛打開，只紀錄 ID 不跳通知 (防止補噴舊訊息)
-                    if (isFirstLoad.value) {
-                        return;
-                    }
-
-                    triggerUI(data.type, data.note, data.time);
-                });
-
-                // 標記第一次載入完成
-                setTimeout(() => { isFirstLoad.value = false; }, 3000);
-            });
-
-            const unlockVoice = () => {
-                if (voiceEnabled.value) return;
-                window.speechSynthesis.speak(new SpeechSynthesisUtterance(''));
-                voiceEnabled.value = true;
-            };
-
-            const triggerUI = (type, note, rawTime) => {
-                const msg = type === '一般訊息' ? note : `${type}${note ? '('+note+')' : ''}`;
-                
-                // 顯示跑馬燈
-                latestNote.value = {
-                    time: new Date(rawTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'}),
-                    message: msg
-                };
-
-                // 播放語音
-                if (voiceEnabled.value) {
-                    window.speechSynthesis.cancel();
-                    const utter = new SpeechSynthesisUtterance(type === '一般訊息' ? note : type);
-                    utter.lang = 'zh-TW';
-                    window.speechSynthesis.speak(utter);
-                }
-
-                // 60秒後自動移除跑馬燈
-                setTimeout(() => { latestNote.value = null; }, 60000);
-            };
-
-            const addLog = async (type) => {
-                const newLogRef = push(logsRef);
-                await set(newLogRef, {
-                    type: type,
-                    note: logNote.value,
-                    time: serverTimestamp()
-                });
-                logNote.value = '';
-                showLogModal.value = false;
-            };
-
-            const closeNotification = () => { latestNote.value = null; window.speechSynthesis.cancel(); };
             const changeFont = (delta) => {
                 currentSize.value = Math.max(12, Math.min(32, currentSize.value + delta));
-                applyFontSize(currentSize.value);
-                localStorage.setItem('fyh-font-size', currentSize.value);
-            };
-            const applyFontSize = (size) => {
-                document.documentElement.style.setProperty('--base-size', `${size}px`);
+                document.documentElement.style.setProperty('--base-size', `${currentSize.value}px`);
+                localStorage.setItem('fyh-portal-fontsize', currentSize.value);
             };
 
-            return { 
-                currentSize, showLogModal, logNote, latestNote, voiceEnabled,
-                addLog, closeNotification, changeFont, unlockVoice
-            };
+            return { currentSize, changeFont };
         }
     }).mount('#app');
 </script>
