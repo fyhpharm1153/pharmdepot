@@ -3,216 +3,221 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>藥劑科管理系統 v5.2 (特大字體版)</title>
+    <title>藥劑科管理系統 v5.7</title>
+    
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     
     <style>
-        /* 預設大小設定為 32px (極大字體友善版) */
         :root { --base-size: 32px; }
-        [v-cloak] { display: none; }
+        [v-cloak] { display: none !important; }
         
         body { 
-            background-color: #f8fafc; 
+            background-color: #f1f5f9; 
             font-size: var(--base-size); 
             transition: font-size 0.2s ease; 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
             color: #1e293b;
-            line-height: 1.4;
+            line-height: 1.2;
         }
 
-        /* 響應式網格佈局：手機 1 欄 -> 平板 2 欄 -> 電腦 3 欄 -> 大螢幕 4 欄 */
+        /* 響應式網格：寬螢幕自動變 4 欄 */
         .responsive-grid { 
             display: grid; 
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 1.25rem; 
+            gap: 0.75rem; 
         }
-        @media (min-width: 768px) { .responsive-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
         @media (min-width: 1024px) { .responsive-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
         @media (min-width: 1440px) { .responsive-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 
-        /* 卡片樣式 */
+        /* 卡片精緻樣式 */
         .nav-card { 
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+            transition: all 0.2s ease;
             background: white;
-            border-radius: 1.5rem;
-            padding: 1.5rem;
+            border-radius: 1.25rem;
+            padding: 1rem;
             display: flex;
             align-items: center;
-            gap: 1.25rem;
+            gap: 1rem;
             border: 1px solid #e2e8f0;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-            height: 100%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            cursor: pointer;
         }
         .nav-card:hover { 
-            transform: translateY(-5px); 
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); 
-            border-color: #3b82f6; 
+            transform: translateY(-3px); 
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); 
+            border-color: #2563eb; 
         }
-        .nav-card span { font-weight: 800; letter-spacing: -0.02em; }
+        .nav-card span { font-weight: 800; letter-spacing: -0.02em; font-size: 0.9em; }
 
         .icon-box {
-            width: 4rem;
-            height: 4rem;
+            width: 3.5rem;
+            height: 3.5rem;
             flex-shrink: 0;
-            border-radius: 1.25rem;
+            border-radius: 1rem;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.8rem;
+            font-size: 1.5rem;
         }
 
-        .font-btn { 
-            @apply w-16 h-16 rounded-full border-2 border-slate-200 bg-white flex items-center justify-center text-slate-600 font-bold hover:bg-blue-50 active:bg-blue-600 active:text-white transition-all shadow-lg; 
+        /* 強化後的字體按鈕 */
+        .font-ctrl-btn {
+            @apply flex items-center gap-2 px-4 py-2 bg-white border-2 border-slate-200 rounded-xl font-black text-slate-600 transition-all hover:bg-blue-50 active:bg-blue-600 active:text-white shadow-sm;
+            font-size: 0.5em; /* 相對於基底字體的縮放 */
         }
-
-        /* 標題區域在超大字體下的調整 */
-        header h1 { font-size: 1.5em; line-height: 1.1; }
-        section h2 { font-size: 0.8em; margin-top: 1rem; }
-        footer .stats-badge { transform: scale(1.1); }
     </style>
 </head>
 <body class="min-h-screen">
 
 <div id="app" v-cloak>
-    <div class="max-w-[1600px] mx-auto py-10 px-6">
+    <div class="max-w-[1700px] mx-auto py-4 px-6">
         
-        <div class="flex justify-end items-center mb-12 gap-6">
-            <span class="text-base font-black text-slate-400 uppercase tracking-widest">字體</span>
-            <button @click="changeFont(-4)" class="font-btn" title="縮小"><i class="fa-solid fa-minus"></i></button>
-            <button @click="changeFont(4)" class="font-btn" title="放大"><i class="fa-solid fa-plus"></i></button>
-        </div>
-
-        <header class="text-center mb-16">
-            <div class="inline-block bg-blue-600 p-8 rounded-[3rem] shadow-2xl mb-6 text-white">
-                <i class="fa-solid fa-hospital-user text-6xl"></i>
+        <header class="flex flex-wrap items-center justify-between mb-6 bg-white p-3 px-6 rounded-[1.5rem] shadow-sm border border-slate-200">
+            <div class="flex items-center gap-4">
+                <div class="bg-blue-600 w-12 h-12 rounded-xl flex items-center justify-center text-white shadow-md">
+                    <i class="fa-solid fa-hospital-user text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="font-black tracking-tighter text-slate-800 text-xl">藥劑科管理系統</h1>
+                    <p class="text-slate-400 text-[10px] uppercase tracking-widest font-bold">Feng Yuan Hospital Pharmacy</p>
+                </div>
             </div>
-            <h1 class="font-black tracking-tighter text-slate-800">藥劑科管理系統</h1>
-            <p class="text-slate-400 text-base mt-4 uppercase tracking-[0.5em] font-black">Feng Yuan Hospital Pharmacy</p>
+            
+            <div class="flex items-center gap-2">
+                <button @click="changeFont(-4)" class="font-ctrl-btn">
+                    <i class="fa-solid fa-magnifying-glass-minus"></i> 較小
+                </button>
+                <button @click="changeFont(4)" class="font-ctrl-btn">
+                    <i class="fa-solid fa-magnifying-glass-plus"></i> 較大
+                </button>
+            </div>
         </header>
 
-        <section class="mb-20">
-            <h2 class="text-blue-600 font-black uppercase tracking-[0.2em] mb-8 px-2 flex items-center gap-4">
-                <i class="fa-solid fa-folder-tree"></i> 一、行政管理與查詢
+        <section class="mb-6">
+            <h2 class="text-blue-600 font-black uppercase tracking-wider px-2 mb-3 flex items-center gap-3 text-[0.6em]">
+                <i class="fa-solid fa-gears"></i> 一、行政管理與查詢
             </h2>
             <div class="responsive-grid">
-                <a href="https://amanhung.github.io/schedule/" target="_blank" class="nav-card group">
-                    <div class="icon-box bg-indigo-100 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white"><i class="fa-solid fa-calendar-check"></i></div>
+                <div onclick="window.open('https://amanhung.github.io/schedule/')" class="nav-card group">
+                    <div class="icon-box bg-indigo-50 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white"><i class="fa-solid fa-calendar-check"></i></div>
                     <span>線上排班系統</span>
-                </a>
-                <a href="https://fyhpharm1153.github.io/pharmdepot/newdrugstatus.html" target="_blank" class="nav-card group">
-                    <div class="icon-box bg-blue-100 text-blue-600 group-hover:bg-blue-600 group-hover:text-white"><i class="fa-solid fa-flask-vial"></i></div>
+                </div>
+                <div onclick="window.open('https://fyhpharm1153.github.io/pharmdepot/newdrugstatus.html')" class="nav-card group">
+                    <div class="icon-box bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white"><i class="fa-solid fa-flask-vial"></i></div>
                     <span>114Q4 新藥進度</span>
-                </a>
-                <a href="https://amanhung.github.io/hospital-drug-search/" target="_blank" class="nav-card group">
-                    <div class="icon-box bg-cyan-100 text-cyan-600 group-hover:bg-cyan-600 group-hover:text-white"><i class="fa-solid fa-book-medical"></i></div>
+                </div>
+                <div onclick="window.open('https://amanhung.github.io/hospital-drug-search/')" class="nav-card group">
+                    <div class="icon-box bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white"><i class="fa-solid fa-book-medical"></i></div>
                     <span>院內處方集</span>
-                </a>
-                <a href="https://amanhung.github.io/Inventory/" target="_blank" class="nav-card group">
-                    <div class="icon-box bg-emerald-100 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white"><i class="fa-solid fa-list-check"></i></div>
+                </div>
+                <div onclick="window.open('https://amanhung.github.io/Inventory/')" class="nav-card group">
+                    <div class="icon-box bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white"><i class="fa-solid fa-list-check"></i></div>
                     <span>盤點系統</span>
-                </a>
-                <a href="search.html" class="nav-card group">
-                    <div class="icon-box bg-teal-100 text-teal-600 group-hover:bg-teal-600 group-hover:text-white"><i class="fa-solid fa-magnifying-glass"></i></div>
+                </div>
+                <div onclick="window.open('search.html')" class="nav-card group">
+                    <div class="icon-box bg-emerald-50 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white"><i class="fa-solid fa-magnifying-glass"></i></div>
                     <span>儲位搜尋</span>
-                </a>
-                <a href="https://fyhpharm1153.github.io/pharmdepot/transfer.html" target="_blank" class="nav-card group">
-                    <div class="icon-box bg-sky-100 text-sky-600 group-hover:bg-sky-600 group-hover:text-white"><i class="fa-solid fa-truck-fast"></i></div>
+                </div>
+                <div onclick="window.open('https://fyhpharm1153.github.io/pharmdepot/transfer.html')" class="nav-card group">
+                    <div class="icon-box bg-sky-50 text-sky-600 group-hover:bg-sky-600 group-hover:text-white"><i class="fa-solid fa-truck-fast"></i></div>
                     <span>撥補/急領</span>
-                </a>
-                <a href="https://fyhpharm1153.github.io/pharmdepot/udorder.html" target="_blank" class="nav-card group">
-                    <div class="icon-box bg-amber-100 text-amber-600 group-hover:bg-amber-600 group-hover:text-white"><i class="fa-solid fa-utensils"></i></div>
+                </div>
+                <div onclick="window.open('https://fyhpharm1153.github.io/pharmdepot/udorder.html')" class="nav-card group">
+                    <div class="icon-box bg-amber-50 text-amber-600 group-hover:bg-amber-600 group-hover:text-white"><i class="fa-solid fa-utensils"></i></div>
                     <span>UD 點餐單</span>
-                </a>
-                <a href="https://amanhung.github.io/drink/" target="_blank" class="nav-card group border-orange-400 bg-orange-50">
+                </div>
+                <div onclick="window.open('https://amanhung.github.io/drink/')" class="nav-card group border-orange-200 bg-orange-50">
                     <div class="icon-box bg-orange-500 text-white"><i class="fa-solid fa-mug-hot"></i></div>
-                    <span class="text-orange-800 font-black">盤點日快樂</span>
-                </a>
+                    <span class="text-orange-800">盤點日快樂</span>
+                </div>
             </div>
         </section>
 
-        <section class="mb-20">
-            <h2 class="text-rose-600 font-black uppercase tracking-[0.2em] mb-8 px-2 flex items-center gap-4">
-                <i class="fa-solid fa-circle-check"></i> 二、品質通報專區
+        <section class="mb-6">
+            <h2 class="text-rose-600 font-black uppercase tracking-wider px-2 mb-3 flex items-center gap-3 text-[0.6em]">
+                <i class="fa-solid fa-clipboard-check"></i> 二、品質通報專區
             </h2>
             <div class="responsive-grid">
-                <a href="https://tinyurl.com/110fyhmissrx" target="_blank" class="nav-card group">
-                    <div class="icon-box bg-rose-100 text-rose-600 group-hover:bg-rose-600 group-hover:text-white"><i class="fa-solid fa-circle-question"></i></div>
+                <div onclick="window.open('https://tinyurl.com/110fyhmissrx')" class="nav-card group">
+                    <div class="icon-box bg-rose-50 text-rose-600 group-hover:bg-rose-600 group-hover:text-white"><i class="fa-solid fa-circle-question"></i></div>
                     <span>疑義處方登記</span>
-                </a>
-                <a href="https://forms.gle/P8CAU19HgGF4CVEf9" target="_blank" class="nav-card group">
-                    <div class="icon-box bg-orange-100 text-orange-600 group-hover:bg-orange-600 group-hover:text-white"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                </div>
+                <div onclick="window.open('https://forms.gle/P8CAU19HgGF4CVEf9')" class="nav-card group">
+                    <div class="icon-box bg-orange-50 text-orange-600 group-hover:bg-orange-600 group-hover:text-white"><i class="fa-solid fa-triangle-exclamation"></i></div>
                     <span>調劑錯誤登記</span>
-                </a>
+                </div>
             </div>
         </section>
 
-        <section class="mb-20">
-            <h2 class="text-emerald-600 font-black uppercase tracking-[0.2em] mb-8 px-2 flex items-center gap-4">
+        <section class="mb-6">
+            <h2 class="text-emerald-600 font-black uppercase tracking-wider px-2 mb-3 flex items-center gap-3 text-[0.6em]">
                 <i class="fa-solid fa-comment-medical"></i> 三、民眾藥務諮詢
             </h2>
             <div class="responsive-grid">
-                <a href="https://cw-chen122.github.io/wegovy-cal/" target="_blank" class="nav-card group">
-                    <div class="icon-box bg-cyan-100 text-cyan-600 group-hover:bg-cyan-600 group-hover:text-white"><i class="fa-solid fa-calculator"></i></div>
-                    <span>Wegovy 劑量換算器</span>
-                </a>
-                <a href="https://amanhung.github.io/Formulary/" target="_blank" class="nav-card group">
-                    <div class="icon-box bg-emerald-100 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white"><i class="fa-solid fa-users-viewfinder"></i></div>
+                <div onclick="window.open('https://cw-chen122.github.io/wegovy-cal/')" class="nav-card group">
+                    <div class="icon-box bg-cyan-50 text-cyan-600 group-hover:bg-cyan-600 group-hover:text-white"><i class="fa-solid fa-calculator"></i></div>
+                    <span>Wegovy 換算器</span>
+                </div>
+                <div onclick="window.open('https://amanhung.github.io/Formulary/')" class="nav-card group">
+                    <div class="icon-box bg-emerald-50 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white"><i class="fa-solid fa-users"></i></div>
                     <span>民眾藥品查詢</span>
-                </a>
+                </div>
             </div>
         </section>
 
-        <section class="mb-20">
-            <h2 class="text-slate-600 font-black uppercase tracking-[0.2em] mb-8 px-2 flex items-center gap-4">
+        <section class="mb-6">
+            <h2 class="text-slate-500 font-black uppercase tracking-wider px-2 mb-3 flex items-center gap-3 text-[0.6em]">
                 <i class="fa-solid fa-ellipsis"></i> 四、其他
             </h2>
             <div class="responsive-grid">
-                <a href="https://fyhpharm1153.github.io/pharmdepot/o2trans.html" target="_blank" class="nav-card group">
+                <div onclick="window.open('https://fyhpharm1153.github.io/pharmdepot/o2trans.html')" class="nav-card group">
                     <div class="icon-box bg-slate-100 text-slate-600 group-hover:bg-slate-600 group-hover:text-white"><i class="fa-solid fa-bottle-droplet"></i></div>
                     <span>氣體鋼瓶領/退紀錄</span>
-                </a>
+                </div>
             </div>
         </section>
 
-        <footer class="mt-24 text-center pb-16 border-t border-slate-200 pt-12">
-            <div class="inline-flex flex-col items-center bg-white px-12 py-6 rounded-[2.5rem] border border-slate-200 shadow-md">
-                <span class="text-sm text-slate-400 font-black uppercase tracking-widest mb-2">總瀏覽人次</span>
-                <div class="flex items-baseline gap-2 text-slate-800">
-                    <span class="text-4xl font-black" id="busuanzi_value_site_pv">--</span>
-                    <span class="text-lg font-bold">次</span>
+        <footer class="mt-8 text-center pb-8 border-t border-slate-200 pt-6">
+            <div class="inline-flex items-center gap-6 bg-white px-8 py-3 rounded-2xl border border-slate-100 shadow-sm">
+                <span class="text-[0.4em] text-slate-400 font-black uppercase">總瀏覽人次</span>
+                <div class="flex items-baseline gap-1 text-slate-700">
+                    <span class="text-xl font-black" id="busuanzi_value_site_pv">--</span>
+                    <span class="text-[0.4em] font-bold">次</span>
                 </div>
             </div>
-            <p class="text-slate-400 text-sm font-bold mt-10 tracking-[0.4em] uppercase">FYH Pharmacy Portal v5.2</p>
             <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
         </footer>
     </div>
 </div>
 
-<script type="module">
-    import { createApp, ref } from 'https://unpkg.com/vue@3/dist/vue.esm-browser.js';
+<script>
+    const { createApp, ref, onMounted } = Vue;
 
     createApp({
         setup() {
-            // 預設大小設定為 32px
-            const DEFAULT_SIZE = 32;
-            const currentSize = ref(DEFAULT_SIZE);
+            const currentSize = ref(32);
 
-            // 初始化與快取機制
-            const savedSize = localStorage.getItem('fyh-portal-fontsize-v52');
-            if (savedSize) {
-                currentSize.value = parseInt(savedSize);
-            }
-            document.documentElement.style.setProperty('--base-size', `${currentSize.value}px`);
+            onMounted(() => {
+                const savedSize = localStorage.getItem('fyh-portal-v57-size');
+                if (savedSize) {
+                    currentSize.value = parseInt(savedSize);
+                }
+                applySize();
+            });
 
             const changeFont = (delta) => {
-                // 限制範圍 16px ~ 60px
                 currentSize.value = Math.max(16, Math.min(60, currentSize.value + delta));
-                document.documentElement.style.setProperty('--base-size', `${currentSize.value}px`);
-                localStorage.setItem('fyh-portal-fontsize-v52', currentSize.value);
+                applySize();
+                localStorage.setItem('fyh-portal-v57-size', currentSize.value);
             };
 
-            return { currentSize, changeFont };
+            const applySize = () => {
+                document.documentElement.style.setProperty('--base-size', currentSize.value + 'px');
+            };
+
+            return { changeFont };
         }
     }).mount('#app');
 </script>
