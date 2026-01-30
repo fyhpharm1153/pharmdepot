@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+    <title>氧氣鋼瓶派遣系統 - 藥劑科</title>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: system-ui, -apple-system, sans-serif; touch-action: manipulation; }
+        .big-btn { transition: all 0.2s; -webkit-tap-highlight-color: transparent; }
+        .big-btn:active { transform: scale(0.95); opacity: 0.8; }
+        #reader { border: 6px solid #4f46e5; border-radius: 1.5rem; overflow: hidden; background: #000; }
+        .scanning-active { outline: 10px solid #facc15; outline-offset: -10px; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+        .text-huge { font-size: 2.2rem; line-height: 1.2; }
+    </style>
+</head>
+<body class="bg-slate-100 min-h-screen pb-20">
+
+    <header class="bg-indigo-700 text-white py-6 px-4 shadow-xl sticky top-0 z-50 flex justify-between items-center">
+        <h1 class="text-2xl font-black">鋼瓶管理 (GitHub 版)</h1>
+        <button onclick="location.reload()" class="bg-indigo-500 px-4 py-2 rounded-xl text-sm font-bold shadow-inner">重整</button>
+    </header>
+
+    <main class="max-w-xl mx-auto p-4 space-y-6">
+
+        <div class="bg-white rounded-3xl shadow-md p-6 border-b-8 border-indigo-100">
+            <label class="block text-xl font-black text-indigo-900 mb-3">1. 選擇單位：</label>
+            <select id="unitSelect" class="w-full bg-indigo-50 border-4 border-indigo-200 p-5 rounded-2xl text-2xl font-bold text-gray-800 focus:outline-none">
+                <option>載入單位中...</option>
+            </select>
+        </div>
+
+        <div class="bg-white rounded-3xl shadow-md p-6 border-b-8 border-indigo-100 text-center">
+            <h2 class="text-xl font-black text-indigo-900 mb-4">2. 點擊按鈕開啟連續掃描</h2>
+            <div id="reader" class="mb-6 mx-auto"></div>
+            
+            <div id="scanStatus" class="hidden mb-4 py-3 bg-yellow-400 text-black font-black rounded-full text-xl shadow-lg">
+                正在連續掃描：<span id="currentModeLabel"></span>
+            </div>
+
+            <div class="flex flex-col gap-4">
+                <button id="btn-領出" onclick="toggleScan('領出')" class="big-btn bg-emerald-600 text-white py-10 rounded-3xl shadow-xl flex flex-col items-center">
+                    <span class="text-huge font-black">開始領出</span>
+                    <span class="text-lg opacity-90">(給出新瓶)</span>
+                </button>
+                <button id="btn-退回" onclick="toggleScan('退回')" class="big-btn bg-rose-600 text-white py-10 rounded-3xl shadow-xl flex flex-col items-center">
+                    <span class="text-huge font-black">開始退回</span>
+                    <span class="text-lg opacity-90">(收回空瓶)</span>
+                </button>
+                <button id="btn-stop" onclick="stopScanner()" class="hidden big-btn bg-gray-800 text-white py-6 rounded-3xl text-2xl font-black">🛑 停止掃描</button>
+            </div>
+        </div>
+
+        <div id="listContainer" class="hidden bg-white rounded-3xl shadow-2xl p-6 border-4 border-indigo-500">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-2xl font-black text-gray-800">待存清單 (<span id="scanCount">0</span>)</h3>
+                <button onclick="clearList()" class="text-rose-600 font-bold underline text-lg">清空</button>
+            </div>
+            <ul id="scanList" class="space-y-2 mb-6 max-h-60 overflow-y-auto"></ul>
+            <button onclick="submitData()" id="submitBtn" class="big-btn w-full bg-indigo-600 text-white py-8 rounded-2xl text-3xl font-black shadow-2xl">確認上傳</button>
+        </div>
+
+        <div class="bg-slate-800 rounded-3xl p-6 text-white shadow-2xl">
+            <h2 class="text-xl font-bold text-center text-yellow-300 border-b border-slate-600 pb-3 mb-4">目前單位內剩餘瓶數</h2>
+            <div id="dashboard" class="space-y-3">載入統計中...</div>
+        </div>
+    </main>
+
+    <script>
+        // --- 🚀 請將下方網址換成你的 Google 部署網址 ---
+        const API_URL = "https://script.google.com/macros/s/AKfycbyrBucrvL8pQe06ogEsD3YajMc83VzLpdRK6pyPa5lzBXUvg3ghxoR6MXevYGgTH6gi-Q/exec";
+
+        let scanResults = [];
+        let currentMode = "";
+        let isRunning = false;
+        let lastResult = "";
+        let lastTime = 0;
+        const html5QrCode = new Html5Qrcode("reader");
+
+        // API 呼叫工具
+        async function fetchGAS(action, data = null) {
+            const body = JSON.stringify({ action, data });
+            // 使用 POST 並忽略回傳 (因為 GAS CORS 限制，通常直接獲取結果較難，但我們會處理)
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                mode: 'no-cors', // 這是關鍵，允許跨網域傳送
+                headers: { 'Content-Type': 'application/json' },
+                body: body
+            });
+            return true; 
+        }
+
+        // 由於 no-cors 無法拿到回傳值，我們針對「讀取」類別使用 GET
+        async function getGAS(action) {
+            const resp = await fetch(`${API_URL}?action=${action}`);
+            return await resp.json();
+        }
+
+        window.onload = async () => {
+            try {
+                const units = await getGAS("getUnits");
+                const select = document.getElementById('unitSelect');
+                select.innerHTML = "";
+                units.forEach(u => {
+                    const opt = document.createElement('option');
+                    opt.value = u[0]; opt.textContent = u[1];
+                    select.appendChild(opt);
+                });
+                refreshDashboard();
+            } catch (e) { console.log("等待 API 載入中..."); }
+        };
+
+        async function refreshDashboard() {
+            try {
+                const data = await getGAS("getDashboard");
+                const div = document.getElementById('dashboard');
+                if (!data || data.length === 0) { div.innerHTML = "目前暫無紀錄"; return; }
+                div.innerHTML = data.map(item => `
+                    <div class="flex justify-between items-center font-bold text-lg">
+                        <span>${item.name}</span><span class="text-2xl text-yellow-400">${item.count} 瓶</span>
+                    </div>`).join('');
+            } catch (e) {}
+        }
+
+        function toggleScan(mode) {
+            if (isRunning) { html5QrCode.stop().then(() => runScanner(mode)); } 
+            else { runScanner(mode); }
+        }
+
+        function runScanner(mode) {
+            currentMode = mode;
+            isRunning = true;
+            document.getElementById('scanStatus').classList.remove('hidden');
+            document.getElementById('currentModeLabel').textContent = mode;
+            document.getElementById('btn-stop').classList.remove('hidden');
+            document.getElementById('reader').classList.add('scanning-active');
+
+            html5QrCode.start(
+                { facingMode: "environment" },
+                { fps: 20, qrbox: { width: 300, height: 200 } },
+                (text) => {
+                    const now = Date.now();
+                    if (text === lastResult && (now - lastTime) < 2500) return;
+                    lastResult = text; lastTime = now;
+                    if (navigator.vibrate) navigator.vibrate(150);
+                    addToList(text);
+                }
+            ).catch(err => alert("相機開啟失敗，請檢查權限！"));
+        }
+
+        function stopScanner() {
+            if (!isRunning) return;
+            html5QrCode.stop().then(() => {
+                isRunning = false;
+                document.getElementById('scanStatus').classList.add('hidden');
+                document.getElementById('btn-stop').classList.add('hidden');
+                document.getElementById('reader').classList.remove('scanning-active');
+            });
+        }
+
+        function addToList(sn) {
+            const unitCode = document.getElementById('unitSelect').value;
+            if (scanResults.some(r => r.sn === sn && r.type === currentMode)) return;
+            scanResults.push({ unitCode, type: currentMode, sn });
+            document.getElementById('listContainer').classList.remove('hidden');
+            document.getElementById('scanCount').textContent = scanResults.length;
+            const list = document.getElementById('scanList');
+            const li = document.createElement('li');
+            li.className = `p-4 rounded-2xl flex justify-between items-center border-2 bg-white ${currentMode === '退回' ? 'border-rose-400' : 'border-emerald-400'}`;
+            li.innerHTML = `<span class="font-black text-2xl">${currentMode}</span><span class="font-mono font-bold">${sn}</span>`;
+            list.prepend(li);
+        }
+
+        function clearList() { if(confirm("確定清空嗎？")) location.reload(); }
+
+        async function submitData() {
+            stopScanner();
+            const btn = document.getElementById('submitBtn');
+            btn.disabled = true; btn.innerHTML = "傳送中...";
+            
+            try {
+                await fetchGAS("saveRecords", scanResults);
+                alert("👌 登記指令已送出！(請待數秒後重整試算表)");
+                setTimeout(() => location.reload(), 1500);
+            } catch (e) { alert("連線錯誤"); btn.disabled = false; }
+        }
+    </script>
+</body>
+</html>
