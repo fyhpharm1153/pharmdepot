@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>藥劑科管理系統 v6.2</title>
+    <title>藥劑科管理系統 v6.3</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -11,15 +11,11 @@
         :root { --base-size: 32px; }
         [v-cloak] { display: none !important; }
         body { background-color: #f1f5f9; font-size: var(--base-size); transition: font-size 0.2s; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #1e293b; }
-        
-        /* 多重公告跑馬燈樣式 */
-        .marquee-container { height: 90px; background: #fff7ed; border-bottom: 5px solid #fbbf24; display: flex; align-items: center; overflow: hidden; z-index: 50; }
-        .marquee-text { font-size: 2.2rem; font-weight: 900; color: #92400e; }
-        
+        .marquee-container { height: 95px; background: #fff7ed; border-bottom: 5px solid #fbbf24; display: flex; align-items: center; overflow: hidden; z-index: 50; }
+        .marquee-text { font-size: 2.3rem; font-weight: 900; color: #92400e; }
         .responsive-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 0.75rem; }
         @media (min-width: 1024px) { .responsive-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
         @media (min-width: 1440px) { .responsive-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
-
         .nav-card { background: white; border-radius: 1.25rem; padding: 1rem; display: flex; align-items: center; gap: 1rem; border: 1px solid #e2e8f0; cursor: pointer; transition: 0.2s; }
         .nav-card:hover { transform: translateY(-3px); border-color: #2563eb; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
         .nav-card span { font-weight: 800; font-size: 0.9em; }
@@ -32,45 +28,47 @@
 <div id="app" v-cloak>
     <div v-if="notices.length > 0" class="marquee-container sticky top-0 shadow-lg px-6 gap-6">
         <div class="flex-shrink-0 bg-red-600 text-white text-xl px-4 py-1 rounded-md font-black animate-pulse whitespace-nowrap">
-            <i class="fa-solid fa-bullhorn mr-1"></i>藥局廣播 ({{ notices.length }})
+            <i class="fa-solid fa-bullhorn mr-1"></i>廣播 ({{ notices.length }})
         </div>
         <marquee class="marquee-text flex-grow">
-            <span v-for="(n, index) in notices" :key="n.id">
-                【{{ n.time }}】{{ n.content }} 
-                <span class="mx-20 text-slate-300">|</span>
+            <span v-for="n in notices" :key="n.id">
+                【{{ n.time }}】{{ n.content }} <span class="mx-20 text-slate-300">|</span>
             </span>
         </marquee>
-        <div v-if="voiceEnabled" class="text-emerald-600 text-sm font-bold whitespace-nowrap"><i class="fa-solid fa-volume-high animate-bounce"></i></div>
+        <div class="flex items-center gap-2 flex-shrink-0 bg-white/50 px-3 py-1 rounded-full border border-amber-200">
+            <i :class="voiceEnabled ? 'fa-solid fa-volume-high text-emerald-500' : 'fa-solid fa-volume-xmark text-slate-400'"></i>
+            <span class="text-[10px] font-bold">{{ voiceEnabled ? '語音運作中' : '點擊頁面啟動語音' }}</span>
+        </div>
     </div>
 
     <div class="max-w-[1700px] mx-auto py-6 px-6">
-        <header class="flex items-center justify-between mb-8 bg-white p-4 rounded-[1.5rem] shadow-sm border border-slate-200">
+        <header class="flex items-center justify-between mb-8 bg-white p-3 px-6 rounded-[1.5rem] shadow-sm border border-slate-200">
             <div class="flex items-center gap-4">
                 <div @click="showAdmin = true" class="bg-blue-600 w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-lg cursor-pointer hover:scale-110 transition-transform">
                     <i class="fa-solid fa-hospital-user text-2xl"></i>
                 </div>
                 <div>
-                    <h1 class="font-black text-slate-800 text-2xl tracking-tighter">藥劑科管理系統</h1>
-                    <p class="text-slate-400 text-[10px] uppercase font-bold tracking-widest">Feng Yuan Hospital Pharmacy</p>
+                    <h1 class="font-black text-slate-800 text-xl tracking-tighter">藥劑科管理系統</h1>
+                    <p class="text-slate-400 text-[10px] uppercase font-bold tracking-widest leading-none">Feng Yuan Hospital Pharmacy</p>
                 </div>
             </div>
             <div class="flex gap-2">
-                <button @click="changeFont(-4)" class="px-4 py-2 bg-white border-2 border-slate-200 rounded-xl font-black text-slate-600 text-sm hover:bg-blue-50 transition-all shadow-sm">較小</button>
-                <button @click="changeFont(4)" class="px-4 py-2 bg-white border-2 border-slate-200 rounded-xl font-black text-slate-600 text-sm hover:bg-blue-50 transition-all shadow-sm">較大</button>
+                <button @click="changeFont(-4)" class="px-3 py-1 bg-white border-2 rounded-xl text-xs font-black">較小</button>
+                <button @click="changeFont(4)" class="px-3 py-1 bg-white border-2 rounded-xl text-xs font-black">較大</button>
             </div>
         </header>
 
         <div v-if="showAdmin" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
             <div class="bg-white rounded-[2.5rem] w-full max-w-xl p-8 shadow-2xl overflow-y-auto max-h-[90vh]">
                 <div class="flex justify-between items-center mb-6">
-                    <h3 class="font-black text-xl text-slate-800"><i class="fa-solid fa-paper-plane mr-2 text-blue-500"></i>發布推播公告</h3>
-                    <button @click="showAdmin = false" class="bg-slate-100 p-2 rounded-full"><i class="fa-solid fa-times text-xl text-slate-300"></i></button>
+                    <h3 class="font-black text-xl text-slate-800"><i class="fa-solid fa-microphone-lines text-blue-500 mr-2"></i>語音推播控制台</h3>
+                    <button @click="showAdmin = false"><i class="fa-solid fa-times text-xl text-slate-300"></i></button>
                 </div>
 
-                <div class="mb-6 p-5 bg-slate-50 rounded-3xl border border-slate-100">
-                    <div class="flex justify-between mb-3 items-center">
-                        <span class="text-xs font-black text-slate-500">雲端快捷按鈕 (跨裝置)</span>
-                        <button @click="addPreset" class="bg-blue-600 text-white text-[10px] px-2 py-1 rounded-full">+ 新增</button>
+                <div class="mb-6 p-5 bg-slate-50 rounded-3xl border">
+                    <div class="flex justify-between items-center mb-3">
+                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">雲端快捷按鈕 (跨裝置)</span>
+                        <button @click="addPreset" class="bg-blue-600 text-white text-[10px] px-2 py-1 rounded-full hover:bg-blue-700 transition-all">+ 新增</button>
                     </div>
                     <div class="flex flex-wrap gap-2">
                         <div v-for="(p, index) in presets" :key="index" class="relative group">
@@ -81,18 +79,18 @@
                 </div>
 
                 <div class="mb-4">
-                    <label class="block text-xs font-black text-slate-500 mb-2 italic">設定公告有效時間 (分鐘)：</label>
+                    <label class="block text-xs font-black text-slate-500 mb-2">設定公告有效時間 (分鐘)：</label>
                     <div class="flex items-center gap-2">
-                        <input type="number" v-model="duration" class="w-24 p-2 bg-slate-50 border-2 rounded-xl text-center font-bold">
-                        <div class="flex gap-1">
+                        <input type="number" v-model="duration" class="w-20 p-2 bg-slate-50 border-2 rounded-xl text-center font-bold">
+                        <div class="flex flex-wrap gap-1">
                             <button v-for="t in [10, 30, 60, 1440]" @click="duration = t" class="text-[10px] bg-slate-200 px-2 py-1 rounded-md hover:bg-blue-100 transition-colors">{{ t >= 1440 ? '1天' : t+'分' }}</button>
                         </div>
                     </div>
                 </div>
 
-                <textarea v-model="newNotice" class="w-full h-32 p-4 bg-white border-2 border-slate-100 rounded-2xl focus:border-blue-500 outline-none mb-4" placeholder="輸入文字..."></textarea>
-                <button @click="postNotice" :disabled="isPosting" class="w-full bg-blue-600 text-white font-black py-4 rounded-2xl hover:bg-blue-700 disabled:bg-slate-300 shadow-lg">
-                    {{ isPosting ? '同步中...' : '確認發布並推播' }}
+                <textarea v-model="newNotice" class="w-full h-32 p-4 bg-white border-2 border-slate-100 rounded-2xl focus:border-blue-500 outline-none mb-4" placeholder="請在此輸入欲播放之語音文字..."></textarea>
+                <button @click="postNotice" :disabled="isPosting" class="w-full bg-blue-600 text-white font-black py-4 rounded-2xl hover:bg-blue-700 disabled:bg-slate-300 shadow-lg transition-all">
+                    {{ isPosting ? '同步資料庫中...' : '確認發布並開始播報' }}
                 </button>
             </div>
         </div>
@@ -131,7 +129,7 @@
                     </div>
                     <div onclick="window.open('https://amanhung.github.io/drink/')" class="nav-card border-orange-200 bg-orange-50">
                         <div class="icon-box bg-orange-500 text-white shadow-sm"><i class="fa-solid fa-mug-hot"></i></div>
-                        <span class="text-orange-800 font-bold">盤點日快樂</span>
+                        <span class="text-orange-800">盤點日快樂</span>
                     </div>
                 </div>
             </section>
@@ -161,9 +159,15 @@
                         <div class="icon-box bg-emerald-50 text-emerald-600"><i class="fa-solid fa-users"></i></div>
                         <span>民眾藥品查詢</span>
                     </div>
+                </div>
+            </section>
+
+            <section>
+                <h2 class="text-slate-500 font-black text-[0.6em] mb-4 flex items-center gap-3 px-2 italic"><i class="fa-solid fa-ellipsis"></i> 四、其他</h2>
+                <div class="responsive-grid">
                     <div onclick="window.open('https://fyhpharm1153.github.io/pharmdepot/o2trans.html')" class="nav-card">
                         <div class="icon-box bg-slate-100 text-slate-600"><i class="fa-solid fa-bottle-droplet"></i></div>
-                        <span>氣體鋼瓶領/退</span>
+                        <span>氣體鋼瓶領/退紀錄</span>
                     </div>
                 </div>
             </section>
@@ -171,7 +175,7 @@
 
         <footer class="mt-12 text-center pb-12 border-t border-slate-200 pt-8">
             <div class="inline-flex items-center gap-6 bg-white px-8 py-3 rounded-2xl border border-slate-100 shadow-sm">
-                <span class="text-[0.4em] text-slate-400 font-black uppercase">總瀏覽人次</span>
+                <span class="text-[0.4em] text-slate-400 font-black uppercase tracking-widest">總瀏覽人次</span>
                 <div class="flex items-baseline gap-1 text-slate-700">
                     <span class="text-xl font-black" id="busuanzi_value_site_pv">--</span>
                     <span class="text-[0.4em] font-bold">次</span>
@@ -199,12 +203,12 @@
             let lastNoticeId = 0;
 
             const initVoiceOnFirstClick = () => { if (!voiceEnabled.value) { voiceEnabled.value = true; window.speechSynthesis.speak(new SpeechSynthesisUtterance("")); } };
-            const speak = (text) => { if (voiceEnabled.value) { window.speechSynthesis.cancel(); const msg = new SpeechSynthesisUtterance(text); msg.lang = 'zh-TW'; window.speechSynthesis.speak(msg); } };
+            const speak = (text) => { if (voiceEnabled.value) { window.speechSynthesis.cancel(); const msg = new SpeechSynthesisUtterance(text); msg.lang = 'zh-TW'; msg.rate = 1.0; window.speechSynthesis.speak(msg); } };
 
             const fetchPresets = async () => { try { const res = await fetch(`${API_URL}?type=presets&t=${new Date().getTime()}`); const data = await res.json(); if (Array.isArray(data)) presets.value = data; } catch (e) {} };
             const syncPresetsToServer = async () => { try { await fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ type: 'update_presets', list: presets.value }) }); } catch (e) {} };
             const addPreset = async () => { const text = prompt("新增雲端按鈕文字："); if (text) { presets.value.push(text.trim()); await syncPresetsToServer(); } };
-            const removePreset = async (index) => { if (confirm("刪除雲端按鈕？")) { presets.value.splice(index, 1); await syncPresetsToServer(); } };
+            const removePreset = async (index) => { if (confirm("刪除此雲端按鈕？")) { presets.value.splice(index, 1); await syncPresetsToServer(); } };
 
             const fetchNotice = async () => {
                 try {
