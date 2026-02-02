@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>藥劑科管理系統 v6.3</title>
+    <title>藥劑科管理系統 v6.4</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -11,11 +11,15 @@
         :root { --base-size: 32px; }
         [v-cloak] { display: none !important; }
         body { background-color: #f1f5f9; font-size: var(--base-size); transition: font-size 0.2s; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #1e293b; }
-        .marquee-container { height: 95px; background: #fff7ed; border-bottom: 5px solid #fbbf24; display: flex; align-items: center; overflow: hidden; z-index: 50; }
-        .marquee-text { font-size: 2.3rem; font-weight: 900; color: #92400e; }
-        .responsive-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 0.75rem; }
+        
+        /* 跑馬燈優化 */
+        .marquee-container { height: 90px; background: #fff7ed; border-bottom: 5px solid #fbbf24; display: flex; align-items: center; overflow: hidden; z-index: 50; width: 100%; }
+        .marquee-text { font-size: 2rem; font-weight: 900; color: #92400e; width: 100%; }
+        
+        .responsive-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 0.75rem; }
         @media (min-width: 1024px) { .responsive-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
         @media (min-width: 1440px) { .responsive-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+        
         .nav-card { background: white; border-radius: 1.25rem; padding: 1rem; display: flex; align-items: center; gap: 1rem; border: 1px solid #e2e8f0; cursor: pointer; transition: 0.2s; }
         .nav-card:hover { transform: translateY(-3px); border-color: #2563eb; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
         .nav-card span { font-weight: 800; font-size: 0.9em; }
@@ -26,78 +30,75 @@
 <body @click="initVoiceOnFirstClick">
 
 <div id="app" v-cloak>
-    <div v-if="notices.length > 0" class="marquee-container sticky top-0 shadow-lg px-6 gap-6">
-        <div class="flex-shrink-0 bg-red-600 text-white text-xl px-4 py-1 rounded-md font-black animate-pulse whitespace-nowrap">
-            <i class="fa-solid fa-bullhorn mr-1"></i>廣播 ({{ notices.length }})
-        </div>
+    <div v-if="notices.length > 0" class="marquee-container sticky top-0 shadow-lg px-4 gap-4">
+        <div class="flex-shrink-0 bg-red-600 text-white text-lg px-3 py-1 rounded-md font-black animate-pulse whitespace-nowrap">廣播</div>
         <marquee class="marquee-text flex-grow">
             <span v-for="n in notices" :key="n.id">
-                【{{ n.time }}】{{ n.content }} <span class="mx-20 text-slate-300">|</span>
+                【{{ n.time }}】{{ n.content }} <span class="mx-16 text-slate-300">|</span>
             </span>
         </marquee>
-        <div class="flex items-center gap-2 flex-shrink-0 bg-white/50 px-3 py-1 rounded-full border border-amber-200">
-            <i :class="voiceEnabled ? 'fa-solid fa-volume-high text-emerald-500' : 'fa-solid fa-volume-xmark text-slate-400'"></i>
-            <span class="text-[10px] font-bold">{{ voiceEnabled ? '語音運作中' : '點擊頁面啟動語音' }}</span>
-        </div>
     </div>
 
-    <div class="max-w-[1700px] mx-auto py-6 px-6">
-        <header class="flex items-center justify-between mb-8 bg-white p-3 px-6 rounded-[1.5rem] shadow-sm border border-slate-200">
+    <div class="max-w-[1700px] mx-auto py-4 px-6">
+        <header class="flex flex-wrap items-center justify-between mb-6 bg-white p-3 px-5 rounded-[1.5rem] shadow-sm border border-slate-200 gap-4">
             <div class="flex items-center gap-4">
-                <div @click="showAdmin = true" class="bg-blue-600 w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-lg cursor-pointer hover:scale-110 transition-transform">
-                    <i class="fa-solid fa-hospital-user text-2xl"></i>
+                <div @click="showAdmin = true" class="bg-blue-600 w-12 h-12 rounded-xl flex items-center justify-center text-white shadow-lg cursor-pointer hover:scale-110 transition-transform">
+                    <i class="fa-solid fa-hospital-user text-xl"></i>
                 </div>
                 <div>
-                    <h1 class="font-black text-slate-800 text-xl tracking-tighter">藥劑科管理系統</h1>
-                    <p class="text-slate-400 text-[10px] uppercase font-bold tracking-widest leading-none">Feng Yuan Hospital Pharmacy</p>
+                    <h1 class="font-black text-slate-800 text-lg tracking-tighter">藥劑科管理系統</h1>
+                    <div class="flex items-center gap-2 mt-0.5">
+                        <i :class="voiceEnabled ? 'fa-solid fa-circle-check text-emerald-500' : 'fa-solid fa-circle-exclamation text-amber-500'" class="text-[10px]"></i>
+                        <span class="text-[10px] font-bold text-slate-400">{{ voiceEnabled ? '語音播報開啟' : '點擊螢幕開啟語音' }}</span>
+                    </div>
                 </div>
             </div>
             <div class="flex gap-2">
-                <button @click="changeFont(-4)" class="px-3 py-1 bg-white border-2 rounded-xl text-xs font-black">較小</button>
-                <button @click="changeFont(4)" class="px-3 py-1 bg-white border-2 rounded-xl text-xs font-black">較大</button>
+                <button @click="changeFont(-4)" class="px-3 py-1 bg-white border-2 rounded-xl text-[10px] font-black">較小</button>
+                <button @click="changeFont(4)" class="px-3 py-1 bg-white border-2 rounded-xl text-[10px] font-black">較大</button>
             </div>
         </header>
 
         <div v-if="showAdmin" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-            <div class="bg-white rounded-[2.5rem] w-full max-w-xl p-8 shadow-2xl overflow-y-auto max-h-[90vh]">
+            <div class="bg-white rounded-[2.5rem] w-full max-w-xl p-6 shadow-2xl overflow-y-auto max-h-[90vh]">
                 <div class="flex justify-between items-center mb-6">
-                    <h3 class="font-black text-xl text-slate-800"><i class="fa-solid fa-microphone-lines text-blue-500 mr-2"></i>語音推播控制台</h3>
+                    <h3 class="font-black text-xl text-slate-800">推播控制台</h3>
                     <button @click="showAdmin = false"><i class="fa-solid fa-times text-xl text-slate-300"></i></button>
                 </div>
 
-                <div class="mb-6 p-5 bg-slate-50 rounded-3xl border">
+                <div class="mb-6 p-4 bg-slate-50 rounded-3xl border">
                     <div class="flex justify-between items-center mb-3">
-                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">雲端快捷按鈕 (跨裝置)</span>
-                        <button @click="addPreset" class="bg-blue-600 text-white text-[10px] px-2 py-1 rounded-full hover:bg-blue-700 transition-all">+ 新增</button>
+                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">雲端快捷按鈕</span>
+                        <button @click="addPreset" class="bg-blue-600 text-white text-[10px] px-2 py-1 rounded-full">+ 新增</button>
                     </div>
                     <div class="flex flex-wrap gap-2">
                         <div v-for="(p, index) in presets" :key="index" class="relative group">
                             <button @click="newNotice = p" class="preset-btn">{{ p }}</button>
-                            <button @click="removePreset(index)" class="absolute -top-2 -right-1 bg-red-500 text-white rounded-full w-4 h-4 text-[10px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center shadow-md">×</button>
+                            <button @click="removePreset(index)" class="absolute -top-2 -right-1 bg-red-500 text-white rounded-full w-4 h-4 text-[10px] flex items-center justify-center shadow-md">×</button>
                         </div>
                     </div>
                 </div>
 
                 <div class="mb-4">
-                    <label class="block text-xs font-black text-slate-500 mb-2">設定公告有效時間 (分鐘)：</label>
+                    <label class="block text-xs font-black text-slate-500 mb-2">有效時間 (分鐘)：</label>
                     <div class="flex items-center gap-2">
-                        <input type="number" v-model="duration" class="w-20 p-2 bg-slate-50 border-2 rounded-xl text-center font-bold">
+                        <input type="number" v-model="duration" class="w-16 p-2 bg-slate-50 border-2 rounded-xl text-center font-bold text-sm">
                         <div class="flex flex-wrap gap-1">
-                            <button v-for="t in [10, 30, 60, 1440]" @click="duration = t" class="text-[10px] bg-slate-200 px-2 py-1 rounded-md hover:bg-blue-100 transition-colors">{{ t >= 1440 ? '1天' : t+'分' }}</button>
+                            <button v-for="t in [10, 30, 60, 1440]" @click="duration = t" class="text-[10px] bg-slate-200 px-2 py-1 rounded-md">{{ t >= 1440 ? '1天' : t+'分' }}</button>
                         </div>
                     </div>
                 </div>
 
-                <textarea v-model="newNotice" class="w-full h-32 p-4 bg-white border-2 border-slate-100 rounded-2xl focus:border-blue-500 outline-none mb-4" placeholder="請在此輸入欲播放之語音文字..."></textarea>
-                <button @click="postNotice" :disabled="isPosting" class="w-full bg-blue-600 text-white font-black py-4 rounded-2xl hover:bg-blue-700 disabled:bg-slate-300 shadow-lg transition-all">
-                    {{ isPosting ? '同步資料庫中...' : '確認發布並開始播報' }}
+                <textarea v-model="newNotice" class="w-full h-24 p-4 bg-white border-2 border-slate-100 rounded-2xl focus:border-blue-500 outline-none mb-4 text-sm" placeholder="請輸入語音文字..."></textarea>
+                <button @click="postNotice" :disabled="isPosting" class="w-full bg-blue-600 text-white font-black py-4 rounded-2xl shadow-lg transition-all active:scale-95">
+                    {{ isPosting ? '同步中...' : '確認發布' }}
                 </button>
             </div>
         </div>
 
-        <div class="space-y-10">
+        <div class="space-y-8">
             <section>
-                <h2 class="text-blue-600 font-black text-[0.6em] mb-4 flex items-center gap-3 px-2 italic"><i class="fa-solid fa-gears"></i> 一、行政管理與查詢</h2>
+                <h2 class="text-blue-600 font-black text-[0.6em] mb-3 flex items-center gap-3 px-2 italic"><i class="fa-solid fa-gears"></i> 一、行政管理與查詢</h2>
                 <div class="responsive-grid">
                     <div onclick="window.open('https://amanhung.github.io/schedule/')" class="nav-card">
                         <div class="icon-box bg-indigo-50 text-indigo-600"><i class="fa-solid fa-calendar-check"></i></div>
@@ -128,14 +129,14 @@
                         <span>UD 點餐單</span>
                     </div>
                     <div onclick="window.open('https://amanhung.github.io/drink/')" class="nav-card border-orange-200 bg-orange-50">
-                        <div class="icon-box bg-orange-500 text-white shadow-sm"><i class="fa-solid fa-mug-hot"></i></div>
+                        <div class="icon-box bg-orange-500 text-white"><i class="fa-solid fa-mug-hot"></i></div>
                         <span class="text-orange-800">盤點日快樂</span>
                     </div>
                 </div>
             </section>
 
             <section>
-                <h2 class="text-rose-600 font-black text-[0.6em] mb-4 flex items-center gap-3 px-2 italic"><i class="fa-solid fa-clipboard-check"></i> 二、品質通報專區</h2>
+                <h2 class="text-rose-600 font-black text-[0.6em] mb-3 flex items-center gap-3 px-2 italic"><i class="fa-solid fa-clipboard-check"></i> 二、品質通報專區</h2>
                 <div class="responsive-grid">
                     <div onclick="window.open('https://tinyurl.com/110fyhmissrx')" class="nav-card">
                         <div class="icon-box bg-rose-50 text-rose-600"><i class="fa-solid fa-circle-question"></i></div>
@@ -149,7 +150,7 @@
             </section>
 
             <section>
-                <h2 class="text-emerald-600 font-black text-[0.6em] mb-4 flex items-center gap-3 px-2 italic"><i class="fa-solid fa-comment-medical"></i> 三、民眾藥務諮詢</h2>
+                <h2 class="text-emerald-600 font-black text-[0.6em] mb-3 flex items-center gap-3 px-2 italic"><i class="fa-solid fa-comment-medical"></i> 三、民眾藥務諮詢</h2>
                 <div class="responsive-grid">
                     <div onclick="window.open('https://cw-chen122.github.io/wegovy-cal/')" class="nav-card">
                         <div class="icon-box bg-cyan-50 text-cyan-600"><i class="fa-solid fa-calculator"></i></div>
@@ -163,7 +164,7 @@
             </section>
 
             <section>
-                <h2 class="text-slate-500 font-black text-[0.6em] mb-4 flex items-center gap-3 px-2 italic"><i class="fa-solid fa-ellipsis"></i> 四、其他</h2>
+                <h2 class="text-slate-500 font-black text-[0.6em] mb-3 flex items-center gap-3 px-2 italic"><i class="fa-solid fa-ellipsis"></i> 四、其他</h2>
                 <div class="responsive-grid">
                     <div onclick="window.open('https://fyhpharm1153.github.io/pharmdepot/o2trans.html')" class="nav-card">
                         <div class="icon-box bg-slate-100 text-slate-600"><i class="fa-solid fa-bottle-droplet"></i></div>
@@ -192,7 +193,6 @@
     createApp({
         setup() {
             const API_URL = 'https://script.google.com/macros/s/AKfycbwjO7uRLEpkEgyl2IHfD0CzvSlAU07ampEp4jRcO9g35lIkEbnxIETUdBCRfgCda0op/exec';
-            const currentSize = ref(32);
             const showAdmin = ref(false);
             const newNotice = ref('');
             const duration = ref(30);
@@ -202,13 +202,38 @@
             const presets = ref([]);
             let lastNoticeId = 0;
 
-            const initVoiceOnFirstClick = () => { if (!voiceEnabled.value) { voiceEnabled.value = true; window.speechSynthesis.speak(new SpeechSynthesisUtterance("")); } };
-            const speak = (text) => { if (voiceEnabled.value) { window.speechSynthesis.cancel(); const msg = new SpeechSynthesisUtterance(text); msg.lang = 'zh-TW'; msg.rate = 1.0; window.speechSynthesis.speak(msg); } };
+            // 強力啟動語音
+            const initVoiceOnFirstClick = () => {
+                if (!voiceEnabled.value) {
+                    voiceEnabled.value = true;
+                    // 預熱語音引擎
+                    const dummy = new SpeechSynthesisUtterance("語音啟動");
+                    dummy.volume = 0; // 靜音
+                    window.speechSynthesis.speak(dummy);
+                }
+            };
+
+            const speak = (text) => {
+                if (voiceEnabled.value) {
+                    // 徹底清除前一段，防止卡住
+                    window.speechSynthesis.cancel();
+                    
+                    const msg = new SpeechSynthesisUtterance(text);
+                    msg.lang = 'zh-TW';
+                    msg.rate = 1.0;
+                    msg.pitch = 1.0;
+                    
+                    // 針對一些手機瀏覽器的 bug，需延遲執行
+                    setTimeout(() => {
+                        window.speechSynthesis.speak(msg);
+                    }, 100);
+                }
+            };
 
             const fetchPresets = async () => { try { const res = await fetch(`${API_URL}?type=presets&t=${new Date().getTime()}`); const data = await res.json(); if (Array.isArray(data)) presets.value = data; } catch (e) {} };
             const syncPresetsToServer = async () => { try { await fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ type: 'update_presets', list: presets.value }) }); } catch (e) {} };
-            const addPreset = async () => { const text = prompt("新增雲端按鈕文字："); if (text) { presets.value.push(text.trim()); await syncPresetsToServer(); } };
-            const removePreset = async (index) => { if (confirm("刪除此雲端按鈕？")) { presets.value.splice(index, 1); await syncPresetsToServer(); } };
+            const addPreset = async () => { const text = prompt("新增預設文字："); if (text) { presets.value.push(text.trim()); await syncPresetsToServer(); } };
+            const removePreset = async (index) => { if (confirm("刪除雲端按鈕？")) { presets.value.splice(index, 1); await syncPresetsToServer(); } };
 
             const fetchNotice = async () => {
                 try {
@@ -236,18 +261,15 @@
             };
 
             const changeFont = (delta) => {
-                currentSize.value = Math.max(16, Math.min(60, currentSize.value + delta));
-                document.documentElement.style.setProperty('--base-size', currentSize.value + 'px');
-                localStorage.setItem('fyh-portal-size', currentSize.value);
+                const s = Math.max(16, Math.min(60, parseInt(getComputedStyle(document.documentElement).getPropertyValue('--base-size')) + delta));
+                document.documentElement.style.setProperty('--base-size', s + 'px');
             };
 
             onMounted(() => {
-                const saved = localStorage.getItem('fyh-portal-size');
-                if (saved) { currentSize.value = parseInt(saved); document.documentElement.style.setProperty('--base-size', currentSize.value + 'px'); }
                 fetchNotice(); fetchPresets(); setInterval(fetchNotice, 5000);
             });
 
-            return { changeFont, showAdmin, newNotice, duration, postNotice, isPosting, notices, voiceEnabled, initVoiceOnFirstClick, presets, addPreset, removePreset };
+            return { showAdmin, newNotice, duration, postNotice, isPosting, notices, voiceEnabled, initVoiceOnFirstClick, presets, addPreset, removePreset, changeFont };
         }
     }).mount('#app');
 </script>
