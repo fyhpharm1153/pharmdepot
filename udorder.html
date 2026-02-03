@@ -266,15 +266,20 @@
                 return d ? d.s || '??' : '無';
             };
 
-const shelfGroups = computed(() => {
+            const shelfGroups = computed(() => {
     const groups = new Set();
     inventory.value.forEach(i => {
         const s = (i.shelf || "").toUpperCase();
         
-        // 只要包含「冰」字，統一歸類為 [冰箱]
-        if (s.includes("冰")) {
-            groups.add("冰箱");
+        // 優先判斷「冰」系列
+        if (s.startsWith("冰")) {
+            if (s.includes("冰C")) { // 包含 冰C, 冰Check, 冰CHECK 等
+                groups.add("冰Check");
+            } else {
+                groups.add("冰");
+            }
         } 
+        // 其他原有邏輯
         else if (s.includes("推車")) {
             groups.add("推車");
         }
@@ -285,8 +290,6 @@ const shelfGroups = computed(() => {
             groups.add("其他");
         }
     });
-    return Array.from(groups).sort();
-});
     
     // 排序確保順序穩定
     return Array.from(groups).sort();
@@ -443,5 +446,3 @@ const shelfGroups = computed(() => {
 </script>
 </body>
 </html>
-
-
