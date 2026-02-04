@@ -18,22 +18,27 @@
         .scan-item { @apply flex justify-between items-center p-3 border-b-2 border-slate-100 bg-white; }
         .overlay-start { @apply fixed inset-0 z-[500] bg-slate-900/95 flex flex-col items-center justify-center text-white p-8 text-center; }
         
-        /* 縮小後的藥名彈窗 */
         .name-popup {
             @apply fixed top-1/4 left-1/2 -translate-x-1/2 z-[600] 
                    bg-indigo-600 text-white px-6 py-4 rounded-2xl border-2 border-white
                    font-black shadow-2xl pointer-events-none text-center
                    transition-all duration-300 scale-0 opacity-0;
-            font-size: 1.5rem; 
-            width: 80%;
+            font-size: 1.5rem; width: 80%;
         }
         .name-popup.active { @apply scale-100 opacity-100; }
         .name-popup.warning { @apply bg-orange-500; }
         
-        .font-ctrl-btn { @apply px-3 py-1 bg-white font-black border-slate-800 hover:bg-slate-50 active:bg-slate-200 transition-colors; }
+        .cam-close-btn { 
+            @apply absolute bottom-2 right-2 z-20 w-10 h-10 bg-red-600/80 text-white 
+                   rounded-full flex items-center justify-center border-2 border-white 
+                   shadow-lg active:scale-90 transition-all; 
+        }
+        .cam-placeholder {
+            @apply absolute inset-0 bg-slate-800 flex flex-col items-center justify-center text-white gap-3 z-10;
+        }
     </style>
 </head>
-<body class="bg-slate-50 p-3 pb-32">
+<body class="bg-slate-50 p-3 pb-24">
 
     <div id="big-name-popup" class="name-popup">藥名載入中</div>
 
@@ -41,12 +46,12 @@
         <div class="w-full max-w-xs text-center">
             <i class="fa-solid fa-barcode text-6xl mb-4 text-indigo-400"></i>
             <h2 class="text-2xl font-black mb-6">UD 條碼掃描點藥</h2>
-            <select id="staff-select" class="bg-white text-slate-900 p-4 rounded-xl border-2 border-slate-800 w-full mb-6 font-black text-lg">
-                <option value="" disabled selected>載入人員中...</option>
+            <select id="staff-select" class="bg-white text-slate-900 p-4 rounded-xl border-2 border-slate-800 w-full mb-6 font-black text-lg appearance-none">
+                <option value="" disabled selected>選擇藥師姓名</option>
             </select>
             <button id="start-btn" onclick="startSystem()" disabled 
-                class="w-full py-5 bg-indigo-600 rounded-2xl font-black text-xl shadow-lg opacity-40">
-                啟動並解鎖聲音
+                class="w-full py-5 bg-indigo-600 text-white rounded-2xl font-black text-xl shadow-lg opacity-40">
+                確認藥師並開始
             </button>
         </div>
     </div>
@@ -54,41 +59,53 @@
     <div id="app" class="max-w-md mx-auto">
         <header class="mb-4 flex justify-between items-center bg-white p-3 rounded-xl border-2 border-slate-800 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
             <div class="flex items-center gap-3">
-                <a href="https://fyhpharm1153.github.io/pharmdepot/udorder.html" class="w-10 h-10 flex items-center justify-center bg-slate-100 rounded-lg border-2 border-slate-800">
-                    <i class="fa-solid fa-house text-slate-700"></i>
+                <a href="https://fyhpharm1153.github.io/pharmdepot/udorder.html" class="w-8 h-8 flex items-center justify-center bg-slate-100 rounded-lg border-2 border-slate-800">
+                    <i class="fa-solid fa-house text-slate-700 text-sm"></i>
                 </a>
                 <div class="flex flex-col">
-                    <h1 class="text-sm font-black text-slate-800 leading-none">Scanner <span class="text-indigo-600">Pro</span></h1>
+                    <h1 class="text-xs font-black text-slate-800 leading-none">Scanner <span class="text-indigo-600">Pro</span></h1>
                     <span id="user-name" class="text-[10px] font-bold text-indigo-500 mt-1 uppercase">未選擇</span>
                 </div>
             </div>
             
             <div class="flex items-center gap-2">
                 <div class="flex border-2 border-slate-800 rounded-lg overflow-hidden">
-                    <button onclick="changeFontSize(-0.1)" class="font-ctrl-btn border-r-2 text-xs">A-</button>
-                    <button onclick="changeFontSize(0.1)" class="font-ctrl-btn text-xs">A+</button>
+                    <button onclick="changeFontSize(-0.1)" class="px-2 py-1 bg-white font-black border-r-2 border-slate-800 text-xs">A-</button>
+                    <button onclick="changeFontSize(0.1)" class="px-2 py-1 bg-white font-black text-xs">A+</button>
                 </div>
-                <button onclick="logout()" class="text-slate-400 p-1 text-xl"><i class="fa-solid fa-right-from-bracket"></i></button>
+                <button onclick="fullLogout()" class="text-slate-300 hover:text-red-500 ml-1"><i class="fa-solid fa-user-gear"></i></button>
             </div>
         </header>
 
-        <div class="neo-card rounded-2xl overflow-hidden mb-4 relative bg-black">
+        <div class="neo-card rounded-2xl overflow-hidden mb-4 relative bg-black min-h-[180px]">
             <div id="reader"></div>
-            <div class="absolute inset-x-0 top-1/2 h-0.5 bg-red-500/50 z-10 pointer-events-none"></div>
+            
+            <div id="cam-off-ui" class="cam-placeholder hidden">
+                <i class="fa-solid fa-camera-slash text-3xl opacity-30"></i>
+                <button onclick="toggleCamera(true)" class="px-6 py-2 bg-indigo-600 text-white rounded-full font-black shadow-lg animate-pulse">
+                    <i class="fa-solid fa-camera mr-2"></i>開啟相機
+                </button>
+            </div>
+
+            <button id="cam-close-btn" onclick="toggleCamera(false)" class="cam-close-btn hidden">
+                <i class="fa-solid fa-times"></i>
+            </button>
+            
+            <div id="scan-line" class="absolute inset-x-0 top-1/2 h-0.5 bg-red-500/50 z-10 pointer-events-none hidden"></div>
         </div>
 
         <div class="neo-card rounded-2xl flex flex-col bg-white overflow-hidden">
             <div class="p-3 border-b-2 border-slate-800 bg-slate-50 flex justify-between items-center text-xs font-black">
                 <span>掃描暫存 (<span id="count">0</span>)</span>
-                <button onclick="clearList()" class="text-red-500">清空</button>
+                <button onclick="clearList()" class="text-red-500 hover:underline">清空清單</button>
             </div>
-            <div id="scan-list" class="flex-1 max-h-[35vh] overflow-y-auto min-h-[180px]">
+            <div id="scan-list" class="flex-1 max-h-[35vh] overflow-y-auto min-h-[150px]">
                 <div class="p-8 text-center text-slate-300 italic text-sm font-bold">等待條碼輸入...</div>
             </div>
         </div>
 
         <div class="fixed bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-md border-t-2 border-slate-100">
-            <button onclick="submitBatch()" id="submit-btn" class="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-lg neo-btn disabled:opacity-30">
+            <button onclick="submitBatch()" id="submit-btn" class="w-full py-2.5 bg-indigo-600 text-white rounded-xl font-black text-base neo-btn disabled:opacity-30">
                 確認批次送出
             </button>
         </div>
@@ -140,7 +157,7 @@
             const btn = document.getElementById('start-btn');
             if (selectedUser) {
                 btn.disabled = false;
-                btn.className = "w-full py-5 bg-indigo-600 rounded-2xl font-black text-xl shadow-lg";
+                btn.className = "w-full py-5 bg-indigo-600 text-white rounded-2xl font-black text-xl shadow-lg";
             }
         });
 
@@ -148,20 +165,36 @@
             if (s.val()) inventory = Object.entries(s.val()).map(([id, v]) => ({ id, ...v }));
         });
 
-        // 語音初始化
-        function initVoice() {
-            const utterance = new SpeechSynthesisUtterance("");
-            window.speechSynthesis.speak(utterance);
-        }
-
         window.startSystem = function() {
             if(!selectedUser) return;
-            initVoice(); // 重要：解鎖語音權限
+            window.speechSynthesis.speak(new SpeechSynthesisUtterance(""));
             document.getElementById('user-name').innerText = selectedUser;
             document.getElementById('start-overlay').style.display = 'none';
             const beep = document.getElementById('beep-sound');
             beep.play().then(() => { beep.pause(); beep.currentTime = 0; });
-            initScanner();
+            toggleCamera(true);
+        };
+
+        // 控制相機開啟或關閉
+        window.toggleCamera = async function(shouldOpen) {
+            const closeBtn = document.getElementById('cam-close-btn');
+            const offUI = document.getElementById('cam-off-ui');
+            const scanLine = document.getElementById('scan-line');
+
+            if (shouldOpen) {
+                offUI.classList.add('hidden');
+                closeBtn.classList.remove('hidden');
+                scanLine.classList.remove('hidden');
+                initScanner();
+            } else {
+                if (html5QrCode) {
+                    await html5QrCode.stop();
+                    html5QrCode = null;
+                }
+                offUI.classList.remove('hidden');
+                closeBtn.classList.add('hidden');
+                scanLine.classList.add('hidden');
+            }
         };
 
         function initScanner() {
@@ -179,14 +212,13 @@
             lastCode = decodedText;
             lastScanTime = now;
 
-            // 檢查是否重複掃描
             const isDuplicate = scannedItems.some(item => item.code === decodedText);
-
             const drug = inventory.find(i => i.code === decodedText);
+
             if (drug) {
                 if (isDuplicate) {
-                    showBigName(drug.name + " (已在清單中)", true);
-                    speakText("此藥品已點過");
+                    showBigName("點過了", true);
+                    speakText("點過了");
                 } else {
                     showBigName(drug.name, false);
                     speakText(drug.name);
@@ -206,11 +238,10 @@
         }
 
         function speakText(text) {
-            // 停止當前所有語音，避免重疊
             window.speechSynthesis.cancel();
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.lang = 'zh-TW';
-            utterance.rate = 1.0;
+            utterance.rate = 1.1;
             window.speechSynthesis.speak(utterance);
         }
 
@@ -227,7 +258,7 @@
                         <div class="text-[0.6rem] font-bold text-indigo-400 mb-1">${item.code}</div>
                         <div class="font-black text-slate-800 text-sm leading-tight">${item.name}</div>
                     </div>
-                    <button onclick="removeItem(${idx})" class="text-slate-300 p-2 text-xl"><i class="fa-solid fa-circle-minus"></i></button>
+                    <button onclick="removeItem(${idx})" class="text-slate-300 p-2 text-lg"><i class="fa-solid fa-circle-minus"></i></button>
                 </div>
             `).join('');
         };
@@ -237,11 +268,12 @@
             renderList();
         };
 
-        window.clearList = () => { if(confirm("確定清空？")) { scannedItems = []; renderList(); } };
+        window.clearList = () => { if(confirm("確定清空暫存清單？")) { scannedItems = []; renderList(); } };
 
-        window.logout = function() {
+        // 徹底登出回選擇人員
+        window.fullLogout = function() {
             if (confirm("要切換藥師身分嗎？")) {
-                if (html5QrCode) html5QrCode.stop().then(() => {
+                toggleCamera(false).then(() => {
                     selectedUser = ""; scannedItems = []; renderList();
                     document.getElementById('start-overlay').style.display = 'flex';
                 });
@@ -251,7 +283,7 @@
         window.submitBatch = async () => {
             if (scannedItems.length === 0) return;
             const btn = document.getElementById('submit-btn');
-            btn.disabled = true; btn.innerText = "正在發送...";
+            btn.disabled = true; btn.innerText = "傳送中...";
             try {
                 for (const item of scannedItems) {
                     await push(ref(db, "replenishment_orders"), {
