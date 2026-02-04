@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Scanner - UD Replenish</title>
+    <title>Scanner Pro - UD Replenish</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -11,49 +11,84 @@
     <style type="text/tailwindcss">
         .neo-card { @apply bg-white border-2 border-slate-800 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]; }
         .neo-btn { @apply border-2 border-slate-800 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[1px] active:translate-y-[1px] transition-all; }
-        #reader { border: 4px solid #1e293b !important; border-radius: 1rem; overflow: hidden; }
+        #reader { @apply border-none !important; height: 250px !important; }
+        #reader video { object-fit: cover !important; height: 250px !important; }
         .scan-item { @apply flex justify-between items-center p-3 border-b-2 border-slate-100 bg-white; }
+        .overlay-start { @apply fixed inset-0 z-[500] bg-slate-900/95 flex flex-col items-center justify-center text-white p-8 text-center; }
+        select { @apply bg-white text-slate-900 p-4 rounded-xl border-2 border-slate-800 w-full mb-6 font-black text-lg appearance-none; }
     </style>
 </head>
-<body class="bg-slate-50 p-4 pb-32">
+<body class="bg-slate-50 p-3 pb-32">
+
+    <div id="start-overlay" class="overlay-start">
+        <div class="w-full max-w-xs">
+            <i class="fa-solid fa-user-check text-5xl mb-4 text-indigo-400"></i>
+            <h2 class="text-2xl font-black mb-2">身分確認</h2>
+            <p class="mb-6 opacity-70 text-sm">請先選擇執行藥師，以啟用掃描功能</p>
+            
+            <div class="relative">
+                <select id="staff-select">
+                    <option value="" disabled selected>載入名單中...</option>
+                </select>
+                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-800">
+                    <i class="fa-solid fa-chevron-down"></i>
+                </div>
+            </div>
+
+            <button id="start-btn" onclick="startSystem()" disabled 
+                class="w-full py-5 bg-indigo-600 rounded-2xl font-black text-xl shadow-lg opacity-40 transition-all">
+                啟動掃描模式
+            </button>
+            <p class="mt-4 text-[10px] text-slate-500">啟動將同時開啟相機與語音權限</p>
+        </div>
+    </div>
+
     <div id="app" class="max-w-md mx-auto">
-        <header class="mb-6 flex justify-between items-center">
-            <h1 class="text-2xl font-black text-slate-800"><i class="fa-solid fa-barcode mr-2"></i>條碼快點</h1>
-            <a href="javascript:history.back()" class="text-slate-500 font-bold">返回</a>
+        <header class="mb-4 flex justify-between items-center">
+            <h1 class="text-xl font-black text-slate-800 italic"><i class="fa-solid fa-barcode mr-2"></i>Scanner <span class="text-indigo-600">Pro</span></h1>
+            <div class="flex items-center gap-3">
+                <div class="flex flex-col items-end leading-none">
+                    <span id="current-user-display" class="text-[10px] font-black text-slate-400 uppercase">Pharmacist</span>
+                    <span id="user-name" class="text-sm font-black text-indigo-600">未登入</span>
+                </div>
+                <a href="javascript:history.back()" class="text-slate-300 p-2"><i class="fa-solid fa-arrow-right-from-bracket"></i></a>
+            </div>
         </header>
 
-        <div class="neo-card rounded-2xl overflow-hidden mb-6">
-            <div id="reader" class="w-full"></div>
-            <div class="p-4 bg-slate-800 text-white flex justify-between items-center">
-                <span class="font-bold text-sm">狀態: <span id="status-text" class="text-emerald-400">準備就緒</span></span>
-                <button onclick="toggleCamera()" id="cam-btn" class="bg-white text-slate-800 px-3 py-1 rounded-lg text-xs font-black">關閉相機</button>
+        <div class="neo-card rounded-2xl overflow-hidden mb-4 relative">
+            <div id="reader"></div>
+            <div class="absolute inset-x-0 top-1/2 h-0.5 bg-red-500/50 shadow-[0_0_8px_red] z-10 pointer-events-none"></div>
+            <div class="absolute bottom-0 inset-x-0 p-2 bg-slate-900/60 backdrop-blur-sm text-white text-[10px] font-bold flex justify-between">
+                <span id="status-text">相機待機中</span>
+                <span id="cam-name">環境後置鏡頭</span>
             </div>
         </div>
 
-        <div class="neo-card rounded-2xl min-h-[200px] flex flex-col">
-            <div class="p-3 border-b-2 border-slate-800 bg-indigo-50 flex justify-between items-center">
-                <h2 class="font-black text-slate-700">本次掃描清單 (<span id="count">0</span>)</h2>
-                <button onclick="clearList()" class="text-red-500 text-sm font-bold">清空</button>
+        <div class="neo-card rounded-2xl flex flex-col bg-white">
+            <div class="p-3 border-b-2 border-slate-800 bg-slate-50 flex justify-between items-center">
+                <h2 class="font-black text-sm text-slate-600 uppercase">本次掃描清單 (<span id="count">0</span>)</h2>
+                <button onclick="clearList()" class="text-red-500 text-xs font-bold">清空</button>
             </div>
-            <div id="scan-list" class="flex-1 max-h-[40vh] overflow-y-auto">
-                <div class="p-10 text-center text-slate-300 italic font-bold">請對準條碼進行掃描</div>
+            <div id="scan-list" class="flex-1 max-h-[35vh] overflow-y-auto min-h-[150px]">
+                <div class="p-8 text-center text-slate-300 italic text-sm font-bold">尚未掃描任何品項</div>
             </div>
         </div>
 
-        <div class="fixed bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-md border-t-2 border-slate-200">
-            <button onclick="submitBatch()" id="submit-btn" class="w-full max-w-md mx-auto block py-4 bg-indigo-600 text-white rounded-2xl font-black text-xl neo-btn disabled:opacity-50">
-                確認批次發送 ({{count}})
+        <div class="fixed bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-md border-t-2 border-slate-100 z-40">
+            <button onclick="submitBatch()" id="submit-btn" class="w-full max-w-md mx-auto block py-4 bg-slate-800 text-white rounded-2xl font-black text-lg neo-btn disabled:opacity-30">
+                確認批次送出
             </button>
         </div>
     </div>
 
-    <audio id="beep-sound" src="https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3"></audio>
+    <audio id="beep-sound" preload="auto">
+        <source src="https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3" type="audio/mpeg">
+    </audio>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-        // Firebase 配置 (沿用你的配置)
         const firebaseConfig = {
             apiKey: "AIzaSyDZuNztwb9aLG1RqeDOyrj6KJrPhwBFi9M",
             authDomain: "fyh-pharmacy-inventory.firebaseapp.com",
@@ -65,92 +100,117 @@
         const fbApp = initializeApp(firebaseConfig);
         const db = getDatabase(fbApp);
 
-        // 變數
         let inventory = [];
         let scannedItems = [];
         let html5QrCode;
-        const currentUser = localStorage.getItem('preferred_user') || '條碼人員';
+        let selectedUser = "";
 
-        // 取得藥品資料庫 (用來比對條碼與藥名)
-        onValue(ref(db, "inventory"), s => {
-            if (s.val()) {
-                inventory = Object.entries(s.val()).map(([id, v]) => ({ id, ...v }));
+        // 1. 從資料庫同步人員清單
+        onValue(ref(db, "staff_list"), s => {
+            const list = s.val() || ['值班人員'];
+            const selectEl = document.getElementById('staff-select');
+            
+            // 生成選項
+            let options = '<option value="" disabled selected>請選擇藥師</option>';
+            list.forEach(name => {
+                options += `<option value="${name}">${name}</option>`;
+            });
+            selectEl.innerHTML = options;
+        });
+
+        // 2. 監聽人員選擇切換啟動按鈕
+        document.getElementById('staff-select').addEventListener('change', (e) => {
+            selectedUser = e.target.value;
+            const btn = document.getElementById('start-btn');
+            if (selectedUser) {
+                btn.disabled = false;
+                btn.className = "w-full py-5 bg-indigo-600 rounded-2xl font-black text-xl shadow-[0_0_20px_rgba(79,70,229,0.5)] transition-all";
             }
         });
 
-        // 初始化掃描器
+        // 3. 獲取庫存資料
+        onValue(ref(db, "inventory"), s => {
+            if (s.val()) inventory = Object.entries(s.val()).map(([id, v]) => ({ id, ...v }));
+        });
+
+        // 系統啟動
+        window.startSystem = function() {
+            if(!selectedUser) return;
+            
+            // 記錄選擇的人員
+            document.getElementById('user-name').innerText = selectedUser;
+            localStorage.setItem('preferred_user', selectedUser);
+            
+            // 關閉遮罩
+            document.getElementById('start-overlay').style.display = 'none';
+            
+            // 音訊解鎖
+            const beep = document.getElementById('beep-sound');
+            beep.play().then(() => { beep.pause(); beep.currentTime = 0; });
+
+            initScanner();
+        };
+
         function initScanner() {
             html5QrCode = new Html5Qrcode("reader");
-            const config = { fps: 10, qrbox: { width: 250, height: 150 } }; // 一維碼適合橫向長方形
-
-            html5QrCode.start(
-                { facingMode: "environment" }, 
-                config,
-                onScanSuccess
-            );
+            const config = { 
+                fps: 15, 
+                qrbox: { width: 280, height: 120 },
+                aspectRatio: 1.0
+            };
+            html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess);
         }
 
-        // 掃描成功回呼
         let lastCode = "";
         let lastScanTime = 0;
 
         function onScanSuccess(decodedText) {
             const now = Date.now();
-            // 防止重複掃描 (2秒內不允許掃同一個)
-            if (decodedText === lastCode && now - lastScanTime < 2000) return;
+            if (decodedText === lastCode && now - lastScanTime < 2500) return;
             
             lastCode = decodedText;
             lastScanTime = now;
 
-            // 尋找藥品
             const drug = inventory.find(i => i.code === decodedText);
             
             if (drug) {
-                successFeedback(drug);
+                playSoundAndSpeech(drug.name);
                 scannedItems.unshift({ ...drug, scanId: now });
                 renderList();
+                document.getElementById('status-text').innerText = "掃描成功: " + drug.name;
             } else {
-                document.getElementById('status-text').innerText = "找不到藥品: " + decodedText;
-                document.getElementById('status-text').className = "text-red-500";
+                document.getElementById('status-text').innerText = "未知條碼: " + decodedText;
             }
         }
 
-        // 成功反饋：嗶聲 + 語音
-        function successFeedback(drug) {
-            // 嗶一聲
-            document.getElementById('beep-sound').play();
+        function playSoundAndSpeech(drugName) {
+            const beep = document.getElementById('beep-sound');
+            beep.currentTime = 0;
+            beep.play();
             
-            // 震動
-            if (navigator.vibrate) navigator.vibrate(100);
+            if (navigator.vibrate) navigator.vibrate(80);
 
-            // 語音念藥名
-            const utterance = new SpeechSynthesisUtterance(drug.name);
+            const utterance = new SpeechSynthesisUtterance(drugName);
             utterance.lang = 'zh-TW';
-            utterance.rate = 0.9;
             window.speechSynthesis.speak(utterance);
-
-            document.getElementById('status-text').innerText = "已掃描: " + drug.name;
-            document.getElementById('status-text').className = "text-emerald-500";
         }
 
-        // 渲染清單
         window.renderList = function() {
             const listEl = document.getElementById('scan-list');
-            const countEl = document.getElementById('count');
-            countEl.innerText = scannedItems.length;
+            document.getElementById('count').innerText = scannedItems.length;
 
             if (scannedItems.length === 0) {
-                listEl.innerHTML = `<div class="p-10 text-center text-slate-300 italic font-bold">請對準條碼進行掃描</div>`;
+                listEl.innerHTML = `<div class="p-8 text-center text-slate-300 italic text-sm font-bold">尚未掃描任何品項</div>`;
                 return;
             }
 
             listEl.innerHTML = scannedItems.map((item, idx) => `
-                <div class="scan-item">
+                <div class="scan-item animate-in fade-in duration-300">
                     <div>
-                        <div class="text-xs font-bold text-slate-400">${item.code}</div>
-                        <div class="font-black text-slate-800">${item.name}</div>
+                        <div class="text-[10px] font-bold text-indigo-400 leading-none mb-1">${item.code}</div>
+                        <div class="font-black text-slate-800 text-sm">${item.name}</div>
                     </div>
-                    <button onclick="removeItem(${idx})" class="text-slate-300"><i class="fa-solid fa-circle-xmark"></i></button>
+                    <button onclick="removeItem(${idx})" class="text-slate-200 p-2"><i class="fa-solid fa-trash-can"></i></button>
                 </div>
             `).join('');
         };
@@ -167,13 +227,11 @@
             }
         };
 
-        // 批次送出到 Firebase
         window.submitBatch = async () => {
             if (scannedItems.length === 0) return;
-            
             const btn = document.getElementById('submit-btn');
             btn.disabled = true;
-            btn.innerText = "傳送中...";
+            btn.innerText = "儲存中...";
 
             try {
                 for (const item of scannedItems) {
@@ -181,39 +239,21 @@
                         code: item.code,
                         name: item.name,
                         shelf: item.shelf || 'Scanner',
-                        requester: currentUser,
+                        requester: selectedUser, // 使用剛才選擇的人員
                         time: new Date().toLocaleString('zh-TW', { hour12: false }),
                         type: 'UD_BARCODE'
                     });
                 }
-                alert(`成功送出 ${scannedItems.length} 筆點單！`);
+                alert(`批次送出成功！`);
                 scannedItems = [];
                 renderList();
             } catch (e) {
-                alert("傳送失敗：" + e.message);
+                alert("儲存失敗");
             } finally {
                 btn.disabled = false;
-                btn.innerText = "確認批次發送";
+                btn.innerText = "確認批次送出";
             }
         };
-
-        window.toggleCamera = function() {
-            const btn = document.getElementById('cam-btn');
-            if (html5QrCode && html5QrCode.getState() === 2) {
-                html5QrCode.stop();
-                btn.innerText = "開啟相機";
-                btn.className = "bg-emerald-500 text-white px-3 py-1 rounded-lg text-xs font-black";
-            } else {
-                initScanner();
-                btn.innerText = "關閉相機";
-                btn.className = "bg-white text-slate-800 px-3 py-1 rounded-lg text-xs font-black";
-            }
-        };
-
-        // 啟動
-        onMounted: {
-            initScanner();
-        }
     </script>
 </body>
 </html>
