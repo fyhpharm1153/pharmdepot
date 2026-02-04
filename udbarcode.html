@@ -10,11 +10,21 @@
     
     <style type="text/tailwindcss">
         [v-cloak] { display: none !important; }
-        body { transition: font-size 0.2s; }
+        body { transition: font-size 0.2s; font-family: sans-serif; }
         .neo-card { @apply bg-white border-2 border-slate-800 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]; }
         .neo-btn { @apply border-2 border-slate-800 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[1px] active:translate-y-[1px] transition-all; }
-        #reader { @apply border-none !important; min-height: 180px !important; }
-        #reader video { object-fit: cover !important; height: 180px !important; }
+        
+        /* 解決位移：確保 reader 容器不強制擠壓影片 */
+        #reader { 
+            @apply border-none !important; 
+            width: 100% !important;
+            margin: 0 auto;
+        }
+        #reader video { 
+            @apply w-full object-cover !important; 
+            border-radius: 1rem;
+        }
+
         .scan-item { @apply flex justify-between items-center p-3 border-b-2 border-slate-100 bg-white; }
         .overlay-start { @apply fixed inset-0 z-[500] bg-slate-900/95 flex flex-col items-center justify-center text-white p-8 text-center; }
         
@@ -28,8 +38,7 @@
         .name-popup.active { @apply scale-100 opacity-100; }
         .name-popup.warning { @apply bg-orange-500; }
 
-        /* 相機控制列 */
-        .cam-control-bar { @apply flex items-center justify-between px-4 py-2 bg-slate-800 text-white text-xs font-bold; }
+        .cam-control-bar { @apply flex items-center justify-between px-4 py-3 bg-slate-800 text-white text-xs font-bold; }
     </style>
 </head>
 <body class="bg-slate-50 p-3 pb-24">
@@ -50,14 +59,14 @@
     </div>
 
     <div id="app" class="max-w-md mx-auto">
-        <header class="mb-4 flex justify-between items-center bg-white p-3 rounded-xl border-2 border-slate-800 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
+        <header class="mb-6 flex justify-between items-center bg-white p-3 rounded-xl border-2 border-slate-800 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
             <div class="flex items-center gap-3">
                 <a href="https://fyhpharm1153.github.io/pharmdepot/udorder.html" class="w-8 h-8 flex items-center justify-center bg-slate-100 rounded-lg border-2 border-slate-800">
                     <i class="fa-solid fa-house text-slate-700 text-sm"></i>
                 </a>
                 <div class="flex flex-col leading-none">
-                    <h1 class="text-xs font-black text-slate-800">Scanner <span class="text-indigo-600">Pro</span></h1>
-                    <span id="user-name" class="text-[10px] font-bold text-indigo-500 mt-1 uppercase tracking-tighter">未選擇</span>
+                    <h1 class="text-xs font-black text-slate-800 tracking-tighter uppercase">Scanner Pro</h1>
+                    <span id="user-name" class="text-[10px] font-bold text-indigo-500 mt-1 uppercase tracking-tighter">Pharmacist</span>
                 </div>
             </div>
             
@@ -70,24 +79,26 @@
             </div>
         </header>
 
-        <div class="neo-card rounded-2xl overflow-hidden mb-4 bg-black">
-            <div class="relative min-h-[180px] flex items-center justify-center">
-                <div id="reader" class="w-full"></div>
-                <div id="scan-line" class="absolute inset-x-0 top-1/2 h-0.5 bg-red-500/50 z-10 pointer-events-none hidden"></div>
-                <div id="cam-placeholder" class="absolute inset-0 bg-slate-900 flex flex-col items-center justify-center text-slate-500 gap-2">
-                    <i class="fa-solid fa-video-slash text-3xl"></i>
-                    <span class="text-[10px] font-bold uppercase tracking-widest">Camera Offline</span>
+        <div class="neo-card rounded-2xl overflow-hidden mb-4 bg-black mt-2">
+            <div class="relative w-full flex items-center justify-center bg-slate-900 min-h-[200px]">
+                <div id="reader"></div>
+                <div id="cam-placeholder" class="absolute inset-0 bg-slate-900 flex flex-col items-center justify-center text-slate-600 gap-2 z-[20]">
+                    <i class="fa-solid fa-video-slash text-2xl"></i>
+                    <span class="text-[9px] font-black uppercase tracking-widest">Camera Paused</span>
                 </div>
             </div>
             
             <div class="cam-control-bar border-t border-slate-700">
-                <span id="status-text" class="text-indigo-400 tracking-tighter uppercase font-black">Ready</span>
+                <div class="flex gap-4 items-center">
+                    <span id="status-text" class="text-indigo-400 font-black">IDLE</span>
+                    <button id="torch-btn" onclick="toggleTorch()" class="text-white opacity-50 hidden p-1"><i class="fa-solid fa-bolt"></i></button>
+                </div>
                 <div class="flex gap-2">
-                    <button id="cam-on-btn" onclick="toggleCamera(true)" class="bg-indigo-600 px-4 py-1.5 rounded-lg flex items-center gap-2 active:scale-95 transition-all">
-                        <i class="fa-solid fa-camera"></i> 開啟鏡頭
+                    <button id="cam-on-btn" onclick="toggleCamera(true)" class="bg-indigo-600 px-5 py-2 rounded-xl flex items-center gap-2 active:scale-95 transition-all font-black shadow-sm">
+                        <i class="fa-solid fa-play"></i> 開啟掃描
                     </button>
-                    <button id="cam-off-btn" onclick="toggleCamera(false)" class="bg-red-600 px-4 py-1.5 rounded-lg flex items-center gap-2 active:scale-95 transition-all hidden">
-                        <i class="fa-solid fa-power-off"></i> 關閉
+                    <button id="cam-off-btn" onclick="toggleCamera(false)" class="bg-red-600 px-5 py-2 rounded-xl flex items-center gap-2 active:scale-95 transition-all font-black hidden shadow-sm">
+                        <i class="fa-solid fa-pause"></i> 停止
                     </button>
                 </div>
             </div>
@@ -95,17 +106,17 @@
 
         <div class="neo-card rounded-2xl flex flex-col bg-white overflow-hidden">
             <div class="p-3 border-b-2 border-slate-800 bg-slate-50 flex justify-between items-center text-xs font-black">
-                <span>掃描暫存 (<span id="count">0</span>)</span>
-                <button onclick="clearList()" class="text-red-500 hover:underline">清空清單</button>
+                <span>批次點藥 (<span id="count">0</span>)</span>
+                <button onclick="clearList()" class="text-red-500 hover:underline">清空</button>
             </div>
-            <div id="scan-list" class="flex-1 max-h-[35vh] overflow-y-auto min-h-[150px]">
-                <div class="p-8 text-center text-slate-300 italic text-sm font-bold">尚未掃描任何藥品</div>
+            <div id="scan-list" class="flex-1 max-h-[30vh] overflow-y-auto min-h-[140px]">
+                <div class="p-8 text-center text-slate-300 italic text-sm font-bold">尚未讀取條碼</div>
             </div>
         </div>
 
-        <div class="fixed bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-md border-t-2 border-slate-100">
-            <button onclick="submitBatch()" id="submit-btn" class="w-full py-2.5 bg-indigo-600 text-white rounded-xl font-black text-base neo-btn disabled:opacity-30">
-                確認批次送出
+        <div class="fixed bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-md border-t-2 border-slate-100 z-40">
+            <button onclick="submitBatch()" id="submit-btn" class="w-full py-3 bg-indigo-600 text-white rounded-xl font-black text-base neo-btn disabled:opacity-30">
+                確認發送至資料庫
             </button>
         </div>
     </div>
@@ -133,31 +144,20 @@
         let scannedItems = [];
         let html5QrCode = null;
         let selectedUser = "";
-        let baseFontSize = parseFloat(localStorage.getItem('scanner_font_size')) || 1.0;
-
-        document.documentElement.style.fontSize = `${baseFontSize}rem`;
-
-        window.changeFontSize = function(delta) {
-            baseFontSize = Math.min(Math.max(baseFontSize + delta, 0.7), 1.8);
-            document.documentElement.style.fontSize = `${baseFontSize}rem`;
-            localStorage.setItem('scanner_font_size', baseFontSize);
-        };
+        let isTorchOn = false;
 
         onValue(ref(db, "staff_list"), s => {
             const list = s.val() || ['值班人員'];
             const selectEl = document.getElementById('staff-select');
-            let options = '<option value="" disabled selected>選擇藥師姓名</option>';
+            let options = '<option value="" disabled selected>藥師姓名</option>';
             list.forEach(name => { options += `<option value="${name}">${name}</option>`; });
             selectEl.innerHTML = options;
         });
 
         document.getElementById('staff-select').addEventListener('change', (e) => {
             selectedUser = e.target.value;
-            const btn = document.getElementById('start-btn');
-            if (selectedUser) {
-                btn.disabled = false;
-                btn.className = "w-full py-5 bg-indigo-600 text-white rounded-2xl font-black text-xl shadow-lg";
-            }
+            document.getElementById('start-btn').disabled = false;
+            document.getElementById('start-btn').classList.remove('opacity-40');
         });
 
         onValue(ref(db, "inventory"), s => {
@@ -176,26 +176,40 @@
             const onBtn = document.getElementById('cam-on-btn');
             const offBtn = document.getElementById('cam-off-btn');
             const placeholder = document.getElementById('cam-placeholder');
-            const scanLine = document.getElementById('scan-line');
+            const torchBtn = document.getElementById('torch-btn');
 
             try {
                 if (shouldOpen) {
                     onBtn.classList.add('hidden');
                     offBtn.classList.remove('hidden');
                     placeholder.classList.add('hidden');
-                    scanLine.classList.remove('hidden');
                     
                     if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
-                    const config = { fps: 15, qrbox: { width: 250, height: 100 } };
+                    
+                    const config = { 
+                        fps: 20, 
+                        // 修正偏移：將 qrbox 高度縮窄，並利用函數式定義確保中心校準
+                        qrbox: (viewWidth, viewHeight) => {
+                            const boxWidth = Math.min(viewWidth * 0.75, 280);
+                            const boxHeight = 100;
+                            return { width: boxWidth, height: boxHeight };
+                        },
+                        aspectRatio: 1.0 // 改為 1:1 或讓瀏覽器自適應，通常能解決座標位移
+                    };
+                    
                     await html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess);
-                    document.getElementById('status-text').innerText = "Scanning";
+                    
+                    const track = html5QrCode.getRunningTrack();
+                    if (track && track.getCapabilities().torch) torchBtn.classList.remove('hidden');
+                    
+                    document.getElementById('status-text').innerText = "SCANNING";
                 } else {
                     if (html5QrCode && html5QrCode.getState() === 2) await html5QrCode.stop();
                     onBtn.classList.remove('hidden');
                     offBtn.classList.add('hidden');
                     placeholder.classList.remove('hidden');
-                    scanLine.classList.add('hidden');
-                    document.getElementById('status-text').innerText = "Paused";
+                    torchBtn.classList.add('hidden');
+                    document.getElementById('status-text').innerText = "IDLE";
                 }
             } catch (err) {
                 console.error(err);
@@ -205,8 +219,15 @@
             }
         };
 
-        let lastCode = "";
-        let lastScanTime = 0;
+        window.toggleTorch = async function() {
+            if (!html5QrCode) return;
+            isTorchOn = !isTorchOn;
+            try {
+                await html5QrCode.applyVideoConstraints({ advanced: [{ torch: isTorchOn }] });
+                document.getElementById('torch-btn').classList.toggle('text-yellow-400', isTorchOn);
+                document.getElementById('torch-btn').classList.toggle('opacity-50', !isTorchOn);
+            } catch (e) { console.error("Torch error", e); }
+        };
 
         function onScanSuccess(decodedText) {
             const now = Date.now();
@@ -218,6 +239,9 @@
             const drug = inventory.find(i => i.code === decodedText);
 
             if (drug) {
+                const beep = document.getElementById('beep-sound');
+                beep.currentTime = 0; beep.play();
+                
                 if (isDuplicate) {
                     showBigName("點過了", true);
                     speakText("點過了");
@@ -227,8 +251,6 @@
                     scannedItems.unshift({ ...drug, scanId: now });
                     renderList();
                 }
-                const beep = document.getElementById('beep-sound');
-                beep.currentTime = 0; beep.play();
             }
         }
 
@@ -251,13 +273,13 @@
             const listEl = document.getElementById('scan-list');
             document.getElementById('count').innerText = scannedItems.length;
             if (scannedItems.length === 0) {
-                listEl.innerHTML = `<div class="p-8 text-center text-slate-300 italic text-sm font-bold">尚未掃描任何藥品</div>`;
+                listEl.innerHTML = `<div class="p-8 text-center text-slate-300 italic text-sm font-bold">尚未讀取條碼</div>`;
                 return;
             }
             listEl.innerHTML = scannedItems.map((item, idx) => `
                 <div class="scan-item">
                     <div class="flex-1 pr-4">
-                        <div class="text-[0.6rem] font-bold text-indigo-400 mb-1">${item.code}</div>
+                        <div class="text-[0.6rem] font-bold text-indigo-400 mb-1 tracking-tighter">${item.code}</div>
                         <div class="font-black text-slate-800 text-sm leading-tight">${item.name}</div>
                     </div>
                     <button onclick="removeItem(${idx})" class="text-slate-300 p-2 text-lg"><i class="fa-solid fa-circle-minus"></i></button>
@@ -267,11 +289,9 @@
 
         window.removeItem = (idx) => { scannedItems.splice(idx, 1); renderList(); };
         window.clearList = () => { if(confirm("確定清空？")) { scannedItems = []; renderList(); } };
-
         window.fullLogout = async function() {
-            if (confirm("要切換藥師身分嗎？")) {
+            if (confirm("要重選人員嗎？")) {
                 await toggleCamera(false);
-                selectedUser = ""; scannedItems = []; renderList();
                 document.getElementById('start-overlay').style.display = 'flex';
             }
         };
@@ -279,7 +299,7 @@
         window.submitBatch = async () => {
             if (scannedItems.length === 0) return;
             const btn = document.getElementById('submit-btn');
-            btn.disabled = true; btn.innerText = "正在儲存...";
+            btn.disabled = true; btn.innerText = "傳送中...";
             try {
                 for (const item of scannedItems) {
                     await push(ref(db, "replenishment_orders"), {
@@ -289,8 +309,11 @@
                 }
                 alert(`批次送出成功！`);
                 scannedItems = []; renderList();
-            } catch (e) { alert("發送失敗"); } finally { btn.disabled = false; btn.innerText = "確認批次送出"; }
+            } catch (e) { alert("發送失敗"); } finally { btn.disabled = false; btn.innerText = "確認發送至資料庫"; }
         };
+
+        let lastCode = "";
+        let lastScanTime = 0;
     </script>
 </body>
 </html>
