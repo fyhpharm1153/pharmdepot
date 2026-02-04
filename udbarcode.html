@@ -28,13 +28,15 @@
         .name-popup.active { @apply scale-100 opacity-100; }
         .name-popup.warning { @apply bg-orange-500; }
         
+        /* 關閉按鈕：確保在開啟相機後才顯示在最前 */
         .cam-close-btn { 
-            @apply absolute bottom-2 right-2 z-20 w-10 h-10 bg-red-600/80 text-white 
+            @apply absolute bottom-2 right-2 z-[60] w-12 h-12 bg-red-600 text-white 
                    rounded-full flex items-center justify-center border-2 border-white 
                    shadow-lg active:scale-90 transition-all; 
         }
+        /* 佔位符 UI：確保它的 z-index 足夠高，且內部按鈕可點擊 */
         .cam-placeholder {
-            @apply absolute inset-0 bg-slate-800 flex flex-col items-center justify-center text-white gap-3 z-[15];
+            @apply absolute inset-0 bg-slate-800 flex flex-col items-center justify-center text-white gap-3 z-[50];
         }
     </style>
 </head>
@@ -80,13 +82,14 @@
             <div id="reader"></div>
             
             <div id="cam-off-ui" class="cam-placeholder hidden">
-                <button onclick="toggleCamera(true)" class="px-8 py-3 bg-indigo-600 text-white rounded-full font-black shadow-lg animate-pulse flex items-center gap-2">
+                <button onclick="toggleCamera(true)" class="px-8 py-4 bg-indigo-600 text-white rounded-full font-black shadow-xl animate-pulse flex items-center gap-2 pointer-events-auto">
                     <i class="fa-solid fa-camera"></i>開啟相機掃描
                 </button>
+                <p class="text-[10px] opacity-50">點擊按鈕啟動鏡頭</p>
             </div>
 
             <button id="cam-close-btn" onclick="toggleCamera(false)" class="cam-close-btn hidden">
-                <i class="fa-solid fa-times"></i>
+                <i class="fa-solid fa-times text-xl"></i>
             </button>
             
             <div id="scan-line" class="absolute inset-x-0 top-1/2 h-0.5 bg-red-500/50 z-10 pointer-events-none hidden"></div>
@@ -130,7 +133,7 @@
 
         let inventory = [];
         let scannedItems = [];
-        let html5QrCode = null; // 保持單一實例
+        let html5QrCode = null;
         let selectedUser = "";
         let baseFontSize = parseFloat(localStorage.getItem('scanner_font_size')) || 1.0;
 
@@ -173,7 +176,6 @@
             toggleCamera(true);
         };
 
-        // 核心相機控制切換
         window.toggleCamera = async function(shouldOpen) {
             const closeBtn = document.getElementById('cam-close-btn');
             const offUI = document.getElementById('cam-off-ui');
@@ -195,13 +197,13 @@
                     if (html5QrCode && html5QrCode.getState() === 2) {
                         await html5QrCode.stop();
                     }
+                    // 關鍵：先顯示 UI 再隱藏按鈕，避免點擊衝突
                     offUI.classList.remove('hidden');
                     closeBtn.classList.add('hidden');
                     scanLine.classList.add('hidden');
                 }
             } catch (err) {
                 console.error("Camera Error:", err);
-                // 發生錯誤時重置 UI
                 offUI.classList.remove('hidden');
                 closeBtn.classList.add('hidden');
                 scanLine.classList.add('hidden');
