@@ -34,7 +34,7 @@
                    shadow-lg active:scale-90 transition-all; 
         }
         .cam-placeholder {
-            @apply absolute inset-0 bg-slate-800 flex flex-col items-center justify-center text-white gap-3 z-10;
+            @apply absolute inset-0 bg-slate-800 flex flex-col items-center justify-center text-white gap-3 z-[15];
         }
     </style>
 </head>
@@ -49,8 +49,7 @@
             <select id="staff-select" class="bg-white text-slate-900 p-4 rounded-xl border-2 border-slate-800 w-full mb-6 font-black text-lg appearance-none">
                 <option value="" disabled selected>選擇藥師姓名</option>
             </select>
-            <button id="start-btn" onclick="startSystem()" disabled 
-                class="w-full py-5 bg-indigo-600 text-white rounded-2xl font-black text-xl shadow-lg opacity-40">
+            <button id="start-btn" onclick="startSystem()" disabled class="w-full py-5 bg-indigo-600 text-white rounded-2xl font-black text-xl shadow-lg opacity-40">
                 確認藥師並開始
             </button>
         </div>
@@ -81,9 +80,8 @@
             <div id="reader"></div>
             
             <div id="cam-off-ui" class="cam-placeholder hidden">
-                <i class="fa-solid fa-camera-slash text-3xl opacity-30"></i>
-                <button onclick="toggleCamera(true)" class="px-6 py-2 bg-indigo-600 text-white rounded-full font-black shadow-lg animate-pulse">
-                    <i class="fa-solid fa-camera mr-2"></i>開啟相機
+                <button onclick="toggleCamera(true)" class="px-8 py-3 bg-indigo-600 text-white rounded-full font-black shadow-lg animate-pulse flex items-center gap-2">
+                    <i class="fa-solid fa-camera"></i>開啟相機掃描
                 </button>
             </div>
 
@@ -132,7 +130,7 @@
 
         let inventory = [];
         let scannedItems = [];
-        let html5QrCode;
+        let html5QrCode = null; // 保持單一實例
         let selectedUser = "";
         let baseFontSize = parseFloat(localStorage.getItem('scanner_font_size')) || 1.0;
 
@@ -175,33 +173,40 @@
             toggleCamera(true);
         };
 
-        // 控制相機開啟或關閉
+        // 核心相機控制切換
         window.toggleCamera = async function(shouldOpen) {
             const closeBtn = document.getElementById('cam-close-btn');
             const offUI = document.getElementById('cam-off-ui');
             const scanLine = document.getElementById('scan-line');
 
-            if (shouldOpen) {
-                offUI.classList.add('hidden');
-                closeBtn.classList.remove('hidden');
-                scanLine.classList.remove('hidden');
-                initScanner();
-            } else {
-                if (html5QrCode) {
-                    await html5QrCode.stop();
-                    html5QrCode = null;
+            try {
+                if (shouldOpen) {
+                    offUI.classList.add('hidden');
+                    closeBtn.classList.remove('hidden');
+                    scanLine.classList.remove('hidden');
+                    
+                    if (!html5QrCode) {
+                        html5QrCode = new Html5Qrcode("reader");
+                    }
+                    
+                    const config = { fps: 15, qrbox: { width: 250, height: 100 } };
+                    await html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess);
+                } else {
+                    if (html5QrCode && html5QrCode.getState() === 2) {
+                        await html5QrCode.stop();
+                    }
+                    offUI.classList.remove('hidden');
+                    closeBtn.classList.add('hidden');
+                    scanLine.classList.add('hidden');
                 }
+            } catch (err) {
+                console.error("Camera Error:", err);
+                // 發生錯誤時重置 UI
                 offUI.classList.remove('hidden');
                 closeBtn.classList.add('hidden');
                 scanLine.classList.add('hidden');
             }
         };
-
-        function initScanner() {
-            html5QrCode = new Html5Qrcode("reader");
-            const config = { fps: 15, qrbox: { width: 250, height: 100 } };
-            html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess);
-        }
 
         let lastCode = "";
         let lastScanTime = 0;
@@ -270,13 +275,11 @@
 
         window.clearList = () => { if(confirm("確定清空暫存清單？")) { scannedItems = []; renderList(); } };
 
-        // 徹底登出回選擇人員
-        window.fullLogout = function() {
+        window.fullLogout = async function() {
             if (confirm("要切換藥師身分嗎？")) {
-                toggleCamera(false).then(() => {
-                    selectedUser = ""; scannedItems = []; renderList();
-                    document.getElementById('start-overlay').style.display = 'flex';
-                });
+                await toggleCamera(false);
+                selectedUser = ""; scannedItems = []; renderList();
+                document.getElementById('start-overlay').style.display = 'flex';
             }
         };
 
