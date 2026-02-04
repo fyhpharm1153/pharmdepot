@@ -13,7 +13,7 @@
         body { transition: font-size 0.2s; }
         .neo-card { @apply bg-white border-2 border-slate-800 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]; }
         .neo-btn { @apply border-2 border-slate-800 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[1px] active:translate-y-[1px] transition-all; }
-        #reader { @apply border-none !important; height: 180px !important; }
+        #reader { @apply border-none !important; min-height: 180px !important; }
         #reader video { object-fit: cover !important; height: 180px !important; }
         .scan-item { @apply flex justify-between items-center p-3 border-b-2 border-slate-100 bg-white; }
         .overlay-start { @apply fixed inset-0 z-[500] bg-slate-900/95 flex flex-col items-center justify-center text-white p-8 text-center; }
@@ -27,17 +27,9 @@
         }
         .name-popup.active { @apply scale-100 opacity-100; }
         .name-popup.warning { @apply bg-orange-500; }
-        
-        /* 關閉按鈕：確保在開啟相機後才顯示在最前 */
-        .cam-close-btn { 
-            @apply absolute bottom-2 right-2 z-[60] w-12 h-12 bg-red-600 text-white 
-                   rounded-full flex items-center justify-center border-2 border-white 
-                   shadow-lg active:scale-90 transition-all; 
-        }
-        /* 佔位符 UI：確保它的 z-index 足夠高，且內部按鈕可點擊 */
-        .cam-placeholder {
-            @apply absolute inset-0 bg-slate-800 flex flex-col items-center justify-center text-white gap-3 z-[50];
-        }
+
+        /* 相機控制列 */
+        .cam-control-bar { @apply flex items-center justify-between px-4 py-2 bg-slate-800 text-white text-xs font-bold; }
     </style>
 </head>
 <body class="bg-slate-50 p-3 pb-24">
@@ -63,9 +55,9 @@
                 <a href="https://fyhpharm1153.github.io/pharmdepot/udorder.html" class="w-8 h-8 flex items-center justify-center bg-slate-100 rounded-lg border-2 border-slate-800">
                     <i class="fa-solid fa-house text-slate-700 text-sm"></i>
                 </a>
-                <div class="flex flex-col">
-                    <h1 class="text-xs font-black text-slate-800 leading-none">Scanner <span class="text-indigo-600">Pro</span></h1>
-                    <span id="user-name" class="text-[10px] font-bold text-indigo-500 mt-1 uppercase">未選擇</span>
+                <div class="flex flex-col leading-none">
+                    <h1 class="text-xs font-black text-slate-800">Scanner <span class="text-indigo-600">Pro</span></h1>
+                    <span id="user-name" class="text-[10px] font-bold text-indigo-500 mt-1 uppercase tracking-tighter">未選擇</span>
                 </div>
             </div>
             
@@ -78,21 +70,27 @@
             </div>
         </header>
 
-        <div class="neo-card rounded-2xl overflow-hidden mb-4 relative bg-black min-h-[180px]">
-            <div id="reader"></div>
-            
-            <div id="cam-off-ui" class="cam-placeholder hidden">
-                <button onclick="toggleCamera(true)" class="px-8 py-4 bg-indigo-600 text-white rounded-full font-black shadow-xl animate-pulse flex items-center gap-2 pointer-events-auto">
-                    <i class="fa-solid fa-camera"></i>開啟相機掃描
-                </button>
-                <p class="text-[10px] opacity-50">點擊按鈕啟動鏡頭</p>
+        <div class="neo-card rounded-2xl overflow-hidden mb-4 bg-black">
+            <div class="relative min-h-[180px] flex items-center justify-center">
+                <div id="reader" class="w-full"></div>
+                <div id="scan-line" class="absolute inset-x-0 top-1/2 h-0.5 bg-red-500/50 z-10 pointer-events-none hidden"></div>
+                <div id="cam-placeholder" class="absolute inset-0 bg-slate-900 flex flex-col items-center justify-center text-slate-500 gap-2">
+                    <i class="fa-solid fa-video-slash text-3xl"></i>
+                    <span class="text-[10px] font-bold uppercase tracking-widest">Camera Offline</span>
+                </div>
             </div>
-
-            <button id="cam-close-btn" onclick="toggleCamera(false)" class="cam-close-btn hidden">
-                <i class="fa-solid fa-times text-xl"></i>
-            </button>
             
-            <div id="scan-line" class="absolute inset-x-0 top-1/2 h-0.5 bg-red-500/50 z-10 pointer-events-none hidden"></div>
+            <div class="cam-control-bar border-t border-slate-700">
+                <span id="status-text" class="text-indigo-400 tracking-tighter uppercase font-black">Ready</span>
+                <div class="flex gap-2">
+                    <button id="cam-on-btn" onclick="toggleCamera(true)" class="bg-indigo-600 px-4 py-1.5 rounded-lg flex items-center gap-2 active:scale-95 transition-all">
+                        <i class="fa-solid fa-camera"></i> 開啟鏡頭
+                    </button>
+                    <button id="cam-off-btn" onclick="toggleCamera(false)" class="bg-red-600 px-4 py-1.5 rounded-lg flex items-center gap-2 active:scale-95 transition-all hidden">
+                        <i class="fa-solid fa-power-off"></i> 關閉
+                    </button>
+                </div>
+            </div>
         </div>
 
         <div class="neo-card rounded-2xl flex flex-col bg-white overflow-hidden">
@@ -101,7 +99,7 @@
                 <button onclick="clearList()" class="text-red-500 hover:underline">清空清單</button>
             </div>
             <div id="scan-list" class="flex-1 max-h-[35vh] overflow-y-auto min-h-[150px]">
-                <div class="p-8 text-center text-slate-300 italic text-sm font-bold">等待條碼輸入...</div>
+                <div class="p-8 text-center text-slate-300 italic text-sm font-bold">尚未掃描任何藥品</div>
             </div>
         </div>
 
@@ -171,42 +169,39 @@
             window.speechSynthesis.speak(new SpeechSynthesisUtterance(""));
             document.getElementById('user-name').innerText = selectedUser;
             document.getElementById('start-overlay').style.display = 'none';
-            const beep = document.getElementById('beep-sound');
-            beep.play().then(() => { beep.pause(); beep.currentTime = 0; });
             toggleCamera(true);
         };
 
         window.toggleCamera = async function(shouldOpen) {
-            const closeBtn = document.getElementById('cam-close-btn');
-            const offUI = document.getElementById('cam-off-ui');
+            const onBtn = document.getElementById('cam-on-btn');
+            const offBtn = document.getElementById('cam-off-btn');
+            const placeholder = document.getElementById('cam-placeholder');
             const scanLine = document.getElementById('scan-line');
 
             try {
                 if (shouldOpen) {
-                    offUI.classList.add('hidden');
-                    closeBtn.classList.remove('hidden');
+                    onBtn.classList.add('hidden');
+                    offBtn.classList.remove('hidden');
+                    placeholder.classList.add('hidden');
                     scanLine.classList.remove('hidden');
                     
-                    if (!html5QrCode) {
-                        html5QrCode = new Html5Qrcode("reader");
-                    }
-                    
+                    if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
                     const config = { fps: 15, qrbox: { width: 250, height: 100 } };
                     await html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess);
+                    document.getElementById('status-text').innerText = "Scanning";
                 } else {
-                    if (html5QrCode && html5QrCode.getState() === 2) {
-                        await html5QrCode.stop();
-                    }
-                    // 關鍵：先顯示 UI 再隱藏按鈕，避免點擊衝突
-                    offUI.classList.remove('hidden');
-                    closeBtn.classList.add('hidden');
+                    if (html5QrCode && html5QrCode.getState() === 2) await html5QrCode.stop();
+                    onBtn.classList.remove('hidden');
+                    offBtn.classList.add('hidden');
+                    placeholder.classList.remove('hidden');
                     scanLine.classList.add('hidden');
+                    document.getElementById('status-text').innerText = "Paused";
                 }
             } catch (err) {
-                console.error("Camera Error:", err);
-                offUI.classList.remove('hidden');
-                closeBtn.classList.add('hidden');
-                scanLine.classList.add('hidden');
+                console.error(err);
+                placeholder.classList.remove('hidden');
+                onBtn.classList.remove('hidden');
+                offBtn.classList.add('hidden');
             }
         };
 
@@ -256,7 +251,7 @@
             const listEl = document.getElementById('scan-list');
             document.getElementById('count').innerText = scannedItems.length;
             if (scannedItems.length === 0) {
-                listEl.innerHTML = `<div class="p-8 text-center text-slate-300 italic text-sm font-bold">等待條碼輸入...</div>`;
+                listEl.innerHTML = `<div class="p-8 text-center text-slate-300 italic text-sm font-bold">尚未掃描任何藥品</div>`;
                 return;
             }
             listEl.innerHTML = scannedItems.map((item, idx) => `
@@ -270,12 +265,8 @@
             `).join('');
         };
 
-        window.removeItem = (idx) => {
-            scannedItems.splice(idx, 1);
-            renderList();
-        };
-
-        window.clearList = () => { if(confirm("確定清空暫存清單？")) { scannedItems = []; renderList(); } };
+        window.removeItem = (idx) => { scannedItems.splice(idx, 1); renderList(); };
+        window.clearList = () => { if(confirm("確定清空？")) { scannedItems = []; renderList(); } };
 
         window.fullLogout = async function() {
             if (confirm("要切換藥師身分嗎？")) {
@@ -288,7 +279,7 @@
         window.submitBatch = async () => {
             if (scannedItems.length === 0) return;
             const btn = document.getElementById('submit-btn');
-            btn.disabled = true; btn.innerText = "傳送中...";
+            btn.disabled = true; btn.innerText = "正在儲存...";
             try {
                 for (const item of scannedItems) {
                     await push(ref(db, "replenishment_orders"), {
