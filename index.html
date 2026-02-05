@@ -151,7 +151,25 @@
             </section>
 
             <section>
-                <h2 class="text-rose-600 font-black text-[0.6em] mb-3 flex items-center gap-3 px-2 italic"><i class="fa-solid fa-clipboard-check"></i> 二、品質通報專區</h2>
+                <h2 class="text-emerald-600 font-black text-[0.6em] mb-3 flex items-center gap-3 px-2 italic"><i class="fa-solid fa-graduation-cap"></i> 二、教學與諮詢</h2>
+                <div class="responsive-grid">
+                    <div onclick="window.open('https://amanhung.github.io/handbook/')" class="nav-card">
+                        <div class="icon-box bg-indigo-50 text-indigo-600"><i class="fa-solid fa-chalkboard-user"></i></div>
+                        <span>藥師教學導航</span>
+                    </div>
+                    <div onclick="window.open('https://cw-chen122.github.io/wegovy-cal/')" class="nav-card">
+                        <div class="icon-box bg-cyan-50 text-cyan-600"><i class="fa-solid fa-calculator"></i></div>
+                        <span>Wegovy 換算器</span>
+                    </div>
+                    <div onclick="window.open('https://amanhung.github.io/Formulary/')" class="nav-card">
+                        <div class="icon-box bg-emerald-50 text-emerald-600"><i class="fa-solid fa-users"></i></div>
+                        <span>民眾藥品查詢</span>
+                    </div>
+                </div>
+            </section>
+
+            <section>
+                <h2 class="text-rose-600 font-black text-[0.6em] mb-3 flex items-center gap-3 px-2 italic"><i class="fa-solid fa-clipboard-check"></i> 三、品質通報專區</h2>
                 <div class="responsive-grid">
                     <div onclick="window.open('https://tinyurl.com/110fyhmissrx')" class="nav-card">
                         <div class="icon-box bg-rose-50 text-rose-600"><i class="fa-solid fa-circle-question"></i></div>
@@ -160,20 +178,6 @@
                     <div onclick="window.open('https://forms.gle/P8CAU19HgGF4CVEf9')" class="nav-card">
                         <div class="icon-box bg-orange-50 text-orange-600"><i class="fa-solid fa-triangle-exclamation"></i></div>
                         <span>調劑錯誤登記</span>
-                    </div>
-                </div>
-            </section>
-
-            <section>
-                <h2 class="text-emerald-600 font-black text-[0.6em] mb-3 flex items-center gap-3 px-2 italic"><i class="fa-solid fa-comment-medical"></i> 三、民眾藥務諮詢</h2>
-                <div class="responsive-grid">
-                    <div onclick="window.open('https://cw-chen122.github.io/wegovy-cal/')" class="nav-card">
-                        <div class="icon-box bg-cyan-50 text-cyan-600"><i class="fa-solid fa-calculator"></i></div>
-                        <span>Wegovy 換算器</span>
-                    </div>
-                    <div onclick="window.open('https://amanhung.github.io/Formulary/')" class="nav-card">
-                        <div class="icon-box bg-emerald-50 text-emerald-600"><i class="fa-solid fa-users"></i></div>
-                        <span>民眾藥品查詢</span>
                     </div>
                 </div>
             </section>
@@ -262,8 +266,21 @@
 
             const fetchPresets = async () => { try { const res = await fetch(`${API_URL}?type=presets&t=${new Date().getTime()}`); const data = await res.json(); if (Array.isArray(data)) presets.value = data; } catch (e) {} };
             const syncPresetsToServer = async () => { try { await fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ type: 'update_presets', list: presets.value }) }); } catch (e) {} };
-            const addPreset = async () => { const t = prompt("新增預設文字："); if (t) { presets.value.push(t.trim()); await syncPresetsToServer(); } };
-            const removePreset = async (i) => { if (confirm("刪除雲端按鈕？")) { presets.value.splice(i, 1); await syncPresetsToServer(); } };
+            
+            const addPreset = async () => { 
+                const t = prompt("新增預設文字："); 
+                if (t && t.trim()) { 
+                    presets.value.push(t.trim()); 
+                    await syncPresetsToServer(); 
+                } 
+            };
+            
+            const removePreset = async (i) => { 
+                if (confirm("刪除雲端按鈕？")) { 
+                    presets.value.splice(i, 1); 
+                    await syncPresetsToServer(); 
+                } 
+            };
 
             const fetchNotice = async () => {
                 try {
@@ -298,7 +315,6 @@
                 } catch (e) {} finally { isPosting.value = false; }
             };
 
-            // 緊急支援：固定參數發送
             const postEmergency = async () => {
                 if (!confirm("⚠️ 確認發送緊急支援？\n將發布公告並同步至 Telegram。")) return;
                 isPosting.value = true;
@@ -333,4 +349,3 @@
 </script>
 </body>
 </html>
-
