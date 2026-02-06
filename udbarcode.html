@@ -176,41 +176,43 @@
     const scanLine = document.getElementById('scan-line');
 
     try {
-        if (shouldOpen) {
-            if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
-            
-            // 設定掃描參數
-            const config = { 
-                fps: 20, 
-                qrbox: { width: 250, height: 100 }, 
-                aspectRatio: 1.0 
-            };
+if (shouldOpen) {
+        if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
+        const config = { fps: 20, qrbox: { width: 250, height: 100 }, aspectRatio: 1.0 };
+        
+        await html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess);
 
-            // 設定相機進階功能：啟動環境相機並嘗試開啟連續對焦
-            await html5QrCode.start(
-                { 
-                    facingMode: "environment"
-                }, 
-                config, 
-                onScanSuccess
-            );
-
-            // --- 新增：嘗試取得相機軌道並開啟自動對焦 ---
+        // --- iPhone 15 特殊優化區塊 ---
+        setTimeout(async () => {
             try {
                 const track = html5QrCode.getRunningTrack();
                 const capabilities = track.getCapabilities();
                 
-                // 檢查設備是否支援連續對焦
-                if (capabilities.focusMode && capabilities.focusMode.includes('continuous')) {
-                    await track.applyConstraints({
-                        advanced: [{ focusMode: 'continuous' }]
-                    });
-                    console.log("已啟動連續自動對焦");
+                // 設定約束條件
+                const constraints = { advanced: [] };
+
+                // 1. 嘗試啟動連續對焦 (對 Android 較有效)
+                if (capabilities.focusMode?.includes('continuous')) {
+                    constraints.advanced.push({ focusMode: 'continuous' });
                 }
-            } catch (focusErr) {
-                console.warn("此裝置不支援手動控制對焦:", focusErr);
+
+                // 2. 針對 iPhone 15：自動放大 (Zoom)
+                // 建議設為 2.0 倍，讓藥師可以拿遠一點掃描，避開主鏡頭對焦死角
+                if (capabilities.zoom) {
+                    const targetZoom = Math.min(2.0, capabilities.zoom.max);
+                    constraints.advanced.push({ zoom: targetZoom });
+                }
+
+                if (constraints.advanced.length > 0) {
+                    await track.applyConstraints(constraints);
+                    console.log("已套用 iPhone 優化設定: Zoom 2.0x");
+                }
+            } catch (e) {
+                console.warn("無法調整相機進階參數:", e);
             }
-            // ----------------------------------------
+        }, 1000); // 延遲 1 秒確保相機軌道已穩定啟動
+        // ----------------------------
+    }
 
             placeholder.classList.add('hidden');
             scanLine.classList.remove('hidden');
@@ -313,4 +315,5 @@
     </script>
 </body>
 </html>
+
 
