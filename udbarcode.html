@@ -170,32 +170,64 @@
         };
 
         window.toggleCamera = async function(shouldOpen) {
-            const onBtn = document.getElementById('cam-on-btn');
-            const offBtn = document.getElementById('cam-off-btn');
-            const placeholder = document.getElementById('cam-placeholder');
-            const scanLine = document.getElementById('scan-line');
+    const onBtn = document.getElementById('cam-on-btn');
+    const offBtn = document.getElementById('cam-off-btn');
+    const placeholder = document.getElementById('cam-placeholder');
+    const scanLine = document.getElementById('scan-line');
 
+    try {
+        if (shouldOpen) {
+            if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
+            
+            // 設定掃描參數
+            const config = { 
+                fps: 20, 
+                qrbox: { width: 250, height: 100 }, 
+                aspectRatio: 1.0 
+            };
+
+            // 設定相機進階功能：啟動環境相機並嘗試開啟連續對焦
+            await html5QrCode.start(
+                { 
+                    facingMode: "environment"
+                }, 
+                config, 
+                onScanSuccess
+            );
+
+            // --- 新增：嘗試取得相機軌道並開啟自動對焦 ---
             try {
-                if (shouldOpen) {
-                    if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
-                    const config = { fps: 20, qrbox: { width: 250, height: 100 }, aspectRatio: 1.0 };
-                    await html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess);
-                    placeholder.classList.add('hidden');
-                    scanLine.classList.remove('hidden');
-                    onBtn.classList.add('hidden');
-                    offBtn.classList.remove('hidden');
-                } else {
-                    if (html5QrCode && html5QrCode.getState() === 2) await html5QrCode.stop();
-                    placeholder.classList.remove('hidden');
-                    scanLine.classList.add('hidden');
-                    onBtn.classList.remove('hidden');
-                    offBtn.classList.add('hidden');
+                const track = html5QrCode.getRunningTrack();
+                const capabilities = track.getCapabilities();
+                
+                // 檢查設備是否支援連續對焦
+                if (capabilities.focusMode && capabilities.focusMode.includes('continuous')) {
+                    await track.applyConstraints({
+                        advanced: [{ focusMode: 'continuous' }]
+                    });
+                    console.log("已啟動連續自動對焦");
                 }
-            } catch (err) {
-                console.error(err);
-                alert("相機開啟失敗，請重整頁面並確認權限。");
+            } catch (focusErr) {
+                console.warn("此裝置不支援手動控制對焦:", focusErr);
             }
-        };
+            // ----------------------------------------
+
+            placeholder.classList.add('hidden');
+            scanLine.classList.remove('hidden');
+            onBtn.classList.add('hidden');
+            offBtn.classList.remove('hidden');
+        } else {
+            if (html5QrCode && html5QrCode.getState() === 2) await html5QrCode.stop();
+            placeholder.classList.remove('hidden');
+            scanLine.classList.add('hidden');
+            onBtn.classList.remove('hidden');
+            offBtn.classList.add('hidden');
+        }
+    } catch (err) {
+        console.error(err);
+        alert("相機開啟失敗，請確認權限。");
+    }
+};
 
         function onScanSuccess(decodedText) {
             const now = Date.now();
@@ -281,3 +313,4 @@
     </script>
 </body>
 </html>
+
