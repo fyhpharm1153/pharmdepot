@@ -9,7 +9,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
     <style type="text/tailwindcss">
-        /* 確保字體縮放時有平滑過渡 */
         html { transition: font-size 0.2s; }
         body { @apply bg-slate-50; }
         .neo-card { @apply bg-white border-2 border-slate-800 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]; }
@@ -130,19 +129,19 @@
         let scannedItems = [];
         let html5QrCode = null;
         let selectedUser = "";
+        let lastCode = "";
+        let lastScanTime = 0;
         
-        // --- 修正後的全局字體功能 ---
+        // --- 字體調整功能 ---
         let baseSize = parseInt(localStorage.getItem('scanner_base_px')) || 16;
-        
         window.updateGlobalFontSize = function(delta) {
-            baseSize = Math.min(Math.max(baseSize + delta, 12), 24); // 限制 12px ~ 24px
+            baseSize = Math.min(Math.max(baseSize + delta, 12), 24);
             document.documentElement.style.fontSize = baseSize + 'px';
             localStorage.setItem('scanner_base_px', baseSize);
         };
-        // 初始套用
         document.documentElement.style.fontSize = baseSize + 'px';
 
-        // --- 人員清單 ---
+        // --- 載入人員 ---
         onValue(ref(db, "staff_list"), s => {
             const list = s.val() || ['值班人員'];
             const el = document.getElementById('staff-select');
@@ -157,87 +156,90 @@
             btn.classList.remove('opacity-40');
         };
 
+        // --- 載入庫存 ---
         onValue(ref(db, "inventory"), s => {
             if (s.val()) inventory = Object.entries(s.val()).map(([id, v]) => ({ id, ...v }));
         });
 
         window.startSystem = function() {
             if(!selectedUser) return;
-            window.speechSynthesis.speak(new SpeechSynthesisUtterance(""));
+            window.speechSynthesis.speak(new SpeechSynthesisUtterance("")); // 預熱語音
             document.getElementById('user-display').innerText = selectedUser;
             document.getElementById('start-overlay').style.display = 'none';
             toggleCamera(true);
         };
 
+        // --- 相機控制與對焦/變焦優化 ---
         window.toggleCamera = async function(shouldOpen) {
-    const onBtn = document.getElementById('cam-on-btn');
-    const offBtn = document.getElementById('cam-off-btn');
-    const placeholder = document.getElementById('cam-placeholder');
-    const scanLine = document.getElementById('scan-line');
+            const onBtn = document.getElementById('cam-on-btn');
+            const offBtn = document.getElementById('cam-off-btn');
+            const placeholder = document.getElementById('cam-placeholder');
+            const scanLine = document.getElementById('scan-line');
 
-    try {
-if (shouldOpen) {
-        if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
-        const config = { fps: 20, qrbox: { width: 250, height: 100 }, aspectRatio: 1.0 };
-        
-        await html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess);
-
-        // --- iPhone 15 特殊優化區塊 ---
-        setTimeout(async () => {
             try {
-                const track = html5QrCode.getRunningTrack();
-                const capabilities = track.getCapabilities();
-                
-                // 設定約束條件
-                const constraints = { advanced: [] };
+                if (shouldOpen) {
+                    if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
+                    
+                    const config = { 
+                        fps: 25, 
+                        qrbox: { width: 280, height: 100 }, // 微調 QRBOX 更適合條碼
+                        aspectRatio: 1.0 
+                    };
 
-                // 1. 嘗試啟動連續對焦 (對 Android 較有效)
-                if (capabilities.focusMode?.includes('continuous')) {
-                    constraints.advanced.push({ focusMode: 'continuous' });
-                }
+                    await html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess);
 
-                // 2. 針對 iPhone 15：自動放大 (Zoom)
-                // 建議設為 2.0 倍，讓藥師可以拿遠一點掃描，避開主鏡頭對焦死角
-                if (capabilities.zoom) {
-                    const targetZoom = Math.min(2.0, capabilities.zoom.max);
-                    constraints.advanced.push({ zoom: targetZoom });
-                }
+                    // 優化區塊：iPhone 15 變焦補償
+                    setTimeout(async () => {
+                        try {
+                            const track = html5QrCode.getRunningTrack();
+                            const capabilities = track.getCapabilities();
+                            const constraints = { advanced: [] };
 
-                if (constraints.advanced.length > 0) {
-                    await track.applyConstraints(constraints);
-                    console.log("已套用 iPhone 優化設定: Zoom 2.0x");
+                            // 1. 嘗試連續對焦
+                            if (capabilities.focusMode?.includes('continuous')) {
+                                constraints.advanced.push({ focusMode: 'continuous' });
+                            }
+
+                            // 2. 針對 iPhone 15：自動變焦 2.0x 避免近拍模糊
+                            if (capabilities.zoom) {
+                                // 預設 2.0 倍，若不支援則取最大值
+                                const targetZoom = Math.min(2.0, capabilities.zoom.max);
+                                constraints.advanced.push({ zoom: targetZoom });
+                            }
+
+                            if (constraints.advanced.length > 0) {
+                                await track.applyConstraints(constraints);
+                                console.log("對焦優化已套用");
+                            }
+                        } catch (e) { console.warn("硬體控制不支援", e); }
+                    }, 800);
+
+                    placeholder.classList.add('hidden');
+                    scanLine.classList.remove('hidden');
+                    onBtn.classList.add('hidden');
+                    offBtn.classList.remove('hidden');
+                } else {
+                    if (html5QrCode && html5QrCode.getState() === 2) await html5QrCode.stop();
+                    placeholder.classList.remove('hidden');
+                    scanLine.classList.add('hidden');
+                    onBtn.classList.remove('hidden');
+                    offBtn.classList.add('hidden');
                 }
-            } catch (e) {
-                console.warn("無法調整相機進階參數:", e);
+            } catch (err) {
+                console.error(err);
+                alert("相機開啟失敗");
             }
-        }, 1000); // 延遲 1 秒確保相機軌道已穩定啟動
-        // ----------------------------
-    }
-
-            placeholder.classList.add('hidden');
-            scanLine.classList.remove('hidden');
-            onBtn.classList.add('hidden');
-            offBtn.classList.remove('hidden');
-        } else {
-            if (html5QrCode && html5QrCode.getState() === 2) await html5QrCode.stop();
-            placeholder.classList.remove('hidden');
-            scanLine.classList.add('hidden');
-            onBtn.classList.remove('hidden');
-            offBtn.classList.add('hidden');
-        }
-    } catch (err) {
-        console.error(err);
-        alert("相機開啟失敗，請確認權限。");
-    }
-};
+        };
 
         function onScanSuccess(decodedText) {
             const now = Date.now();
             if (decodedText === lastCode && now - lastScanTime < 3000) return;
             lastCode = decodedText;
             lastScanTime = now;
+            
             const isDuplicate = scannedItems.some(i => i.code === decodedText);
             const drug = inventory.find(i => i.code === decodedText);
+            
             if (drug) {
                 document.getElementById('beep-sound').play();
                 if (isDuplicate) {
@@ -287,6 +289,7 @@ if (shouldOpen) {
 
         window.removeItem = (i) => { scannedItems.splice(i, 1); renderList(); };
         window.clearList = () => { if(confirm("確定清空清單？")) { scannedItems = []; renderList(); } };
+        
         window.fullLogout = async function() {
             if (confirm("要切換身分嗎？")) {
                 await toggleCamera(false);
@@ -301,19 +304,18 @@ if (shouldOpen) {
             try {
                 for (const item of scannedItems) {
                     await push(ref(db, "replenishment_orders"), {
-                        code: item.code, name: item.name, shelf: item.shelf || 'Scanner',
-                        requester: selectedUser, time: new Date().toLocaleString('zh-TW', { hour12: false }), type: 'UD_BARCODE'
+                        code: item.code, 
+                        name: item.name, 
+                        shelf: item.shelf || 'Scanner',
+                        requester: selectedUser, 
+                        time: new Date().toLocaleString('zh-TW', { hour12: false }), 
+                        type: 'UD_BARCODE'
                     });
                 }
                 alert(`批次送出成功！`);
                 scannedItems = []; renderList();
             } catch (e) { alert("發送失敗"); } finally { btn.disabled = false; btn.innerText = "確認發送至資料庫"; }
         };
-
-        let lastCode = "";
-        let lastScanTime = 0;
     </script>
 </body>
 </html>
-
-
