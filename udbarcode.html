@@ -29,14 +29,14 @@
     <div id="big-name-popup" class="name-popup">藥名載入中</div>
 
     <div id="start-overlay" class="overlay-start">
-        <div class="w-full max-w-xs text-center">
+        <div class="w-full max-w-xs">
             <i class="fa-solid fa-barcode text-6xl mb-4 text-indigo-400"></i>
             <h2 class="text-2xl font-black mb-6">UD 條碼掃描點藥</h2>
             <select id="staff-select" class="bg-white text-slate-900 p-4 rounded-xl border-2 border-slate-800 w-full mb-6 font-black text-lg">
-                <option value="" disabled selected>請選擇您的姓名</option>
+                <option value="" disabled selected>請選擇藥師姓名</option>
             </select>
             <button id="start-btn" onclick="startSystem()" disabled class="w-full py-5 bg-indigo-600 text-white rounded-2xl font-black text-xl shadow-lg opacity-40">
-                啟動相機
+                點擊啟動相機
             </button>
         </div>
     </div>
@@ -49,14 +49,13 @@
                 </a>
                 <div class="flex flex-col leading-none">
                     <span id="user-display" class="text-sm font-black text-indigo-600 uppercase">未登入</span>
-                    <span class="text-[9px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Scanner Pro v4.0</span>
+                    <span class="text-[9px] font-bold text-slate-400 uppercase mt-1">Scanner Pro v5.0 Final</span>
                 </div>
             </div>
-            
             <div class="flex items-center gap-2">
                 <div class="flex border-2 border-slate-800 rounded-lg overflow-hidden font-black text-xs">
-                    <button onclick="updateGlobalFontSize(-2)" class="px-2 py-1 bg-white border-r-2 border-slate-800 active:bg-slate-200">A-</button>
-                    <button onclick="updateGlobalFontSize(2)" class="px-2 py-1 bg-white active:bg-slate-200">A+</button>
+                    <button onclick="updateGlobalFontSize(-2)" class="px-2 py-1 bg-white border-r-2 border-slate-800">A-</button>
+                    <button onclick="updateGlobalFontSize(2)" class="px-2 py-1 bg-white">A+</button>
                 </div>
                 <button onclick="fullLogout()" class="text-slate-300 p-1 text-xl"><i class="fa-solid fa-user-gear"></i></button>
             </div>
@@ -66,17 +65,16 @@
             <div id="reader"></div>
             <div id="cam-placeholder" class="absolute inset-0 bg-slate-900 flex flex-col items-center justify-center text-slate-600 z-[20]">
                 <i class="fa-solid fa-video-slash text-2xl mb-2"></i>
-                <span class="text-[9px] font-black uppercase tracking-widest tracking-widest">相機關閉中</span>
+                <span class="text-[9px] font-black uppercase tracking-widest">鏡頭關閉中</span>
             </div>
-            <div id="scan-line" class="absolute inset-x-0 top-1/2 h-0.5 bg-red-500/60 z-[10] pointer-events-none hidden"></div>
         </div>
 
         <div class="flex gap-2 mb-4">
             <button id="cam-on-btn" onclick="toggleCamera(true)" class="flex-[3] py-3 bg-indigo-600 text-white rounded-xl font-black text-sm border-2 border-slate-800 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                <i class="fa-solid fa-camera mr-1"></i> 開啟鏡頭
+                <i class="fa-solid fa-play mr-1"></i> 開啟
             </button>
             <button id="cam-switch-btn" onclick="switchCamera()" class="flex-1 py-3 bg-slate-200 text-slate-800 rounded-xl font-black text-sm border-2 border-slate-800 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                <i class="fa-solid fa-arrows-rotate"></i>
+                <i class="fa-solid fa-arrows-spin"></i>
             </button>
             <button id="cam-off-btn" onclick="toggleCamera(false)" class="hidden flex-[1.5] py-3 bg-red-600 text-white rounded-xl font-black text-sm border-2 border-slate-800 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                 <i class="fa-solid fa-power-off"></i>
@@ -84,21 +82,21 @@
         </div>
 
         <div class="neo-card rounded-2xl flex flex-col bg-white overflow-hidden">
-            <div class="p-3 border-b-2 border-slate-800 bg-slate-50 flex justify-between items-center text-[10px] font-black uppercase tracking-tighter">
-                <div class="flex items-center gap-2">
-                    <span class="text-slate-400">STATUS:</span>
-                    <span id="cam-info-text" class="text-indigo-600 italic">Ready</span>
+            <div class="p-3 border-b-2 border-slate-800 bg-slate-50 flex justify-between items-center text-[9px] font-black uppercase">
+                <div class="flex items-center gap-1">
+                    <span class="text-slate-400">Lens:</span>
+                    <span id="lens-label" class="text-indigo-600 truncate max-w-[120px]">Detecting...</span>
                 </div>
-                <div>暫存: <span id="count">0</span></div>
+                <div>Count: <span id="count">0</span></div>
             </div>
             <div id="scan-list" class="flex-1 max-h-[30vh] overflow-y-auto min-h-[140px]">
-                <div class="p-8 text-center text-slate-300 italic text-sm font-bold tracking-tighter">請對準條碼進行掃描</div>
+                <div class="p-8 text-center text-slate-300 italic text-sm font-bold tracking-tighter">請對準條碼掃描</div>
             </div>
         </div>
 
         <div class="fixed bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-md border-t-2 border-slate-100 z-40">
             <button onclick="submitBatch()" id="submit-btn" class="w-full py-3 bg-indigo-600 text-white rounded-xl font-black text-base neo-btn disabled:opacity-30">
-                確認批次發送
+                確認發送點單
             </button>
         </div>
     </div>
@@ -126,8 +124,8 @@
         let scannedItems = [];
         let html5QrCode = null;
         let selectedUser = "";
-        let backCameras = []; // 用於存放所有後置鏡頭
-        let currentCamIndex = 0;
+        let cameraList = [];
+        let camIndex = 0;
         
         let baseSize = parseInt(localStorage.getItem('scanner_base_px')) || 16;
         window.updateGlobalFontSize = function(delta) {
@@ -137,27 +135,21 @@
         };
         document.documentElement.style.fontSize = baseSize + 'px';
 
-        // 偵測並鎖定後置鏡頭
-        async function initCameras() {
+        // 偵測所有鏡頭
+        async function getCams() {
             try {
-                const devices = await Html5Qrcode.getCameras();
-                if (devices && devices.length > 0) {
-                    // iPhone 上後置鏡頭通常包含 "back", "rear" 或標籤包含鏡頭編號
-                    backCameras = devices.filter(d => {
-                        const l = d.label.toLowerCase();
-                        return l.includes('back') || l.includes('rear') || l.includes('0') || l.includes('1') || l.includes('2');
-                    });
-                    
-                    // 如果過濾不到後置，就用原本的清單
-                    if (backCameras.length === 0) backCameras = devices;
+                cameraList = await Html5Qrcode.getCameras();
+                // 修正 iPhone 邏輯：後置鏡頭通常排在最後面，所以反轉清單
+                if (cameraList.length > 1) {
+                    cameraList.reverse(); 
                 }
-            } catch (err) { console.error("Camera detection error", err); }
+            } catch (e) { console.error(e); }
         }
 
         onValue(ref(db, "staff_list"), s => {
             const list = s.val() || ['值班人員'];
             const el = document.getElementById('staff-select');
-            el.innerHTML = '<option value="" disabled selected>請選擇藥師姓名</option>' + 
+            el.innerHTML = '<option value="" disabled selected>藥師姓名</option>' + 
                           list.map(n => `<option value="${n}">${n}</option>`).join('');
         });
 
@@ -176,75 +168,65 @@
             window.speechSynthesis.speak(new SpeechSynthesisUtterance(""));
             document.getElementById('user-display').innerText = selectedUser;
             document.getElementById('start-overlay').style.display = 'none';
-            await initCameras();
+            await getCams();
             toggleCamera(true);
         };
 
         window.toggleCamera = async function(shouldOpen) {
             const onBtn = document.getElementById('cam-on-btn');
             const offBtn = document.getElementById('cam-off-btn');
-            const swBtn = document.getElementById('cam-switch-btn');
             const placeholder = document.getElementById('cam-placeholder');
-            const scanLine = document.getElementById('scan-line');
-            const infoText = document.getElementById('cam-info-text');
+            const lensLabel = document.getElementById('lens-label');
 
             try {
                 if (shouldOpen) {
                     if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
                     
-                    // 如果還是自拍鏡頭，強制使用 environment facingMode
-                    let camConfig = { facingMode: "environment" };
-                    if (backCameras.length > 0) {
-                        camConfig = backCameras[currentCamIndex].id;
-                        infoText.innerText = backCameras[currentCamIndex].label.split('(')[0];
-                    }
-
+                    // 強制環境模式的約束條件
                     const config = { 
                         fps: 25, 
                         qrbox: { width: 250, height: 100 }, 
-                        aspectRatio: 1.0,
-                        videoConstraints: { focusMode: "continuous" }
+                        aspectRatio: 1.0 
                     };
+
+                    // 如果清單中有鏡頭，使用 ID 啟動；否則使用面對模式
+                    const cameraId = cameraList.length > 0 ? cameraList[camIndex].id : { facingMode: { exact: "environment" } };
                     
-                    await html5QrCode.start(camConfig, config, onScanSuccess);
+                    await html5QrCode.start(cameraId, config, onScanSuccess);
                     
                     placeholder.classList.add('hidden');
-                    scanLine.classList.remove('hidden');
                     onBtn.classList.add('hidden');
                     offBtn.classList.remove('hidden');
+                    lensLabel.innerText = cameraList.length > 0 ? cameraList[camIndex].label : "Default Back";
                 } else {
                     if (html5QrCode && html5QrCode.getState() === 2) await html5QrCode.stop();
                     placeholder.classList.remove('hidden');
-                    scanLine.classList.add('hidden');
                     onBtn.classList.remove('hidden');
                     offBtn.classList.add('hidden');
-                    infoText.innerText = "Paused";
+                    lensLabel.innerText = "Paused";
                 }
-            } catch (err) { console.error(err); }
+            } catch (err) {
+                console.error(err);
+                // 失敗時嘗試使用不帶 exact 的模式
+                if (shouldOpen) await html5QrCode.start({ facingMode: "environment" }, { fps: 20, qrbox: { width: 250, height: 100 } }, onScanSuccess);
+            }
         };
 
         window.switchCamera = async function() {
-            if (backCameras.length <= 1) {
-                alert("此裝置未偵測到多個後置鏡頭");
-                return;
-            }
+            if (cameraList.length <= 1) return;
             if (html5QrCode && html5QrCode.getState() === 2) await html5QrCode.stop();
-            
-            // 延遲重啟，給 iPhone 緩衝空間
-            setTimeout(() => {
-                currentCamIndex = (currentCamIndex + 1) % backCameras.length;
-                toggleCamera(true);
-            }, 250);
+            camIndex = (camIndex + 1) % cameraList.length;
+            setTimeout(() => toggleCamera(true), 300);
         };
 
         function onScanSuccess(decodedText) {
             const now = Date.now();
             if (decodedText === lastCode && now - lastScanTime < 3000) return;
             lastCode = decodedText; lastScanTime = now;
-            const isDuplicate = scannedItems.some(i => i.code === decodedText);
             const drug = inventory.find(i => i.code === decodedText);
             if (drug) {
                 document.getElementById('beep-sound').play();
+                const isDuplicate = scannedItems.some(i => i.code === decodedText);
                 if (isDuplicate) {
                     showPopup("點過了", true); speak("點過了");
                 } else {
@@ -272,7 +254,7 @@
             document.getElementById('count').innerText = scannedItems.length;
             const el = document.getElementById('scan-list');
             if (scannedItems.length === 0) {
-                el.innerHTML = `<div class="p-8 text-center text-slate-300 italic text-sm font-bold tracking-tighter">尚未掃描條碼...</div>`;
+                el.innerHTML = `<div class="p-8 text-center text-slate-300 italic text-sm font-bold tracking-tighter">請對準條碼掃描</div>`;
                 return;
             }
             el.innerHTML = scannedItems.map((item, idx) => `
@@ -289,7 +271,7 @@
         window.removeItem = (i) => { scannedItems.splice(i, 1); renderList(); };
         window.clearList = () => { if(confirm("清空？")) { scannedItems = []; renderList(); } };
         window.fullLogout = async function() {
-            if (confirm("要切換帳號嗎？")) { await toggleCamera(false); document.getElementById('start-overlay').style.display = 'flex'; }
+            if (confirm("要切換人員嗎？")) { await toggleCamera(false); document.getElementById('start-overlay').style.display = 'flex'; }
         };
 
         window.submitBatch = async () => {
@@ -304,7 +286,7 @@
                     });
                 }
                 alert(`批次送出成功！`); scannedItems = []; renderList();
-            } catch (e) { alert("發送失敗"); } finally { btn.disabled = false; btn.innerText = "確認批次發送"; }
+            } catch (e) { alert("發送失敗"); } finally { btn.disabled = false; btn.innerText = "確認發送點單"; }
         };
 
         let lastCode = ""; let lastScanTime = 0;
