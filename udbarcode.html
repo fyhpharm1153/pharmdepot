@@ -36,7 +36,7 @@
                 <option value="" disabled selected>請選擇藥師姓名</option>
             </select>
             <button id="start-btn" onclick="startSystem()" disabled class="w-full py-5 bg-indigo-600 text-white rounded-2xl font-black text-xl shadow-lg opacity-40">
-                啟動相機
+                啟動掃描系統
             </button>
         </div>
     </div>
@@ -48,8 +48,8 @@
                     <i class="fa-solid fa-house text-slate-700 text-sm"></i>
                 </a>
                 <div class="flex flex-col leading-none">
-                    <span id="user-display" class="text-sm font-black text-indigo-600 uppercase">未選擇</span>
-                    <span class="text-[9px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Scanner Pro v2</span>
+                    <span id="user-display" class="text-sm font-black text-indigo-600 uppercase">未登入</span>
+                    <span class="text-[9px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Scanner Pro v3.0</span>
                 </div>
             </div>
             
@@ -65,18 +65,18 @@
         <div class="neo-card rounded-2xl overflow-hidden mb-4 bg-black relative min-h-[160px]">
             <div id="reader"></div>
             <div id="cam-placeholder" class="absolute inset-0 bg-slate-900 flex flex-col items-center justify-center text-slate-600 z-[20]">
-                <i class="fa-solid fa-video-slash text-2xl mb-2"></i>
-                <span class="text-[9px] font-black uppercase tracking-widest">Camera Paused</span>
+                <i class="fa-solid fa-camera-slash text-2xl mb-2"></i>
+                <span class="text-[9px] font-black uppercase">鏡頭待機中</span>
             </div>
             <div id="scan-line" class="absolute inset-x-0 top-1/2 h-0.5 bg-red-500/60 z-[10] pointer-events-none hidden"></div>
         </div>
 
         <div class="flex gap-2 mb-4">
             <button id="cam-on-btn" onclick="toggleCamera(true)" class="flex-[3] py-3 bg-indigo-600 text-white rounded-xl font-black text-sm border-2 border-slate-800 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                <i class="fa-solid fa-play mr-1"></i> 開啟掃描
+                <i class="fa-solid fa-video mr-1"></i> 開啟鏡頭
             </button>
             <button id="cam-switch-btn" onclick="switchCamera()" class="hidden flex-1 py-3 bg-slate-200 text-slate-800 rounded-xl font-black text-sm border-2 border-slate-800 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                <i class="fa-solid fa-camera-rotate"></i>
+                <i class="fa-solid fa-rotate"></i>
             </button>
             <button id="cam-off-btn" onclick="toggleCamera(false)" class="hidden flex-[1.5] py-3 bg-red-600 text-white rounded-xl font-black text-sm border-2 border-slate-800 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                 <i class="fa-solid fa-power-off"></i>
@@ -84,9 +84,12 @@
         </div>
 
         <div class="neo-card rounded-2xl flex flex-col bg-white overflow-hidden">
-            <div class="p-3 border-b-2 border-slate-800 bg-slate-50 flex justify-between items-center text-xs font-black">
-                <span id="cam-info" class="text-indigo-400">暫存清單 (<span id="count">0</span>)</span>
-                <button onclick="clearList()" class="text-red-500 underline">清空</button>
+            <div class="p-3 border-b-2 border-slate-800 bg-slate-50 flex justify-between items-center text-[10px] font-black uppercase tracking-tighter">
+                <div class="flex items-center gap-2">
+                    <span class="text-slate-400">INFO:</span>
+                    <span id="cam-label-display" class="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded italic">偵測中...</span>
+                </div>
+                <div>清單: <span id="count">0</span></div>
             </div>
             <div id="scan-list" class="flex-1 max-h-[30vh] overflow-y-auto min-h-[140px]">
                 <div class="p-8 text-center text-slate-300 italic text-sm font-bold tracking-tighter">請對準條碼進行掃描</div>
@@ -95,7 +98,7 @@
 
         <div class="fixed bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-md border-t-2 border-slate-100 z-40">
             <button onclick="submitBatch()" id="submit-btn" class="w-full py-3 bg-indigo-600 text-white rounded-xl font-black text-base neo-btn disabled:opacity-30">
-                確認發送至資料庫
+                確認批次送出
             </button>
         </div>
     </div>
@@ -123,7 +126,7 @@
         let scannedItems = [];
         let html5QrCode = null;
         let selectedUser = "";
-        let backCameras = []; // 只存放後置鏡頭
+        let allCameras = []; // 儲存所有鏡頭
         let currentCamIndex = 0;
         
         let baseSize = parseInt(localStorage.getItem('scanner_base_px')) || 16;
@@ -134,29 +137,20 @@
         };
         document.documentElement.style.fontSize = baseSize + 'px';
 
-        // 偵測並過濾鏡頭
-        async function detectBackCameras() {
+        // 偵測所有鏡頭
+        async function fetchCameras() {
             try {
-                const allDevices = await Html5Qrcode.getCameras();
-                // 過濾掉前置鏡頭 (包含 front, user 字眼)
-                backCameras = allDevices.filter(device => {
-                    const label = device.label.toLowerCase();
-                    return !label.includes('front') && !label.includes('user');
-                });
-                
-                // 如果沒過濾到任何後置（可能標籤不標準），就保留全部
-                if (backCameras.length === 0) backCameras = allDevices;
-
-                if (backCameras.length > 1) {
+                allCameras = await Html5Qrcode.getCameras();
+                if (allCameras.length > 1) {
                     document.getElementById('cam-switch-btn').classList.remove('hidden');
                 }
-            } catch (err) { console.error("Camera Detection Error", err); }
+            } catch (err) { console.error("偵測失敗", err); }
         }
 
         onValue(ref(db, "staff_list"), s => {
             const list = s.val() || ['值班人員'];
             const el = document.getElementById('staff-select');
-            el.innerHTML = '<option value="" disabled selected>藥師姓名</option>' + 
+            el.innerHTML = '<option value="" disabled selected>請選擇您的姓名</option>' + 
                           list.map(n => `<option value="${n}">${n}</option>`).join('');
         });
 
@@ -175,7 +169,7 @@
             window.speechSynthesis.speak(new SpeechSynthesisUtterance(""));
             document.getElementById('user-display').innerText = selectedUser;
             document.getElementById('start-overlay').style.display = 'none';
-            await detectBackCameras();
+            await fetchCameras();
             toggleCamera(true);
         };
 
@@ -185,10 +179,12 @@
             const swBtn = document.getElementById('cam-switch-btn');
             const placeholder = document.getElementById('cam-placeholder');
             const scanLine = document.getElementById('scan-line');
+            const labelDisplay = document.getElementById('cam-label-display');
 
             try {
                 if (shouldOpen) {
                     if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
+                    
                     const config = { 
                         fps: 25, 
                         qrbox: { width: 250, height: 100 }, 
@@ -196,34 +192,40 @@
                         videoConstraints: { focusMode: "continuous" }
                     };
                     
-                    const targetCam = backCameras.length > 0 ? backCameras[currentCamIndex].id : { facingMode: "environment" };
-                    await html5QrCode.start(targetCam, config, onScanSuccess);
+                    // 根據索引選擇鏡頭，如果索引越界則重置
+                    if (currentCamIndex >= allCameras.length) currentCamIndex = 0;
+                    const selectedCam = allCameras.length > 0 ? allCameras[currentCamIndex].id : { facingMode: "environment" };
+                    
+                    await html5QrCode.start(selectedCam, config, onScanSuccess);
                     
                     placeholder.classList.add('hidden');
                     scanLine.classList.remove('hidden');
                     onBtn.classList.add('hidden');
                     offBtn.classList.remove('hidden');
+                    if(allCameras.length > 1) swBtn.classList.remove('hidden');
                     
-                    // 更新鏡頭顯示資訊
-                    if (backCameras.length > 0) {
-                        const camLabel = backCameras[currentCamIndex].label.replace(/camera/i, '').trim();
-                        document.getElementById('cam-info').innerHTML = `<span class="bg-indigo-600 text-white px-2 py-0.5 rounded-md mr-2">Lens: ${camLabel}</span>清單 (<span id="count">${scannedItems.length}</span>)`;
-                    }
+                    // 顯示目前鏡頭標籤
+                    const activeLabel = allCameras.length > 0 ? allCameras[currentCamIndex].label : "預設鏡頭";
+                    labelDisplay.innerText = activeLabel.substring(0, 15) + (activeLabel.length > 15 ? "..." : "");
+                    
                 } else {
                     if (html5QrCode && html5QrCode.getState() === 2) await html5QrCode.stop();
                     placeholder.classList.remove('hidden');
                     scanLine.classList.add('hidden');
                     onBtn.classList.remove('hidden');
                     offBtn.classList.add('hidden');
-                    document.getElementById('cam-info').innerHTML = `暫存清單 (<span id="count">${scannedItems.length}</span>)`;
+                    labelDisplay.innerText = "暫停中";
                 }
             } catch (err) { console.error(err); }
         };
 
+        // 循環切換所有可用鏡頭
         window.switchCamera = async function() {
-            if (backCameras.length <= 1) return;
+            if (allCameras.length <= 1) return;
             if (html5QrCode && html5QrCode.getState() === 2) await html5QrCode.stop();
-            currentCamIndex = (currentCamIndex + 1) % backCameras.length;
+            
+            // 往後跳一個鏡頭索引
+            currentCamIndex = (currentCamIndex + 1) % allCameras.length;
             toggleCamera(true);
         };
 
