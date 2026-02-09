@@ -21,13 +21,17 @@
         .btn-ac { @apply bg-red-600 text-white; }
         .btn-equal { @apply bg-blue-600 text-white; }
         
-        /* 藥卡樣式 */
+        /* 藥卡基本樣式 */
         .drug-card { @apply cursor-pointer border-2 border-slate-800 rounded-2xl p-4 flex flex-col bg-white transition-all shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]; }
         .drug-card.selected { @apply bg-indigo-600 text-white shadow-none translate-x-[2px] translate-y-[2px] ring-4 ring-indigo-100; }
         
-        /* 新增：已完成樣式 */
+        /* 選單：今日已發完成樣式 (綠色) */
         .drug-card.completed { @apply border-emerald-500 bg-emerald-50 opacity-80; }
         .completed-badge { @apply bg-emerald-500 text-white px-2 py-0.5 rounded font-black text-[10px] ml-2 shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]; }
+
+        /* 審核視窗：已在待辦中樣式 (橘色) */
+        .review-card-pending { @apply border-orange-500 bg-orange-50 ring-2 ring-orange-200 !important; }
+        .pending-badge { @apply bg-orange-500 text-white px-2 py-0.5 rounded font-black text-[10px] ml-2 shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]; }
 
         .shelf-badge { @apply bg-yellow-400 text-slate-900 px-2 py-0.5 rounded font-black border border-slate-800 text-xs w-fit shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]; }
         .name-text { @apply text-xl font-black text-slate-800 leading-tight mt-2; }
@@ -104,7 +108,10 @@
                     <div class="space-y-4 overflow-y-auto max-h-[60vh] pr-1">
                         <div v-for="order in sortedPendingOrders" :key="order.id" class="bg-white border-2 border-slate-800 rounded-2xl p-4 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex justify-between items-center">
                             <div class="flex-1">
-                                <div class="flex items-center gap-3 mb-1"><span class="bg-blue-600 text-white px-3 py-0.5 rounded font-black border border-slate-800 text-xs">{{ getWarehouseShelf(order.code) }}</span><span class="text-[0.6rem] font-bold text-slate-400">由 {{ order.requester }} 申請</span></div>
+                                <div class="flex items-center gap-3 mb-1">
+                                    <span class="bg-blue-600 text-white px-3 py-0.5 rounded font-black border border-slate-800 text-xs">{{ getWarehouseShelf(order.code) }}</span>
+                                    <span class="text-[0.6rem] font-bold text-slate-400">由 {{ order.requester }} 申請</span>
+                                </div>
                                 <p class="font-black text-xl text-slate-800 leading-tight">{{ order.name }}</p>
                             </div>
                             <button @click="openActionModal(order, 'process')" class="neo-btn bg-orange-400 text-white px-5 py-2 rounded-xl font-black text-lg">處理</button>
@@ -183,7 +190,28 @@
         </div>
 
         <div v-if="showReview" class="modal-overlay">
-            <div class="bg-white w-full max-w-xl rounded-3xl p-6 border-4 border-slate-800 shadow-2xl flex flex-col max-h-[85vh]"><h2 class="text-2xl font-black text-slate-800 mb-6 text-center italic underline decoration-yellow-400">核對點單品項</h2><div class="flex-1 overflow-y-auto space-y-3 mb-6 pr-2"><div v-for="d in selectedDrugs" :key="d.code" class="bg-slate-50 border-2 border-slate-800 rounded-xl p-4 flex justify-between items-center shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"><div><span class="shelf-badge mb-1 inline-block shadow-none">{{ d.shelf }}</span><p class="text-xl font-black text-slate-800 leading-tight">{{ d.name }}</p></div><button @click="toggleSelect(d)" class="text-red-500 p-2"><i class="fa-solid fa-circle-xmark text-2xl"></i></button></div></div><div class="grid grid-cols-2 gap-4"><button @click="showReview = false" class="py-4 bg-slate-200 text-slate-600 rounded-xl font-black border-2 border-slate-400 text-lg">返回修改</button><button @click="finalSubmitOrder" class="py-4 bg-indigo-600 text-white rounded-xl font-black border-2 border-slate-800 text-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">確認發送</button></div></div>
+            <div class="bg-white w-full max-w-xl rounded-3xl p-6 border-4 border-slate-800 shadow-2xl flex flex-col max-h-[85vh]">
+                <h2 class="text-2xl font-black text-slate-800 mb-6 text-center italic underline decoration-yellow-400">核對點單品項</h2>
+                <div class="flex-1 overflow-y-auto space-y-3 mb-6 pr-2">
+                    <div v-for="d in selectedDrugs" :key="d.code" 
+                         :class="['bg-slate-50 border-2 border-slate-800 rounded-xl p-4 flex justify-between items-center shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]', 
+                                  isInPending(d.code) ? 'review-card-pending' : '']">
+                        <div>
+                            <div class="flex items-center">
+                                <span class="shelf-badge mb-1 inline-block shadow-none">{{ d.shelf }}</span>
+                                <span v-if="isInPending(d.code)" class="pending-badge">待辦中</span>
+                            </div>
+                            <p class="text-xl font-black text-slate-800 leading-tight">{{ d.name }}</p>
+                            <p v-if="isInPending(d.code)" class="text-xs text-orange-600 font-bold mt-1">＊注意：此藥品已在右側待辦清單中</p>
+                        </div>
+                        <button @click="toggleSelect(d)" class="text-red-500 p-2"><i class="fa-solid fa-circle-xmark text-2xl"></i></button>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <button @click="showReview = false" class="py-4 bg-slate-200 text-slate-600 rounded-xl font-black border-2 border-slate-400 text-lg">返回修改</button>
+                    <button @click="finalSubmitOrder" class="py-4 bg-indigo-600 text-white rounded-xl font-black border-2 border-slate-800 text-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">確認發送</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -291,9 +319,14 @@
                 });
             });
 
-            // 新增功能：判斷是否今日已發藥 (Qty > 0)
+            // 判斷邏輯：今日是否已完成發藥
             const isCompleted = (code) => {
                 return todayUDLogs.value.some(l => l.code === code && l.qty > 0);
+            };
+
+            // 判斷邏輯：是否已經在待辦清單中
+            const isInPending = (code) => {
+                return pendingOrders.value.some(o => o.code === code);
             };
 
             const adminFilteredInventory = computed(() => {
@@ -400,7 +433,7 @@
             return {
                 currentUser, staffList, menuSearch, adminSearch, currentGroup, shelfGroups, filteredUDItems, adminFilteredInventory, sortedPendingOrders, todayUDLogs, selectedDrugs, showReview, showManager, activeEntry, entryQtyStr, editMode, isSaving, filterDate, newStaff,
                 inventory, editDrug, prepareEdit, saveSingleDrug, deleteSingleDrug, resetEdit,
-                toggleSelect, isSelected, openReviewModal, finalSubmitOrder, openActionModal, handleCalc, submitFinalAction, submitAsZero: () => { entryQtyStr.value='0'; submitFinalAction(); }, deleteLog, doCalculation, getWarehouseShelf, changeFontSize, isCompleted,
+                toggleSelect, isSelected, openReviewModal, finalSubmitOrder, openActionModal, handleCalc, submitFinalAction, submitAsZero: () => { entryQtyStr.value='0'; submitFinalAction(); }, deleteLog, doCalculation, getWarehouseShelf, changeFontSize, isCompleted, isInPending,
                 addStaff, removeStaff, importExcel, exportInventory: () => { const ws = XLSX.utils.json_to_sheet(inventory.value.map(i => ({ code: i.code, name: i.name, shelf: i.shelf }))); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "UD"); XLSX.writeFile(wb, "UD儲位表.xlsx"); },
                 exportTodayReport: async () => { const s = await get(dbRef(db, "transfer_logs")); const target = filterDate.value.split('-').map(n => parseInt(n)).join('/'); const logs = Object.values(s.val()||{}).filter(l => l.time.startsWith(target) && (l.user.includes('UD') || l.type === 'UD點單')); const ws = XLSX.utils.json_to_sheet(logs.map(l => ({ '時間': l.time, '人員': l.user, '代碼': l.code, '名稱': l.name, '數量': l.qty }))); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Report"); XLSX.writeFile(wb, `UD報表_${filterDate.value}.xlsx`); },
                 saveUser: () => localStorage.setItem('preferred_user', currentUser.value),
