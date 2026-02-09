@@ -73,9 +73,9 @@
             <button id="cam-on-btn" onclick="toggleCamera(true)" class="flex-[3] py-3 bg-indigo-600 text-white rounded-xl font-black text-sm border-2 border-slate-800 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                 <i class="fa-solid fa-play mr-1"></i> 開啟
             </button>
-            <button id="cam-switch-btn" onclick="switchCamera()" class="flex-1 py-3 bg-slate-200 text-slate-800 rounded-xl font-black text-sm border-2 border-slate-800 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                <i class="fa-solid fa-arrows-spin"></i>
-            </button>
+<button id="cam-switch-btn" onclick="switchCamera()" class="hidden flex-1 py-3 bg-slate-200 text-slate-800 rounded-xl font-black border-2 border-slate-800 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:shadow-none transition-all">
+    <i class="fa-solid fa-sync text-lg"></i>
+</button>
             <button id="cam-off-btn" onclick="toggleCamera(false)" class="hidden flex-[1.5] py-3 bg-red-600 text-white rounded-xl font-black text-sm border-2 border-slate-800 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                 <i class="fa-solid fa-power-off"></i>
             </button>
@@ -293,3 +293,4 @@
     </script>
 </body>
 </html>
+
