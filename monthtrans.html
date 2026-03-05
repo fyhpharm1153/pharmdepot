@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>藥品撥補系統 - 數據統計版</title>
+    <title>藥品撥補系統 - 深度分析版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -13,60 +13,74 @@
     
     <style>
         [v-cloak] { display: none !important; }
-        body { background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        .stat-card { @apply bg-white p-4 rounded-2xl border-2 border-slate-800 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]; }
-        .chart-container { position: relative; height: 300px; width: 100%; }
+        body { background-color: #f1f5f9; font-family: sans-serif; }
+        .stat-card { @apply bg-white p-6 rounded-3xl border-2 border-slate-800 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]; }
+        .filter-btn { @apply px-4 py-2 rounded-xl font-bold transition-all border-2 border-transparent; }
+        .filter-btn.active { @apply bg-indigo-600 text-white border-slate-800 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]; }
+        .chart-box { position: relative; height: 400px; width: 100%; }
     </style>
 </head>
-<body class="p-4">
-    <div id="app" v-cloak class="max-w-5xl mx-auto space-y-6">
+<body class="p-4 md:p-8">
+    <div id="app" v-cloak class="max-w-6xl mx-auto space-y-8">
         
-        <header class="stat-card flex justify-between items-center bg-indigo-600 text-white">
-            <h1 class="text-2xl font-black flex items-center gap-2">
-                <i class="fa-solid fa-chart-line"></i> 藥品撥補統計儀表板
-            </h1>
-            <div class="flex gap-2">
-                <button @click="refreshData" class="bg-white/20 hover:bg-white/40 p-2 rounded-lg transition-all">
-                    <i class="fa-solid fa-sync"></i>
-                </button>
+        <header class="stat-card flex flex-wrap justify-between items-center gap-6">
+            <div>
+                <h1 class="text-3xl font-black text-slate-800">📊 撥補量能分析</h1>
+                <p class="text-slate-500 font-medium">查看 115 年（2026）藥品統計與排行榜</p>
+            </div>
+            
+            <div class="flex flex-wrap items-center gap-4 bg-slate-100 p-2 rounded-2xl border border-slate-200">
+                <div class="flex gap-1">
+                    <button @click="dateType = 'month'" :class="{active: dateType === 'month'}" class="filter-btn">按月份</button>
+                    <button @click="dateType = 'day'" :class="{active: dateType === 'day'}" class="filter-btn">按日期</button>
+                </div>
+                <div class="h-8 w-[1px] bg-slate-300"></div>
+                <input v-if="dateType === 'month'" type="month" v-model="selectedMonth" @change="updateAll" class="bg-transparent font-black text-indigo-700 outline-none">
+                <input v-if="dateType === 'day'" type="date" v-model="selectedDate" @change="updateAll" class="bg-transparent font-black text-indigo-700 outline-none">
             </div>
         </header>
 
-        <section class="stat-card">
-            <div class="flex flex-wrap justify-between items-center mb-6 gap-4">
-                <div class="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
-                    <button @click="viewMode = 'day'; updateChart();" :class="viewMode === 'day' ? 'bg-white shadow text-indigo-600' : 'text-slate-500'" class="px-4 py-2 rounded-lg font-bold transition-all">日統計</button>
-                    <button @click="viewMode = 'month'; updateChart();" :class="viewMode === 'month' ? 'bg-white shadow text-indigo-600' : 'text-slate-500'" class="px-4 py-2 rounded-lg font-bold transition-all">月統計</button>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <section class="stat-card md:col-span-2">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xl font-black text-slate-800">
+                        <i class="fa-solid fa-trophy text-yellow-500 mr-2"></i>撥補次數前 10 名藥品
+                    </h3>
+                    <span class="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-xs font-bold">TOP 10 RANKING</span>
                 </div>
-                <div class="text-slate-500 font-bold text-sm">
-                    數據來源：Firebase Realtime Database
+                <div class="chart-box">
+                    <canvas id="rankingChart"></canvas>
                 </div>
-            </div>
+            </section>
 
-            <div class="chart-container">
-                <canvas id="mainChart"></canvas>
-            </div>
-        </section>
+            <section class="stat-card">
+                <h3 class="text-xl font-black text-slate-800 mb-6">撥補數量趨勢</h3>
+                <div class="chart-box" style="height: 300px;">
+                    <canvas id="trendChart"></canvas>
+                </div>
+            </section>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div class="stat-card border-l-8 border-l-blue-500">
-                <p class="text-slate-500 font-bold">今日撥補總量</p>
-                <h2 class="text-3xl font-black text-slate-800">{{ todayCount }} <span class="text-sm">筆</span></h2>
-            </div>
-            <div class="stat-card border-l-8 border-l-purple-500">
-                <p class="text-slate-500 font-bold">本月撥補總量</p>
-                <h2 class="text-3xl font-black text-slate-800">{{ monthCount }} <span class="text-sm">筆</span></h2>
-            </div>
-            <div class="stat-card border-l-8 border-l-orange-500">
-                <p class="text-slate-500 font-bold">最常撥補藥品</p>
-                <h2 class="text-xl font-black text-slate-800">{{ topDrug }}</h2>
-            </div>
+            <section class="stat-card overflow-hidden">
+                <h3 class="text-xl font-black text-slate-800 mb-6">選定區間數據摘要</h3>
+                <div class="space-y-4">
+                    <div class="flex justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                        <span class="text-slate-500 font-bold">總撥補次數</span>
+                        <span class="text-2xl font-black text-indigo-600">{{ filteredLogs.length }} 筆</span>
+                    </div>
+                    <div class="flex justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                        <span class="text-slate-500 font-bold">急件比例 (🚨/⚡)</span>
+                        <span class="text-2xl font-black text-red-500">{{ urgentRate }}%</span>
+                    </div>
+                    <div class="flex justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                        <span class="text-slate-500 font-bold">平均每日件數</span>
+                        <span class="text-2xl font-black text-slate-700">{{ avgDaily }} 筆</span>
+                    </div>
+                </div>
+            </section>
         </div>
-
     </div>
 
     <script>
-        // Firebase 設定
         const firebaseConfig = {
             apiKey: "AIzaSyDZuNztwb9aLG1RqeDOyrj6KJrPhwBFi9M",
             authDomain: "fyh-pharmacy-inventory.firebaseapp.com",
@@ -84,105 +98,129 @@
         createApp({
             setup() {
                 const allLogs = ref([]);
-                const viewMode = ref('day'); // 'day' 或 'month'
-                const todayCount = ref(0);
-                const monthCount = ref(0);
-                const topDrug = ref('統計中...');
-                let myChart = null;
+                const filteredLogs = ref([]);
+                const dateType = ref('month');
+                const selectedMonth = ref(new Date().toISOString().slice(0, 7));
+                const selectedDate = ref(new Date().toISOString().slice(0, 10));
+                
+                let rankingChart = null;
+                let trendChart = null;
 
                 const fetchData = async () => {
                     const snapshot = await db.ref("transfer_logs").once("value");
                     if (snapshot.exists()) {
                         allLogs.value = Object.values(snapshot.val());
-                        calculateSummary();
-                        updateChart();
+                        updateAll();
                     }
                 };
 
-                const calculateSummary = () => {
-                    const now = new Date();
-                    const todayStr = now.toLocaleDateString('zh-TW');
-                    const monthPrefix = `${now.getFullYear()}/${now.getMonth() + 1}`;
-
-                    // 今日筆數
-                    todayCount.value = allLogs.value.filter(l => l.time.includes(todayStr)).length;
-                    
-                    // 本月筆數
-                    monthCount.value = allLogs.value.filter(l => l.time.includes(monthPrefix)).length;
-
-                    // 最常撥補
-                    const counts = {};
-                    allLogs.value.forEach(l => { counts[l.name] = (counts[l.name] || 0) + 1; });
-                    const sorted = Object.entries(counts).sort((a,b) => b[1] - a[1]);
-                    topDrug.value = sorted.length ? sorted[0][0] : '無數據';
+                const updateAll = () => {
+                    filterData();
+                    renderRankingChart();
+                    renderTrendChart();
                 };
 
-                const updateChart = () => {
-                    const ctx = document.getElementById('mainChart').getContext('2d');
-                    let labels = [];
-                    let dataValues = [];
-                    let labelName = "";
-
-                    if (viewMode.value === 'day') {
-                        // 統計最近 7 天
-                        labelName = "每日撥補件數";
-                        const last7Days = [...Array(7)].map((_, i) => {
-                            const d = new Date();
-                            d.setDate(d.getDate() - (6 - i));
-                            return d.toLocaleDateString('zh-TW');
+                const filterData = () => {
+                    if (dateType.value === 'month') {
+                        const [y, m] = selectedMonth.value.split('-').map(Number);
+                        filteredLogs.value = allLogs.value.filter(l => {
+                            const p = l.time.split(' ')[0].split('/');
+                            return Number(p[0]) === y && Number(p[1]) === m;
                         });
-                        labels = last7Days.map(d => d.split('/')[2] + '日');
-                        dataValues = last7Days.map(dayStr => allLogs.value.filter(l => l.time.includes(dayStr)).length);
                     } else {
-                        // 統計年度各月 (1-12月)
-                        labelName = "每月撥補總量";
-                        const year = new Date().getFullYear();
-                        labels = [...Array(12)].map((_, i) => `${i+1}月`);
-                        dataValues = labels.map((_, i) => {
-                            const monthStr = `${year}/${i + 1}/`;
-                            return allLogs.value.filter(l => l.time.includes(monthStr)).length;
-                        });
+                        const d = selectedDate.value.replace(/-/g, '/');
+                        filteredLogs.value = allLogs.value.filter(l => l.time.includes(d));
                     }
+                };
 
-                    if (myChart) myChart.destroy();
+                // 排行榜圖表 (前 10 名)
+                const renderRankingChart = () => {
+                    const counts = {};
+                    filteredLogs.value.forEach(l => { counts[l.name] = (counts[l.name] || 0) + 1; });
+                    
+                    const sorted = Object.entries(counts)
+                        .sort((a, b) => b[1] - a[1])
+                        .slice(0, 10);
 
-                    myChart = new Chart(ctx, {
-                        type: 'line',
+                    const ctx = document.getElementById('rankingChart').getContext('2d');
+                    if (rankingChart) rankingChart.destroy();
+                    
+                    rankingChart = new Chart(ctx, {
+                        type: 'bar',
                         data: {
-                            labels: labels,
+                            labels: sorted.map(i => i[0].length > 10 ? i[0].substring(0,10)+'..' : i[0]),
                             datasets: [{
-                                label: labelName,
-                                data: dataValues,
-                                borderColor: '#4f46e5',
-                                backgroundColor: 'rgba(79, 70, 229, 0.1)',
-                                borderWidth: 4,
-                                fill: true,
-                                tension: 0.4,
-                                pointRadius: 5,
-                                pointBackgroundColor: '#4f46e5'
+                                label: '撥補次數',
+                                data: sorted.map(i => i[1]),
+                                backgroundColor: '#4f46e5',
+                                borderRadius: 8,
+                                barThickness: 30
                             }]
                         },
                         options: {
+                            indexAxis: 'y', // 橫向條形圖
                             responsive: true,
                             maintainAspectRatio: false,
-                            plugins: {
-                                legend: { display: false }
-                            },
-                            scales: {
-                                y: { beginAtZero: true, grid: { display: false } },
-                                x: { grid: { display: false } }
-                            }
+                            plugins: { legend: { display: false } },
+                            scales: { x: { beginAtZero: true, grid: { display: false } } }
                         }
                     });
                 };
 
-                onMounted(() => {
-                    fetchData();
+                // 趨勢圖 (依據模式切換日/時)
+                const renderTrendChart = () => {
+                    const ctx = document.getElementById('trendChart').getContext('2d');
+                    if (trendChart) trendChart.destroy();
+
+                    let trendData = {};
+                    if (dateType.value === 'month') {
+                        // 顯示整月每天的趨勢
+                        filteredLogs.value.forEach(l => {
+                            const day = l.time.split(' ')[0].split('/')[2];
+                            trendData[day] = (trendData[day] || 0) + 1;
+                        });
+                    } else {
+                        // 顯示當天各小時的趨勢
+                        filteredLogs.value.forEach(l => {
+                            const hour = l.time.split(' ')[1].split(':')[0];
+                            trendData[hour] = (trendData[hour] || 0) + 1;
+                        });
+                    }
+
+                    const labels = Object.keys(trendData).sort((a,b)=>Number(a)-Number(b));
+                    trendChart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: labels.map(l => l + (dateType.value === 'month' ? '日' : '時')),
+                            datasets: [{
+                                label: '件數',
+                                data: labels.map(l => trendData[l]),
+                                borderColor: '#ec4899',
+                                fill: false,
+                                tension: 0.4
+                            }]
+                        },
+                        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+                    });
+                };
+
+                const urgentRate = computed(() => {
+                    if (!filteredLogs.value.length) return 0;
+                    const urgents = filteredLogs.value.filter(l => l.isUrgent || l.isSuperUrgent).length;
+                    return ((urgents / filteredLogs.value.length) * 100).toFixed(1);
                 });
 
+                const avgDaily = computed(() => {
+                    if (dateType.value === 'day') return filteredLogs.value.length;
+                    const days = new Set(filteredLogs.value.map(l => l.time.split(' ')[0])).size;
+                    return days ? (filteredLogs.value.length / days).toFixed(1) : 0;
+                });
+
+                onMounted(() => { fetchData(); });
+
                 return {
-                    viewMode, todayCount, monthCount, topDrug,
-                    refreshData: fetchData, updateChart
+                    dateType, selectedMonth, selectedDate, filteredLogs,
+                    urgentRate, avgDaily, updateAll
                 };
             }
         }).mount('#app');
