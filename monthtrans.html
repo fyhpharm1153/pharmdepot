@@ -3,60 +3,70 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>藥品撥補系統 - 穩定修復版</title>
+    <title>藥品撥補系統 - 數據統計版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
-    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
     <style>
         [v-cloak] { display: none !important; }
-        body { background-color: #f1f5f9; font-family: sans-serif; }
-        .calc-btn { display: flex; align-items: center; justify-content: center; font-weight: 900; border-radius: 0.75rem; border: 2px solid #1e293b; box-shadow: 4px 4px 0px 0px rgba(0,0,0,1); transition: all 0.1s; height: 60px; font-size: 1.5rem; }
-        .calc-btn:active { transform: translate(2px, 2px); box-shadow: none; }
-        .btn-num { background: white; color: #0f172a; }
-        .btn-op { background: #fb923c; color: white; }
-        .btn-ac { background: #dc2626; color: white; }
-        .btn-del { background: #f87171; color: white; }
-        .btn-equal { background: #2563eb; color: white; }
+        body { background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        .stat-card { @apply bg-white p-4 rounded-2xl border-2 border-slate-800 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]; }
+        .chart-container { position: relative; height: 300px; width: 100%; }
     </style>
 </head>
 <body class="p-4">
-    <div id="app" v-cloak class="max-w-4xl mx-auto">
-        <header class="bg-white p-4 rounded-2xl border-2 border-slate-800 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.1)] mb-6 flex justify-between items-center">
-            <h1 class="text-xl font-black">💊 藥品撥補系統 (管理版)</h1>
+    <div id="app" v-cloak class="max-w-5xl mx-auto space-y-6">
+        
+        <header class="stat-card flex justify-between items-center bg-indigo-600 text-white">
+            <h1 class="text-2xl font-black flex items-center gap-2">
+                <i class="fa-solid fa-chart-line"></i> 藥品撥補統計儀表板
+            </h1>
             <div class="flex gap-2">
-                <input type="month" v-model="filterMonth" class="p-1 border rounded font-bold text-sm">
-                <button @click="exportByMonth" class="bg-blue-600 text-white px-3 py-1 rounded-lg text-sm font-bold shadow-md">月報表</button>
+                <button @click="refreshData" class="bg-white/20 hover:bg-white/40 p-2 rounded-lg transition-all">
+                    <i class="fa-solid fa-sync"></i>
+                </button>
             </div>
         </header>
 
-        <div class="grid grid-cols-1 gap-6">
-            <section class="bg-white p-6 rounded-[2rem] border-2 border-slate-800 shadow-xl space-y-4">
-                <input v-model="searchQuery" @input="onSearch" placeholder="搜尋藥品代碼或名稱..." class="w-full bg-slate-100 p-4 rounded-xl font-bold border-2 border-slate-300">
-                
-                <div v-if="suggestions.length" class="border-2 border-slate-800 rounded-xl overflow-hidden">
-                    <div v-for="s in suggestions" @click="selectDrug(s)" class="p-3 bg-white border-b hover:bg-blue-50 cursor-pointer flex justify-between">
-                        <span class="font-bold">{{ s.n }}</span>
-                        <span class="text-blue-500 font-mono">{{ s.c }}</span>
-                    </div>
+        <section class="stat-card">
+            <div class="flex flex-wrap justify-between items-center mb-6 gap-4">
+                <div class="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
+                    <button @click="viewMode = 'day'; updateChart();" :class="viewMode === 'day' ? 'bg-white shadow text-indigo-600' : 'text-slate-500'" class="px-4 py-2 rounded-lg font-bold transition-all">日統計</button>
+                    <button @click="viewMode = 'month'; updateChart();" :class="viewMode === 'month' ? 'bg-white shadow text-indigo-600' : 'text-slate-500'" class="px-4 py-2 rounded-lg font-bold transition-all">月統計</button>
                 </div>
+                <div class="text-slate-500 font-bold text-sm">
+                    數據來源：Firebase Realtime Database
+                </div>
+            </div>
 
-                <div v-if="form.name" class="bg-slate-800 text-white p-4 rounded-xl">
-                    <p class="font-black text-lg">已選：{{ form.name }}</p>
-                    <div class="text-right text-4xl font-mono mt-2 bg-white text-slate-900 p-2 rounded shadow-inner">{{ form.qtyStr || '0' }}</div>
-                </div>
+            <div class="chart-container">
+                <canvas id="mainChart"></canvas>
+            </div>
+        </section>
 
-                <div class="grid grid-cols-4 gap-2">
-                    <button v-for="b in ['7','8','9','/','4','5','6','*','1','2','3','-','AC','0','.','+']" @click="press(b)" :class="getBtnClass(b)">{{ b }}</button>
-                    <button @click="submit" class="col-span-4 bg-emerald-600 text-white py-4 rounded-xl font-black text-2xl border-2 border-slate-800 mt-2">確認提交</button>
-                </div>
-            </section>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="stat-card border-l-8 border-l-blue-500">
+                <p class="text-slate-500 font-bold">今日撥補總量</p>
+                <h2 class="text-3xl font-black text-slate-800">{{ todayCount }} <span class="text-sm">筆</span></h2>
+            </div>
+            <div class="stat-card border-l-8 border-l-purple-500">
+                <p class="text-slate-500 font-bold">本月撥補總量</p>
+                <h2 class="text-3xl font-black text-slate-800">{{ monthCount }} <span class="text-sm">筆</span></h2>
+            </div>
+            <div class="stat-card border-l-8 border-l-orange-500">
+                <p class="text-slate-500 font-bold">最常撥補藥品</p>
+                <h2 class="text-xl font-black text-slate-800">{{ topDrug }}</h2>
+            </div>
         </div>
+
     </div>
 
     <script>
+        // Firebase 設定
         const firebaseConfig = {
             apiKey: "AIzaSyDZuNztwb9aLG1RqeDOyrj6KJrPhwBFi9M",
             authDomain: "fyh-pharmacy-inventory.firebaseapp.com",
@@ -69,67 +79,110 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        Vue.createApp({
-            setup() {
-                const form = Vue.ref({ user: '值班人員', code: '', name: '', qtyStr: '' });
-                const searchQuery = Vue.ref('');
-                const warehouse = Vue.ref([]);
-                const suggestions = Vue.ref([]);
-                const filterMonth = Vue.ref(new Date().toISOString().slice(0, 7));
+        const { createApp, ref, onMounted, computed } = Vue;
 
-                Vue.onMounted(() => {
-                    db.ref("warehouse").on("value", s => { warehouse.value = s.val() ? Object.values(s.val()) : []; });
+        createApp({
+            setup() {
+                const allLogs = ref([]);
+                const viewMode = ref('day'); // 'day' 或 'month'
+                const todayCount = ref(0);
+                const monthCount = ref(0);
+                const topDrug = ref('統計中...');
+                let myChart = null;
+
+                const fetchData = async () => {
+                    const snapshot = await db.ref("transfer_logs").once("value");
+                    if (snapshot.exists()) {
+                        allLogs.value = Object.values(snapshot.val());
+                        calculateSummary();
+                        updateChart();
+                    }
+                };
+
+                const calculateSummary = () => {
+                    const now = new Date();
+                    const todayStr = now.toLocaleDateString('zh-TW');
+                    const monthPrefix = `${now.getFullYear()}/${now.getMonth() + 1}`;
+
+                    // 今日筆數
+                    todayCount.value = allLogs.value.filter(l => l.time.includes(todayStr)).length;
+                    
+                    // 本月筆數
+                    monthCount.value = allLogs.value.filter(l => l.time.includes(monthPrefix)).length;
+
+                    // 最常撥補
+                    const counts = {};
+                    allLogs.value.forEach(l => { counts[l.name] = (counts[l.name] || 0) + 1; });
+                    const sorted = Object.entries(counts).sort((a,b) => b[1] - a[1]);
+                    topDrug.value = sorted.length ? sorted[0][0] : '無數據';
+                };
+
+                const updateChart = () => {
+                    const ctx = document.getElementById('mainChart').getContext('2d');
+                    let labels = [];
+                    let dataValues = [];
+                    let labelName = "";
+
+                    if (viewMode.value === 'day') {
+                        // 統計最近 7 天
+                        labelName = "每日撥補件數";
+                        const last7Days = [...Array(7)].map((_, i) => {
+                            const d = new Date();
+                            d.setDate(d.getDate() - (6 - i));
+                            return d.toLocaleDateString('zh-TW');
+                        });
+                        labels = last7Days.map(d => d.split('/')[2] + '日');
+                        dataValues = last7Days.map(dayStr => allLogs.value.filter(l => l.time.includes(dayStr)).length);
+                    } else {
+                        // 統計年度各月 (1-12月)
+                        labelName = "每月撥補總量";
+                        const year = new Date().getFullYear();
+                        labels = [...Array(12)].map((_, i) => `${i+1}月`);
+                        dataValues = labels.map((_, i) => {
+                            const monthStr = `${year}/${i + 1}/`;
+                            return allLogs.value.filter(l => l.time.includes(monthStr)).length;
+                        });
+                    }
+
+                    if (myChart) myChart.destroy();
+
+                    myChart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: labelName,
+                                data: dataValues,
+                                borderColor: '#4f46e5',
+                                backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                                borderWidth: 4,
+                                fill: true,
+                                tension: 0.4,
+                                pointRadius: 5,
+                                pointBackgroundColor: '#4f46e5'
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: false }
+                            },
+                            scales: {
+                                y: { beginAtZero: true, grid: { display: false } },
+                                x: { grid: { display: false } }
+                            }
+                        }
+                    });
+                };
+
+                onMounted(() => {
+                    fetchData();
                 });
 
-                const onSearch = () => {
-                    const k = searchQuery.value.toLowerCase();
-                    suggestions.value = k ? warehouse.value.filter(i => i.n.toLowerCase().includes(k) || i.c.toLowerCase().includes(k)).slice(0, 5) : [];
-                };
-
-                const selectDrug = (d) => { form.value.name = d.n; form.value.code = d.c; suggestions.value = []; searchQuery.value = d.n; };
-
-                const press = (b) => {
-                    if (b === 'AC') form.value.qtyStr = '';
-                    else if (['+','-','*','/'].includes(b)) form.value.qtyStr += b;
-                    else form.value.qtyStr += b;
-                };
-
-                const submit = async () => {
-                    if (!form.value.name) return;
-                    let finalQty = 0;
-                    try { finalQty = eval(form.value.qtyStr) || 0; } catch { finalQty = 0; }
-                    
-                    await db.ref("transfer_logs").push({
-                        time: new Date().toLocaleString('zh-TW', { hour12: false }),
-                        name: form.value.name,
-                        code: form.value.code,
-                        qty: finalQty,
-                        user: "值班人員"
-                    });
-                    alert("提交成功！");
-                    form.value.qtyStr = ''; form.value.name = ''; searchQuery.value = '';
-                };
-
-                const exportByMonth = async () => {
-                    const s = await db.ref("transfer_logs").once("value");
-                    if (!s.val()) return alert("無資料");
-                    const [y, m] = filterMonth.value.split('-').map(Number);
-                    const logs = Object.values(s.val()).filter(l => {
-                        const p = l.time.split(' ')[0].split('/');
-                        return Number(p[0]) === y && Number(p[1]) === m;
-                    });
-                    if (!logs.length) return alert("該月無紀錄");
-                    
-                    const ws = XLSX.utils.json_to_sheet(logs);
-                    const wb = XLSX.utils.book_new();
-                    XLSX.utils.book_append_sheet(wb, ws, "月報表");
-                    XLSX.writeFile(wb, `${y-1911}年${m}月撥補報表.xlsx`);
-                };
-
-                return { 
-                    form, searchQuery, suggestions, filterMonth, 
-                    onSearch, selectDrug, press, submit, exportByMonth,
-                    getBtnClass: (b) => (['/','*','-','+'].includes(b)?'calc-btn btn-op':'calc-btn btn-num')
+                return {
+                    viewMode, todayCount, monthCount, topDrug,
+                    refreshData: fetchData, updateChart
                 };
             }
         }).mount('#app');
