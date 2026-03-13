@@ -27,7 +27,7 @@
     <h2>藥師系統登入</h2>
     <div style="margin-bottom: 20px;">
         <label style="color: #666;">請輸入工號 ID</label>
-        <input type="text" id="idInput" placeholder="例如: 01234" inputmode="numeric">
+        <input type="text" id="idInput" placeholder="例如: 03412" inputmode="numeric">
     </div>
     <button class="btn-main" id="submitBtn">產生成條碼</button>
 </div>
@@ -45,31 +45,65 @@
 </div>
 
 <script>
-    // 加密混淆後的資料載荷 (Base64)
-    // 原始名單已隱藏於此串亂碼中
-    const _data_payload = "eyJIUzAwMSI6eyJuYW1lIjoiMDAwIiwiY29kZSI6IipENzMzQkVFMDAwMDAwMCoifSwiMDM0MTIiOnsibmFtZSI6IuS6puW š5f mYgiwiY29kZSI6IipCQ0RFOUJBRDAwMDAwMCoifSwiMDAxMTMiOnsibmFtZSI6Iu黃5oOg54+gIiwiY29kZSI6Iio2QTM3NTI2MTAwMDAwMCoifSwiMDAxMTQiOnsibmFtZSI6IuW7luiFp+S8tiIsImNvZGUiOiIqM0EyMTRGNjEwMDAwMDAqIn0sIjAwMTE1Ijp7Im5hbWUiOiLpg63nkZ7nkZkiLCJjb2RlIjoiKzBDQTgzMTcwMDAwMDAwKiJ9LCIwMDExNiI6eyJuYW1lIjoi5ZCz5oOg54+gIiwiY29kZSI6Iio2QTZGNTA2MTAwMDAwMCoifSwiMDA1OTIiOnsibmFtZSI6IuiRieWun+mtnyIsImNvZGUiOiIqMEE2ODQ2NUQwMDAwMDAqIn0sIjAwODM3Ijp7Im5hbWUiOiLpu4Plv6DluIkiLCJjb2RlIjoiKzVBQzI0NjVEMDAwMDAwKiJ9LCIwMTUwNyI6eyJuYW1lIjoi6Zmz5Zi嘉絨IsImNvZGUiOiIqRUEyOTQ2NUQwMDAwMDAqIn0sIjAxNTgzIjp7Im5hbWUiOiLmnpfmt俊杰IiwiY29kZSI6IiozQTU5NDY1RDAwMDAwMCoifSwiMDE4NDUiOnsibmFtZSI6IuW 林學成IiwiY29kZSI6IipDQUMyNDY1RDAwMDAwMCoifSwiMDIwODYiOnsibmFtZSI6IuW8teS俊哲IiwiY29kZSI6IiowQUJBNDc1RDAwMDAwMCoifSwiMDIyNzciOnsibmFtZSI6IuW mquS4gOS7iyIsImNvZGUiOiIqNEFBNTUxNjEwMDAwMDAqIn0sIjAyNjc0Ijp7Im5hbWUiOiLlvLXmlZ湘瑜IiwiY29kZSI6IiozQTdENEY2MTAwMDAwMCoifSwiMDI3NzIiOnsibmFtZSI6IuZmz5Z佳瑜IsImNvZGUiOiIqMEE3QTQ4NUQwMDAwMDAqIn0sIjAyODQ0Ijp7Im5hbWUiOiLmnY7oiJLokI0iLCJjb2RlIjoiKkZBOUI1MTYxMDAwMDAwKiJ9LCIwMzQyOCI6eyJuYW1lIjoi5YqJ6IKy6L豪IsImNvZGUiOiIqMTMzMEYxOUEwMDAwMDAqIn0sIjAzNTc3Ijp7Im5hbWUiOiLnjIvor耀霆IiwiY29kZSI6IipDMzcyRjI5QTAwMDAwMCoifSwiMDM2ODIiOnsibmFtZSI6IuW njIvor貽鈴IiwiY29kZSI6IipDMjdBNzhCNzAwMDAwMCoifSwiMDM3NDIiOnsibmFtZSI6Iui mueW濬竹IiwiY29kZSI6IiozQjE4RTBGRDAwMDAwMCoifSwiMDM3NzIiOnsibmFtZSI6Iu黃柏銘IiwiY29kZSI6IipCQjA5RTJGRDAwMDAwMCoifSwiMDM3ODMiOnsibmFtZSI6Ium mquW fOW kp2IsImNvZGUiOiIqRUMzOTA3QzIwMDAwMDAqIn0sIjAzNzg0Ijp7Im5hbWUiOiLokKHlr定甫IiwiY29kZSI6IipFQ0YzMzQ3MDAwMDAwMCoifSwiMDM4MTgiOnsibmFtZSI6IuZmz6聖容IsImNvZGUiOiIqMjRCMDEzREEwMDAwMDAqIn0sIjAzOTU1Ijp7Im5hbWUiOiLm v6XamIn瑄IiwiY29kZSI6Iio4M0Q4RjE5QTAwMDAwMCoifSwiMDQzOTAiOnsibmFtZSI6IuW 林建勳IiwiY29kZSI6Iio3Q0MxMzc3MDAwMDAwMCoifSwiMDQ0OTEiOnsibmFtZSI6IuW 吳詩茵IiwiY29kZSI6Iio4QzJEMDNDMjAwMDAwMCoifSwiMDQ2MDIiOnsibmFtZSI6IuW 林聖雅IiwiY29kZSI6IiozM0VCRjQ5QTAwMDAwMCoifSwiMDQ2MzkiOnsibmFtZSI6IuW 唐瑋瞬IiwiY29kZSI6IiowQzI0MzU3MDAwMDAwMCoifSwiMDQ4NTkiOnsibmFtZSI6Iu郭益宏IiwiY29kZSI6IipBNDJFRTVDRDAwMDAwMCoifSwiMDUwMzUiOnsibmFtZSI6IuZmz5妍蓁IsImNvZGUiOiIqNDQyMUU2Q0QwMDAwMDAqIn0sIjA1MDUyIjp7Im5hbWUiOiLop6Plv志欽IiwiY29kZSI6IioyNEEzMjJEQTAwMDAwMCoifSwiMDUxOTkiOnsibmFtZSI6IuW 文小熏IiwiY29kZSI6Iio4NDc1MUZEQTAwMDAwMCoifSwiMDUyMzMiOnsibmFtZSI6IuZmz7凱微IsImNvZGUiOiIqNEM0QzlFQUQwMDAwMDAqIn0sIjA1MzE1Ijp7Im5hbWUiOiLojorotKjmvInIsImNvZGUiOiIqNzM0NkY0OUEwMDAwMDAqIn0sIjA1MzE2Ijp7Im5hbWUiOiLpu4PoirXmmYQiLCJjb2RlIjoiKkYzNjRGNjlBMDAwMDAwKiJ9LCIwNTM0MiI6eyJuYW1lIjoi5p 林頌智IiwiY29kZSI6Iio3QjA5RTJGRDAwMDAwMCoifSwiMDU0NjUiOnsibmFtZSI6IuadjuW瑋蓁IiwiY29kZSI6IipCNEQ3RTlDRDAwMDAwMCoifSwiMDU0ODMiOnsibmFtZSI6Iu許凱菁IiwiY29kZSI6Iio3NDBBMDNDRTAwMDAwMCoifSwiMDU1NzUiOnsibmFtZSI6IuW8teW戎狄IiwiY29kZSI6Iio3NDU4RjZDRDAwMDAwMCoifX0=";
-
-    let pharmacistDB = {};
-    try {
-        // 將 Base64 解碼並還原為 JSON 物件
-        const decodedData = decodeURIComponent(atob(_data_payload).split('').map(function(c) {
-            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-        }).join(''));
-        pharmacistDB = JSON.parse(decodedData);
-    } catch (e) {
-        console.error("資料解析失敗");
-    }
+    const pharmacistDB = {
+        "HS001": { "name": "000", "code": "*D733BEE0000000*" },
+        "03412": { "name": "凃博懷", "code": "*BCDE9BAD000000*" },
+        "00113": { "name": "黃惠珠", "code": "*6A375261000000*" },
+        "00114": { "name": "廖慧伶", "code": "*3A214F61000000*" },
+        "00115": { "name": "邱瑞玲", "code": "*0CA83170000000*" },
+        "00116": { "name": "吳惠珠", "code": "*6A6F5061000000*" },
+        "00592": { "name": "葉姿鷰", "code": "*0A68465D000000*" },
+        "00837": { "name": "黃忠廉", "code": "*5AC2465D000000*" },
+        "01507": { "name": "陳嘉絨", "code": "*EA29465D000000*" },
+        "01583": { "name": "林俊杰", "code": "*3A59465D000000*" },
+        "01845": { "name": "林學成", "code": "*CAC2465D000000*" },
+        "02086": { "name": "張俊哲", "code": "*0ABA475D000000*" },
+        "02277": { "name": "洪一仁", "code": "*4AA55161000000*" },
+        "02674": { "name": "張湘瑜", "code": "*3A7D4F61000000*" },
+        "02772": { "name": "陳佳瑜", "code": "*0A7A485D000000*" },
+        "02844": { "name": "李舒菁", "code": "*FA9B5161000000*" },
+        "03428": { "name": "劉育豪", "code": "*1330F19A000000*" },
+        "03577": { "name": "王耀霆", "code": "*C372F29A000000*" },
+        "03682": { "name": "王貽鈴", "code": "*C27A78B7000000*" },
+        "03742": { "name": "詹濬竹", "code": "*3B18E0FD000000*" },
+        "03772": { "name": "黃柏銘", "code": "*BB09E2FD000000*" },
+        "03783": { "name": "鄧媛心", "code": "*EC3907C2000000*" },
+        "03784": { "name": "蔡定甫", "code": "*ECF33470000000*" },
+        "03818": { "name": "陳聖容", "code": "*24B013DA000000*" },
+        "03955": { "name": "嚴婉瑄", "code": "*83D8F19A000000*" },
+        "04390": { "name": "林建勳", "code": "*7CC13770000000*" },
+        "04491": { "name": "吳詩茵", "code": "*8C2D03C2000000*" },
+        "04602": { "name": "林聖雅", "code": "*33EBF49A000000*" },
+        "04639": { "name": "唐瑋瞬", "code": "*0C243570000000*" },
+        "04859": { "name": "郭益宏", "code": "*A42EE5CD000000*" },
+        "05035": { "name": "陳妍蓁", "code": "*4421E6CD000000*" },
+        "05052": { "name": "解志欽", "code": "*24A322DA000000*" },
+        "05199": { "name": "文小熏", "code": "*84751FDA000000*" },
+        "05233": { "name": "陳凱微", "code": "*4C4C9EAD000000*" },
+        "05315": { "name": "莊桇澺", "code": "*7346F49A000000*" },
+        "05316": { "name": "黃苾昀", "code": "*F364F69A000000*" },
+        "05342": { "name": "林頌智", "code": "*7B09E2FD000000*" },
+        "05465": { "name": "李瑋蓁", "code": "*B4D7E9CD000000*" },
+        "05483": { "name": "許凱菁", "code": "*740A03CE000000*" },
+        "05575": { "name": "張戎狄", "code": "*7458F6CD000000*" }
+    };
 
     const idInput = document.getElementById('idInput');
     const submitBtn = document.getElementById('submitBtn');
 
+    // 監聽按鈕點擊
     submitBtn.addEventListener('click', doLogin);
-    idInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') doLogin(); });
+
+    // 監聽 Enter 鍵
+    idInput.addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') doLogin();
+    });
 
     function doLogin() {
         let inputID = idInput.value.trim();
         if (!inputID) return;
 
+        // 檢查與自動補零
         let user = pharmacistDB[inputID];
         if (!user && inputID.length === 4) {
             inputID = "0" + inputID;
@@ -91,13 +125,25 @@
 
         const cleanCode = rawCode.replace(/\*/g, '');
 
-        JsBarcode("#b1d", cleanCode, {
-            format: "CODE128", width: 2.2, height: 85, displayValue: true, fontSize: 18
-        });
+        try {
+            // 生成一維條碼
+            JsBarcode("#b1d", cleanCode, {
+                format: "CODE128",
+                width: 2.2, height: 85,
+                displayValue: true, fontSize: 18
+            });
 
-        const qrDiv = document.getElementById("b2d");
-        qrDiv.innerHTML = "";
-        new QRCode(qrDiv, { text: cleanCode, width: 180, height: 180 });
+            // 生成 QR Code
+            const qrDiv = document.getElementById("b2d");
+            qrDiv.innerHTML = "";
+            new QRCode(qrDiv, {
+                text: cleanCode,
+                width: 180, height: 180
+            });
+        } catch (err) {
+            console.error(err);
+            alert("條碼生成失敗，請檢查網路連線是否正常載入套件。");
+        }
     }
 </script>
 </body>
