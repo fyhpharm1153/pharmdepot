@@ -9,12 +9,12 @@
     <style>
         :root { --primary: #2c3e50; --bg: #f4f7f9; }
         body { font-family: "Microsoft JhengHei", sans-serif; background: var(--bg); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
-        .container { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 90%; max-width: 380px; text-align: center; }
+        .container { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 90%; max-width: 380px; text-align: center; }
         h2 { color: var(--primary); margin-bottom: 25px; }
         input { width: 100%; padding: 15px; margin: 10px 0; border: 2px solid #ddd; border-radius: 10px; box-sizing: border-box; font-size: 1.2rem; text-align: center; }
         .btn-main { width: 100%; padding: 15px; background: var(--primary); color: white; border: none; border-radius: 10px; font-size: 1.1rem; cursor: pointer; font-weight: bold; margin-top: 10px; }
         #output-page { display: none; }
-        .barcode-box { border: 2px solid #eee; padding: 20px; border-radius: 12px; margin: 20px 0; background: #fff; }
+        .barcode-box { border: 2px solid #eee; padding: 15px; border-radius: 12px; margin: 20px 0; background: #fff; overflow: hidden; } /* 增加 overflow 確保不超出邊框 */
         .qr-flex { display: flex; justify-content: center; margin: 20px 0; }
         .name-display { font-size: 1.8rem; font-weight: bold; color: #333; margin-top: 15px; border-top: 2px solid #eee; padding-top: 15px; }
         .id-display { color: #666; font-size: 1.1rem; margin-top: 5px; }
@@ -36,7 +36,7 @@
     <div class="hint">【 請截圖此畫面保存 】</div>
     <div class="barcode-box">
         <svg id="b1d"></svg>
-        <div style="margin: 20px 0; border-top: 1px dashed #ddd;"></div>
+        <div style="margin: 15px 0; border-top: 1px dashed #ddd;"></div>
         <div class="qr-flex" id="b2d"></div>
     </div>
     <div class="name-display" id="showName"></div>
@@ -91,10 +91,7 @@
     const idInput = document.getElementById('idInput');
     const submitBtn = document.getElementById('submitBtn');
 
-    // 監聽按鈕點擊
     submitBtn.addEventListener('click', doLogin);
-
-    // 監聽 Enter 鍵
     idInput.addEventListener('keypress', function (e) {
         if (e.key === 'Enter') doLogin();
     });
@@ -103,7 +100,6 @@
         let inputID = idInput.value.trim();
         if (!inputID) return;
 
-        // 檢查與自動補零
         let user = pharmacistDB[inputID];
         if (!user && inputID.length === 4) {
             inputID = "0" + inputID;
@@ -126,14 +122,15 @@
         const cleanCode = rawCode.replace(/\*/g, '');
 
         try {
-            // 生成一維條碼
+            // 【調整重點】縮小寬度與高度
             JsBarcode("#b1d", cleanCode, {
                 format: "CODE128",
-                width: 2.2, height: 85,
-                displayValue: true, fontSize: 18
+                width: 1.5,      // 從 2.2 降到 1.5 (控制寬度)
+                height: 60,      // 從 85 降到 60 (控制高度)
+                displayValue: true, 
+                fontSize: 16     // 字體也稍微縮小一點
             });
 
-            // 生成 QR Code
             const qrDiv = document.getElementById("b2d");
             qrDiv.innerHTML = "";
             new QRCode(qrDiv, {
@@ -142,7 +139,7 @@
             });
         } catch (err) {
             console.error(err);
-            alert("條碼生成失敗，請檢查網路連線是否正常載入套件。");
+            alert("條碼生成失敗，請檢查網路連線。");
         }
     }
 </script>
