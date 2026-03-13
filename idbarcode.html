@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>醫院藥師條碼系統</title>
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        :root { --primary: #2c3e50; --bg: #f4f7f9; }
+        body { font-family: "Microsoft JhengHei", sans-serif; background: var(--bg); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .container { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 90%; max-width: 380px; text-align: center; }
+        h2 { color: var(--primary); margin-bottom: 25px; }
+        input { width: 100%; padding: 15px; margin: 10px 0; border: 2px solid #ddd; border-radius: 10px; box-sizing: border-box; font-size: 1.2rem; text-align: center; }
+        .btn-main { width: 100%; padding: 15px; background: var(--primary); color: white; border: none; border-radius: 10px; font-size: 1.1rem; cursor: pointer; font-weight: bold; margin-top: 10px; }
+        #output-page { display: none; }
+        .barcode-box { border: 2px solid #eee; padding: 20px; border-radius: 12px; margin: 20px 0; background: #fff; }
+        .qr-flex { display: flex; justify-content: center; margin: 20px 0; }
+        .name-display { font-size: 1.8rem; font-weight: bold; color: #333; margin-top: 15px; border-top: 2px solid #eee; padding-top: 15px; }
+        .id-display { color: #666; font-size: 1.1rem; margin-top: 5px; }
+        .hint { color: #e74c3c; font-size: 0.9rem; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container" id="login-page">
+    <h2>藥師系統登入</h2>
+    <div style="margin-bottom: 20px;">
+        <label style="color: #666;">請輸入工號 ID</label>
+        <input type="text" id="idInput" placeholder="例如: 03412" inputmode="numeric">
+    </div>
+    <button class="btn-main" id="submitBtn">產生成條碼</button>
+</div>
+
+<div class="container" id="output-page">
+    <div class="hint">【 請截圖此畫面保存 】</div>
+    <div class="barcode-box">
+        <svg id="b1d"></svg>
+        <div style="margin: 20px 0; border-top: 1px dashed #ddd;"></div>
+        <div class="qr-flex" id="b2d"></div>
+    </div>
+    <div class="name-display" id="showName"></div>
+    <div class="id-display">工號：<span id="showID"></span></div>
+    <button style="margin-top:20px; background:none; border:none; color:#3498db; text-decoration:underline; cursor:pointer;" onclick="location.reload()">重新輸入</button>
+</div>
+
+<script>
+    const pharmacistDB = {
+        "HS001": { "name": "000", "code": "*D733BEE0000000*" },
+        "03412": { "name": "凃博懷", "code": "*BCDE9BAD000000*" },
+        "00113": { "name": "黃惠珠", "code": "*6A375261000000*" },
+        "00114": { "name": "廖慧伶", "code": "*3A214F61000000*" },
+        "00115": { "name": "邱瑞玲", "code": "*0CA83170000000*" },
+        "00116": { "name": "吳惠珠", "code": "*6A6F5061000000*" },
+        "00592": { "name": "葉姿鷰", "code": "*0A68465D000000*" },
+        "00837": { "name": "黃忠廉", "code": "*5AC2465D000000*" },
+        "01507": { "name": "陳嘉絨", "code": "*EA29465D000000*" },
+        "01583": { "name": "林俊杰", "code": "*3A59465D000000*" },
+        "01845": { "name": "林學成", "code": "*CAC2465D000000*" },
+        "02086": { "name": "張俊哲", "code": "*0ABA475D000000*" },
+        "02277": { "name": "洪一仁", "code": "*4AA55161000000*" },
+        "02674": { "name": "張湘瑜", "code": "*3A7D4F61000000*" },
+        "02772": { "name": "陳佳瑜", "code": "*0A7A485D000000*" },
+        "02844": { "name": "李舒菁", "code": "*FA9B5161000000*" },
+        "03428": { "name": "劉育豪", "code": "*1330F19A000000*" },
+        "03577": { "name": "王耀霆", "code": "*C372F29A000000*" },
+        "03682": { "name": "王貽鈴", "code": "*C27A78B7000000*" },
+        "03742": { "name": "詹濬竹", "code": "*3B18E0FD000000*" },
+        "03772": { "name": "黃柏銘", "code": "*BB09E2FD000000*" },
+        "03783": { "name": "鄧媛心", "code": "*EC3907C2000000*" },
+        "03784": { "name": "蔡定甫", "code": "*ECF33470000000*" },
+        "03818": { "name": "陳聖容", "code": "*24B013DA000000*" },
+        "03955": { "name": "嚴婉瑄", "code": "*83D8F19A000000*" },
+        "04390": { "name": "林建勳", "code": "*7CC13770000000*" },
+        "04491": { "name": "吳詩茵", "code": "*8C2D03C2000000*" },
+        "04602": { "name": "林聖雅", "code": "*33EBF49A000000*" },
+        "04639": { "name": "唐瑋瞬", "code": "*0C243570000000*" },
+        "04859": { "name": "郭益宏", "code": "*A42EE5CD000000*" },
+        "05035": { "name": "陳妍蓁", "code": "*4421E6CD000000*" },
+        "05052": { "name": "解志欽", "code": "*24A322DA000000*" },
+        "05199": { "name": "文小熏", "code": "*84751FDA000000*" },
+        "05233": { "name": "陳凱微", "code": "*4C4C9EAD000000*" },
+        "05315": { "name": "莊桇澺", "code": "*7346F49A000000*" },
+        "05316": { "name": "黃苾昀", "code": "*F364F69A000000*" },
+        "05342": { "name": "林頌智", "code": "*7B09E2FD000000*" },
+        "05465": { "name": "李瑋蓁", "code": "*B4D7E9CD000000*" },
+        "05483": { "name": "許凱菁", "code": "*740A03CE000000*" },
+        "05575": { "name": "張戎狄", "code": "*7458F6CD000000*" }
+    };
+
+    const idInput = document.getElementById('idInput');
+    const submitBtn = document.getElementById('submitBtn');
+
+    // 監聽按鈕點擊
+    submitBtn.addEventListener('click', doLogin);
+
+    // 監聽 Enter 鍵
+    idInput.addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') doLogin();
+    });
+
+    function doLogin() {
+        let inputID = idInput.value.trim();
+        if (!inputID) return;
+
+        // 檢查與自動補零
+        let user = pharmacistDB[inputID];
+        if (!user && inputID.length === 4) {
+            inputID = "0" + inputID;
+            user = pharmacistDB[inputID];
+        }
+
+        if (user) {
+            renderPage(inputID, user.name, user.code);
+        } else {
+            alert("找不到工號：" + inputID);
+        }
+    }
+
+    function renderPage(id, name, rawCode) {
+        document.getElementById('login-page').style.display = 'none';
+        document.getElementById('output-page').style.display = 'block';
+        document.getElementById('showName').innerText = name;
+        document.getElementById('showID').innerText = id;
+
+        const cleanCode = rawCode.replace(/\*/g, '');
+
+        try {
+            // 生成一維條碼
+            JsBarcode("#b1d", cleanCode, {
+                format: "CODE128",
+                width: 2.2, height: 85,
+                displayValue: true, fontSize: 18
+            });
+
+            // 生成 QR Code
+            const qrDiv = document.getElementById("b2d");
+            qrDiv.innerHTML = "";
+            new QRCode(qrDiv, {
+                text: cleanCode,
+                width: 180, height: 180
+            });
+        } catch (err) {
+            console.error(err);
+            alert("條碼生成失敗，請檢查網路連線是否正常載入套件。");
+        }
+    }
+</script>
+</body>
+</html>
