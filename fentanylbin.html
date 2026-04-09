@@ -1,303 +1,148 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html>
 <head>
+    <base target="_top">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Fentanyl 貼片回收系統</title>
     <style>
-        :root {
-            --primary-color: #2c3e50;
-            --accent-color: #3498db;
-            --success-color: #27ae60;
-            --bg-color: #f4f7f6;
-            --card-bg: #ffffff;
-        }
-
-        body {
-            font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            background-color: var(--bg-color);
-            margin: 0;
-            padding: 10px;
-            display: flex;
-            justify-content: center;
-        }
-
-        .container {
-            width: 100%;
-            max-width: 500px;
-            background: var(--card-bg);
-            border-radius: 16px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
-            padding: 20px;
-            box-sizing: border-box;
-        }
-
-        h2 {
-            text-align: center;
-            color: var(--primary-color);
-            margin-bottom: 20px;
-            font-size: 1.4rem;
-        }
-
-        /* 當日統計卡片區 */
-        .summary-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
-            gap: 10px;
-            background: var(--primary-color);
-            color: white;
-            padding: 15px;
-            border-radius: 12px;
-            margin-bottom: 25px;
-        }
-
-        .stat-item {
-            text-align: center;
-            border-right: 1px solid rgba(255,255,255,0.2);
-        }
-
+        :root { --p: #2c3e50; --a: #3498db; --s: #27ae60; --r: #e74c3c; }
+        body { font-family: sans-serif; background: #f0f2f5; margin: 0; padding: 10px; }
+        .card { background: white; border-radius: 15px; padding: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-width: 500px; margin: auto; }
+        .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); gap: 10px; background: var(--p); color: white; padding: 15px; border-radius: 10px; margin-bottom: 20px; }
+        .stat-item { text-align: center; border-right: 1px solid #555; }
         .stat-item:last-child { border: none; }
+        .val { font-size: 20px; font-weight: bold; color: #f1c40f; }
+        .group { margin-bottom: 15px; }
+        label { display: block; font-weight: bold; margin-bottom: 8px; }
+        input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 18px; }
+        .spec-box { display: flex; flex-wrap: wrap; gap: 8px; }
+        .btn-spec { padding: 12px; border: 2px solid #ddd; border-radius: 8px; background: white; font-weight: bold; flex: 1; min-width: 70px; }
+        .btn-spec.active { border-color: var(--a); background: #e3f2fd; color: var(--a); }
+        .numpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; background: #eee; padding: 10px; border-radius: 10px; }
+        .btn-n { padding: 18px; background: white; border: none; border-radius: 8px; font-size: 22px; font-weight: bold; }
+        .btn-s { width: 100%; padding: 18px; background: var(--s); color: white; border: none; border-radius: 10px; font-size: 20px; font-weight: bold; margin-top: 15px; }
+        
+        /* 區間查詢按鈕 */
+        .btn-query { width: 100%; background: none; border: 1px solid var(--a); color: var(--a); padding: 10px; border-radius: 8px; margin-top: 10px; font-weight: bold; }
 
-        .stat-label { font-size: 0.8rem; opacity: 0.8; margin-bottom: 4px; }
-        .stat-value { font-size: 1.4rem; font-weight: bold; color: #f1c40f; }
-
-        /* 表單區域 */
-        .form-group { margin-bottom: 18px; }
-        label { display: block; font-weight: 600; margin-bottom: 8px; color: #444; }
-
-        input {
-            width: 100%;
-            padding: 14px;
-            border: 2px solid #edf2f7;
-            border-radius: 10px;
-            box-sizing: border-box;
-            font-size: 18px;
-            background: #f9f9f9;
-            color: #2d3748;
-        }
-
-        input:focus { outline: none; border-color: var(--accent-color); background: #fff; }
-
-        /* 動態規格按鈕 */
-        .spec-box { display: flex; flex-wrap: wrap; gap: 10px; }
-        .btn-spec {
-            flex: 1;
-            min-width: 80px;
-            padding: 12px;
-            border: 2px solid #edf2f7;
-            border-radius: 10px;
-            background: white;
-            font-weight: bold;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-
-        .btn-spec.active {
-            border-color: var(--accent-color);
-            background: #ebf5fb;
-            color: var(--accent-color);
-            box-shadow: 0 2px 4px rgba(52, 152, 219, 0.2);
-        }
-
-        /* 虛擬數字鍵盤 */
-        .numpad {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-            margin-top: 15px;
-            background: #f1f3f5;
-            padding: 12px;
-            border-radius: 12px;
-        }
-
-        .btn-n {
-            padding: 18px;
-            background: white;
-            border: none;
-            border-radius: 10px;
-            font-size: 22px;
-            font-weight: 600;
-            box-shadow: 0 2px 0 #cbd5e0;
-            cursor: pointer;
-        }
-
-        .btn-n:active { background: #e2e8f0; transform: translateY(2px); box-shadow: none; }
-
-        /* 送出按鈕 */
-        .submit-btn {
-            width: 100%;
-            padding: 16px;
-            background: var(--success-color);
-            color: white;
-            border: none;
-            border-radius: 12px;
-            font-size: 1.2rem;
-            font-weight: bold;
-            margin-top: 25px;
-            cursor: pointer;
-            box-shadow: 0 4px 6px rgba(39, 174, 96, 0.2);
-        }
-
-        .submit-btn:disabled { background: #bdc3c7; cursor: not-allowed; }
-
-        #loading-overlay {
-            display: none;
-            text-align: center;
-            color: var(--accent-color);
-            font-weight: bold;
-            margin-top: 10px;
-        }
+        /* 彈出視窗樣式 */
+        .modal { display:none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.5); z-index: 1000; }
+        .modal-content { background: white; width: 85%; max-width: 400px; margin: 20% auto; padding: 20px; border-radius: 15px; text-align: center; }
+        .modal-title { font-size: 1.2rem; margin-bottom: 15px; color: var(--p); }
+        .close-modal { background: var(--p); color: white; padding: 10px 20px; border: none; border-radius: 8px; margin-top: 20px; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h2>Fentanyl 貼片回收登記</h2>
+<div class="card">
+    <h3 style="text-align:center; margin-top:0;">Fentanyl 回收系統 (今日)</h3>
     
-    <div id="stat-area" class="summary-grid">
-        <div style="grid-column: 1/-1; text-align: center;">載入數據中...</div>
+    <div id="stat-area" class="summary-grid">載入中...</div>
+
+    <div class="group">
+        <label>規格</label>
+        <div id="spec-area" class="spec-box"></div>
     </div>
 
-    <div class="form-group">
-        <label>藥品規格 (mcg/hr)</label>
-        <div id="spec-area" class="spec-box">
-            </div>
-    </div>
-
-    <div class="form-group">
+    <div class="group">
         <label>病歷號碼</label>
-        <input type="text" id="chartNo" readonly onclick="setActiveInput('chartNo')" placeholder="點擊輸入號碼">
+        <input type="text" id="cn" readonly onclick="setA('cn')" placeholder="點擊輸入">
     </div>
 
-    <div class="form-group">
-        <label>退回張數</label>
-        <input type="text" id="qty" readonly onclick="setActiveInput('qty')" placeholder="點擊輸入數量">
+    <div class="group">
+        <label>數量</label>
+        <input type="text" id="qt" readonly onclick="setA('qt')" placeholder="點擊輸入">
     </div>
 
     <div class="numpad">
-        <button class="btn-n" onclick="pressKey('1')">1</button>
-        <button class="btn-n" onclick="pressKey('2')">2</button>
-        <button class="btn-n" onclick="pressKey('3')">3</button>
-        <button class="btn-n" onclick="pressKey('4')">4</button>
-        <button class="btn-n" onclick="pressKey('5')">5</button>
-        <button class="btn-n" onclick="pressKey('6')">6</button>
-        <button class="btn-n" onclick="pressKey('7')">7</button>
-        <button class="btn-n" onclick="pressKey('8')">8</button>
-        <button class="btn-n" onclick="pressKey('9')">9</button>
-        <button class="btn-n" onclick="clearInput()" style="color: #e74c3c;">清除</button>
-        <button class="btn-n" onclick="pressKey('0')">0</button>
-        <button class="btn-n" onclick="finishInput()" style="color: var(--success-color);">確認</button>
+        <script>
+            for(let i=1; i<=9; i++) document.write(`<button class="btn-n" onclick="pN('${i}')">${i}</button>`);
+        </script>
+        <button class="btn-n" onclick="pC()" style="color:var(--r)">C</button>
+        <button class="btn-n" onclick="pN('0')">0</button>
+        <button class="btn-n" onclick="act=''" style="color:var(--s)">OK</button>
     </div>
 
-    <div id="loading-overlay">⏳ 處理中，請稍候...</div>
-    <button id="submitBtn" class="submit-btn" onclick="submitData()">確認送出紀錄</button>
+    <button id="sb" class="btn-s" onclick="save()">確認送出</button>
+    <button class="btn-query" onclick="openModal()">查詢區間總量</button>
+</div>
+
+<div id="qModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-title">查詢區間累計總量</div>
+        <input type="date" id="qStart" style="margin-bottom:10px">
+        <input type="date" id="qEnd">
+        <div id="qResult" style="margin-top:20px; text-align: left; font-size: 1.1rem; border-top: 1px solid #eee; padding-top: 15px;"></div>
+        <button class="btn-s" onclick="queryRange()">開始查詢</button>
+        <button class="close-modal" onclick="closeModal()">關閉</button>
+    </div>
 </div>
 
 <script>
     let currentSpec = '';
-    let activeInputId = 'chartNo';
+    let act = 'cn';
 
-    // 1. 初始化讀取後端資料 (規格與統計)
     window.onload = () => {
-        refreshData();
+        google.script.run.withSuccessHandler(initUI).withFailureHandler(err => alert("抓不到資料: "+err)).getAppData();
     };
 
-    function refreshData() {
-        google.script.run.withSuccessHandler(initUI).getAppData();
-    }
-
     function initUI(res) {
-        // 生成統計欄位
+        if(res.error) return alert("錯誤: " + res.error);
         let statHtml = '';
         for (let s in res.stats) {
-            statHtml += `
-                <div class="stat-item">
-                    <div class="stat-label">${s}</div>
-                    <div class="stat-value" id="sum-${s}">${res.stats[s]}</div>
-                </div>`;
+            statHtml += `<div class="stat-item">${s}<br><span class="val">${res.stats[s]}</span></div>`;
         }
         document.getElementById('stat-area').innerHTML = statHtml;
 
-        // 生成規格按鈕
         let specHtml = '';
         res.specList.forEach((s, i) => {
-            const activeClass = i === 0 ? 'active' : '';
-            if(i === 0 && !currentSpec) currentSpec = s; // 預設選第一個
-            specHtml += `<button class="btn-spec ${activeClass}" onclick="setSpec('${s}', this)">${s}</button>`;
+            if(i === 0) currentSpec = s;
+            specHtml += `<button class="btn-spec ${i===0?'active':''}" onclick="setS('${s}', this)">${s}</button>`;
         });
         document.getElementById('spec-area').innerHTML = specHtml;
     }
 
-    // 2. 介面互動邏輯
-    function setSpec(val, btn) {
-        currentSpec = val;
-        document.querySelectorAll('.btn-spec').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
+    function setS(v, b) {
+        currentSpec = v;
+        document.querySelectorAll('.btn-spec').forEach(x => x.classList.remove('active'));
+        b.classList.add('active');
     }
+    function setA(id) { act = id; }
+    function pN(n) { if(act) document.getElementById(act).value += n; }
+    function pC() { if(act) document.getElementById(act).value = ''; }
 
-    function setActiveInput(id) {
-        activeInputId = id;
-        document.querySelectorAll('input').forEach(el => el.style.borderColor = '#edf2f7');
-        document.getElementById(id).style.borderColor = 'var(--accent-color)';
-    }
-
-    function pressKey(num) {
-        const input = document.getElementById(activeInputId);
-        input.value += num;
-    }
-
-    function clearInput() {
-        document.getElementById(activeInputId).value = '';
-    }
-
-    function finishInput() {
-        if (activeInputId === 'chartNo') {
-            setActiveInput('qty');
-        } else {
-            activeInputId = ''; 
-            document.querySelectorAll('input').forEach(el => el.style.borderColor = '#edf2f7');
-        }
-    }
-
-    // 3. 提交資料到 Google Sheets
-    function submitData() {
-        const chartNo = document.getElementById('chartNo').value;
-        const qty = document.getElementById('qty').value;
-
-        if (!chartNo || !qty) {
-            alert('❌ 請完整輸入病歷號碼與張數');
-            return;
-        }
-
-        // 鎖定 UI
-        document.getElementById('submitBtn').disabled = true;
-        document.getElementById('loading-overlay').style.display = 'block';
-
-        const payload = {
-            date: new Date().toISOString().split('T')[0],
-            chartNo: chartNo,
-            spec: currentSpec,
-            qty: qty
-        };
-
+    function save() {
+        const cn = document.getElementById('cn').value;
+        const qt = document.getElementById('qt').value;
+        if(!cn || !qt) return alert('請完整輸入');
+        document.getElementById('sb').disabled = true;
+        
         google.script.run.withSuccessHandler(res => {
-            // 更新 UI 統計數據
-            for (let s in res.stats) {
-                const el = document.getElementById(`sum-${s}`);
-                if (el) el.innerText = res.stats[s];
+            initUI(res);
+            document.getElementById('cn').value = '';
+            document.getElementById('qt').value = '';
+            document.getElementById('sb').disabled = false;
+            alert('儲存成功');
+        }).saveToSheet({date: new Date().toISOString().split('T')[0], chartNo: cn, spec: currentSpec, qty: qt});
+    }
+
+    // 彈窗查詢邏輯
+    function openModal() { document.getElementById('qModal').style.display = 'block'; }
+    function closeModal() { document.getElementById('qModal').style.display = 'none'; }
+    function queryRange() {
+        const s = document.getElementById('qStart').value;
+        const e = document.getElementById('qEnd').value;
+        if(!s || !e) return alert('請選擇日期');
+        document.getElementById('qResult').innerHTML = "查詢中...";
+        
+        google.script.run.withSuccessHandler(stats => {
+            let resHtml = '<b>查詢結果：</b><br>';
+            for(let key in stats) {
+                resHtml += `• ${key} mcg/hr：<b>${stats[key]}</b> 張<br>`;
             }
-            
-            // 清空輸入並恢復按鈕
-            document.getElementById('chartNo').value = '';
-            document.getElementById('qty').value = '';
-            document.getElementById('submitBtn').disabled = false;
-            document.getElementById('loading-overlay').style.display = 'none';
-            setActiveInput('chartNo');
-            
-            alert('✅ 儲存成功！資料已同步至雲端。');
-        }).saveToSheet(payload);
+            document.getElementById('qResult').innerHTML = resHtml;
+        }).getRangeStats(s, e);
     }
 </script>
-
 </body>
 </html>
