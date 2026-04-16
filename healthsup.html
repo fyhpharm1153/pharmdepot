@@ -3,159 +3,166 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>醫院/診所健康營養補充品目錄</title>
+    <title>醫用營養補充品查詢系統</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* 處理照片大小不一的關鍵 CSS */
         .product-img-box {
-            width: 100%;
-            height: 240px; /* 固定相框高度 */
-            background-color: #ffffff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-            border-bottom: 1px solid #f1f5f9;
+            width: 100%; height: 220px; background-color: white;
+            display: flex; align-items: center; justify-content: center; overflow: hidden;
         }
-        .product-img-box img {
-            max-width: 100%;
-            max-height: 100%;
-            object-fit: contain; /* 縮放並保持比例，不裁切也不變形 */
-            padding: 10px;
-        }
-        .filter-btn.active {
-            background-color: #2563eb;
-            color: white;
-            box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.4);
-        }
+        .product-img-box img { max-width: 90%; max-height: 90%; object-fit: contain; }
+        .filter-btn.active { background-color: #2563eb; color: white; border-color: #2563eb; }
+        .modal { transition: opacity 0.25s ease; }
+        body.modal-active { overflow: hidden; }
+        .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-900 transition-all duration-300">
 
-    <nav class="bg-white/80 backdrop-blur-md shadow-sm sticky top-0 z-50 p-4">
+    <nav class="bg-white shadow-sm sticky top-0 z-50 p-4">
         <div class="max-w-7xl mx-auto flex justify-between items-center">
             <div>
-                <h1 class="text-xl font-bold text-blue-800">健康營養產品目錄</h1>
-                <p class="text-[10px] text-slate-400 font-medium">醫事人員與病患參考專用</p>
+                <h1 class="text-xl font-bold text-blue-800">健康與營養補充品目錄</h1>
+                <p class="text-[10px] text-slate-400">產品資訊表 v1.0 (共 16 項)</p>
             </div>
-            <div class="flex items-center gap-2 bg-slate-100 p-1 rounded-xl">
-                <button onclick="adjustFont(-2)" class="px-3 py-1 hover:bg-white rounded-lg text-xs font-bold shadow-sm transition-all">A-</button>
-                <button onclick="adjustFont(2)" class="px-3 py-1 hover:bg-white rounded-lg text-xs font-bold shadow-sm transition-all">A+</button>
+            <div class="flex items-center gap-2">
+                <button onclick="adjustFont(-2)" class="px-3 py-1 bg-slate-100 rounded text-xs font-bold">A-小</button>
+                <button onclick="adjustFont(2)" class="px-3 py-1 bg-slate-100 rounded text-xs font-bold">A+大</button>
             </div>
         </div>
     </nav>
 
-    <main class="max-w-7xl mx-auto p-4 md:p-8" id="readable-content">
-        
-        <section class="bg-white rounded-3xl p-6 shadow-sm mb-8 border border-slate-100">
-            <h2 class="text-sm font-bold text-slate-400 mb-4 flex items-center gap-2">
-                <span class="w-1.5 h-1.5 bg-blue-500 rounded-full"></span> 按適用科別篩選
-            </h2>
-            <div id="filter-container" class="flex flex-wrap gap-2">
-                <button onclick="applyFilter('全部', this)" class="filter-btn active px-5 py-2 rounded-full border text-sm font-medium transition-all">全部產品</button>
-                </div>
+    <main class="max-w-7xl mx-auto p-4 md:p-6" id="app-content">
+        <section class="mb-8 bg-white p-5 rounded-3xl shadow-sm border border-slate-100">
+            <h2 class="text-xs font-bold text-slate-400 mb-4 tracking-widest uppercase">按科別快速篩選</h2>
+            <div id="filter-box" class="flex flex-wrap gap-2">
+                <button onclick="filter('全部', this)" class="filter-btn active px-4 py-2 rounded-full border text-sm font-medium transition-all">顯示全部項目</button>
+            </div>
         </section>
 
-        <div id="product-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            </div>
+        <div id="grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
     </main>
 
+    <div id="modal" class="modal opacity-0 pointer-events-none fixed w-full h-full top-0 left-0 flex items-center justify-center z-[100]">
+        <div class="modal-overlay absolute w-full h-full bg-slate-900/60 backdrop-blur-sm" onclick="closeModal()"></div>
+        <div class="modal-container bg-white w-11/12 md:max-w-2xl mx-auto rounded-[2.5rem] shadow-2xl z-[101] overflow-hidden">
+            <div class="max-h-[85vh] overflow-y-auto p-8" id="modal-content"></div>
+        </div>
+    </div>
+
     <script>
-        // 從您的 Excel 完整導入的資料
+        // 16 項產品完整資料載入
         const products = [
-            { id: "HEA-0001", name: "維生素D3液劑", dept: "婦產科、小兒科、骨科、家醫科", effect: "增進鈣吸收，幫助骨骼與牙齒發育", price: 1200, spec: "30 毫升/瓶", usage: "每日 0.2-0.3 毫升", origin: "西班牙", note: "開封後6個月內食完" },
-            { id: "HEA-0012", name: "寶乖亞D-PLUS", dept: "小兒科、新生兒科", effect: "益生菌維持腸道健康、免疫力", price: 1650, spec: "10 毫升/瓶", usage: "每日 5 滴", origin: "瑞典", note: "水溫不可超過 50℃" },
-            { id: "HEA-0014", name: "鎂溶易400MG", dept: "神經內科、腸胃科、復健科、婦產科", effect: "幫助入睡、助排便、維持肌肉正常功能", price: 850, spec: "20 包/盒", usage: "每日 1 包，直接倒入口中", origin: "奧地利", note: "苯酮尿症患者不宜" },
-            { id: "HEA-0007", name: "淨舒逸甘露醣", dept: "泌尿科、婦產科", effect: "泌尿道保健、私密處護理", price: 1100, spec: "30 包/盒", usage: "每日 1-3 包", origin: "台灣", note: "需搭配足量水分" },
-            { id: "HEA-0013", name: "沛特補高濃度魚油", dept: "心臟內科、神經內科、家醫科", effect: "循環健康、調整體質", price: 1500, spec: "60 粒/盒", usage: "每次 2 粒", origin: "台灣", note: "含魚類製品，開封後盡快食完" }
+            { id: "HEA-0001", name: "維生素D3液劑", ingred: "橄欖油、維生素D3、莓果香料", usage: "每日 0.2-0.3 毫升，建議餐後食用。抽吸管插入瓶口後倒置抽取。", spec: "30 毫升/瓶", origin: "西班牙", note: "開封後 6 個月內完食。多食無益。", effect: "增進鈣吸收，幫助骨骼與牙齒生長發育。", target: "孕婦、產前後、病後補養、嬰幼兒。", dept: "婦產科、小兒科、骨科、家醫科" },
+            { id: "HEA-0012", name: "寶乖亞D-PLUS", ingred: "羅伊氏乳酸桿菌、維生素D3、葵花籽油", usage: "每日一次 5 滴。使用前搖勻 10 秒。", spec: "10 毫升/瓶", origin: "瑞典", note: "食物溫度不得大於 50℃。不可冷凍。", effect: "益生菌與D3雙重補充，改變細菌叢生態。", target: "需調整體質之嬰幼兒。", dept: "小兒科、小兒腸胃科" },
+            { id: "HEA-0016", name: "新鐵多滴劑", ingred: "Sucrosomial Iron (焦磷酸鐵等)", usage: "一般 0.2ml/kg；缺鐵 0.3ml/kg。加入 30ml 水沖泡。", spec: "4.5 公克/罐", origin: "義大利", note: "沖泡後冷藏並於一個月內完食。", effect: "鐵質補充，有助紅血球形成與氧氣輸送。", target: "嬰幼兒、早產兒、純母乳哺育嬰兒、缺鐵貧血兒。", dept: "小兒科、新生兒科、婦產科" },
+            { id: "HEA-0010", name: "C+鎂 發泡錠", ingred: "維生素C (225mg)、氧化鎂 (100mg)", usage: "放入 150ml 冷水溶解。一日不超過 1 錠。", spec: "20 錠/盒", origin: "德國", note: "黑醋栗口味。儲存不超過 25℃。", effect: "促進膠原蛋白形成、傷口癒合及抗氧化。", target: "一般民眾、手術後需傷口修復者。", dept: "外科、整形外科、皮膚科、家醫科" },
+            { id: "HEA-0017", name: "基速得 (亞培)", ingred: "L-精胺酸、L-麩醯胺酸、HMB", usage: "每日 2 包。每包加 237-290ml 涼水。不可用熱水。", spec: "24 公克/包 (30包/盒)", origin: "美國", note: "特定疾病配方。苯酮尿症及敗血症不宜。勿靜脈注射。", effect: "幫助維持體力、減緩營養耗損。", target: "燒燙傷、壓瘡、糖友傷口、放化療破損、手術傷口。", dept: "各外科、血液腫瘤科、新陳代謝科" },
+            { id: "HEA-0011", name: "綜合B群發泡錠", ingred: "綜合維生素(A-K1)、礦物質、葉黃素", usage: "每日 1 錠。放入 200ml 冷水溶解。", spec: "20 錠/盒", origin: "德國", note: "熱帶水果口味。無糖、無阿斯巴甜。", effect: "維持皮膚、心臟及神經系統正常功能。", target: "容易疲勞、需綜合營養補充民眾。", dept: "家醫科、一般內科" },
+            { id: "HEA-0006", name: "葉黃素4合1+ B群", ingred: "游離葉黃素 30mg、蝦紅素、B群、鋅", usage: "每日 1 粒。多食無益。", spec: "60 粒/裝", origin: "德國", note: "含大豆製品。明膠由豬皮製成，素食者勿食。", effect: "明亮清透保養；有助維持暗處視覺。", target: "孕產婦、病後營養、護眼需求民眾。", dept: "眼科、婦產科、家醫科" },
+            { id: "HEA-0015", name: "刻利淨三餐精選組", ingred: "馬鈴薯燉雞肉、白粥、雞肉蛋粥", usage: "隔水加熱 3-5 分或微波加熱。", spec: "595 公克/袋 (三款餐點)", origin: "日本", note: "含蛋/魚/大豆/麩質。整袋不可直接微波。", effect: "提供專業低渣餐食，利於腸道排空檢驗。", target: "大腸鏡檢前需低渣飲食控制者。", dept: "腸胃內科、大腸直腸外科、健檢中心" },
+            { id: "HEA-0008", name: "魚油DHA", ingred: "濃縮魚油(DHA 215mg)、維生素E", usage: "每日 2 粒，餐後溫水食用。", spec: "60 粒/盒", origin: "台灣", note: "確實遵循建議量，多食無益。", effect: "增進皮膚與血球健康；幫助思緒清晰。", target: "孕婦、孩童、老年人、哺乳婦女。", dept: "婦產科、小兒科、神經內科" },
+            { id: "HEA-0009", name: "魚油EPA", ingred: "高純度魚油 (EPA 400mg)、維生素E", usage: "每日一次，每次 2 粒。", spec: "60 粒/盒", origin: "台灣", note: "含魚類製品。開封後盡快 6 個月內完食。", effect: "調整體質、維持良好循環與健康。", target: "需加強循環防護、日常保養成年人。", dept: "心臟內科、神經內科、家醫科" },
+            { id: "HEA-0014", name: "鎂溶易400MG", ingred: "氧化鎂 (鎂離子 400 毫克)", usage: "每日 1 包。直接倒入口中，無須配水。", spec: "20 包/盒", origin: "奧地利", note: "含阿斯巴甜，苯酮尿症不宜。全素可食。", effect: "維持肌肉正常、幫助入睡、助排便。", target: "孕授乳婦、運動員、睡眠或排便困擾者。", dept: "神經內科、腸胃科、復健科、婦產科" },
+            { id: "HEA-0007", name: "淨舒逸甘露醣", ingred: "甘露醣(2000mg)、樺樹葉萃取、維生素D3/A", usage: "加強 3 包/日；日常 1 包/日。配水 200ml。", spec: "12 包/盒", origin: "德國", note: "14歲以下不宜。含阿斯巴甜，苯酮尿症不宜。", effect: "改變細菌叢生態、維持私密處健康。", target: "成年女性、私密處保養需求者。", dept: "婦產科、泌尿科" },
+            { id: "HEA-0002", name: "特適体錠 (鈣)", ingred: "非晶鈣 (碳酸鈣等)", usage: "平日早晚各 1 錠；發育期早晚各 2 錠。", spec: "60 錠/瓶", origin: "以色列", note: "切勿冷藏。多食無益。", effect: "非晶鈣質營養補充。", target: "發育期孩童 (女6歲/男7歲起) 與成人。", dept: "小兒科、骨科、內分泌科、家醫科" },
+            { id: "HEA-0003", name: "鈣溶易口腔崩散微粒", ingred: "碳酸鈣、維生素D3、K1、C、E", usage: "每日 1 包。直接倒入口中，無須配水。", spec: "20 包/盒", origin: "奧地利", note: "含阿斯巴甜，苯酮尿症不宜。全素可食。", effect: "補充高鈣質，增進鈣吸收，維持骨骼健康。", target: "4歲以上孩童、孕婦及授乳婦。", dept: "婦產科、小兒科、骨科、家醫科" },
+            { id: "HEA-0004", name: "關立固 (乳油木果)", ingred: "乳油木果萃取 SheaFlex75™", usage: "每日一次 6 粒。可咬破與食物併食。", spec: "180 粒/瓶", origin: "日本", note: "全素可食。如有吞嚥困難可咬破。", effect: "提供行動靈活與活力充沛之保養。", target: "需維持關節活力之中高齡族群。", dept: "骨科、復健科、高齡醫學、家醫科" },
+            { id: "HEA-0005", name: "乳油木果4合一", ingred: "葡萄糖胺、乳油木果、MSM、二型膠原", usage: "每日 1 至 2 粒。", spec: "60 粒/裝", origin: "美國", note: "含 MSM 避免睡前服用。含甲殼類過敏原。", effect: "靈活關鍵保養，一粒有感。", target: "銀髮族、關節活動力保養成人。", dept: "骨科、復健科、高齡醫學、家醫科" }
         ];
 
-        let currentSize = 16;
+        let fontSize = 16;
 
         function init() {
-            renderCards(products);
-            genFilterBtns();
-        }
-
-        // 產生科別按鈕
-        function genFilterBtns() {
-            const depts = [];
-            products.forEach(p => {
-                p.dept.split('、').forEach(d => {
-                    if(!depts.includes(d)) depts.push(d);
-                });
-            });
-
-            const container = document.getElementById('filter-container');
-            depts.forEach(d => {
-                const btn = document.createElement('button');
-                btn.className = "filter-btn bg-white border border-slate-200 px-5 py-2 rounded-full text-sm font-medium text-slate-600 hover:border-blue-300 transition-all";
-                btn.innerText = d;
-                btn.onclick = (e) => applyFilter(d, e.target);
-                container.appendChild(btn);
+            render(products);
+            const deptList = [];
+            products.forEach(p => p.dept.split('、').forEach(d => { if(!deptList.includes(d)) deptList.push(d); }));
+            deptList.forEach(d => {
+                const b = document.createElement('button');
+                b.className = "filter-btn bg-white border border-slate-200 px-4 py-2 rounded-full text-sm font-medium hover:border-blue-300 transition-all";
+                b.innerText = d;
+                b.onclick = (e) => filter(d, e.target);
+                document.getElementById('filter-box').appendChild(b);
             });
         }
 
-        // 渲染卡片
-        function renderCards(list) {
-            const grid = document.getElementById('product-grid');
+        // 智慧圖片載入：支援 jpg 與 png
+        function getImgHtml(id) {
+            return `<img src="./images/${id}.jpg" onerror="this.onerror=null; this.src='./images/${id}.png'; this.parentElement.innerHTML='<img src=\'./images/${id}.png\' onerror=\'handleImgError(this)\'>';">`;
+        }
+        function handleImgError(img) { img.src = 'https://via.placeholder.com/300x220?text=圖片整理中'; }
+
+        function render(list) {
+            const grid = document.getElementById('grid');
             grid.innerHTML = list.map(p => `
-                <div class="bg-white rounded-[2rem] overflow-hidden shadow-sm border border-slate-100 flex flex-col hover:shadow-xl hover:scale-[1.02] transition-all duration-300">
-                    <div class="product-img-box">
-                        <img src="./images/${p.id}.jpg" alt="${p.name}" onerror="this.src='https://via.placeholder.com/400x300?text=圖片整理中'">
-                    </div>
-                    <div class="p-6 flex flex-col flex-grow">
-                        <div class="flex justify-between items-start mb-3">
-                            <span class="text-[10px] font-bold tracking-widest text-blue-500 bg-blue-50 px-2 py-1 rounded-lg">${p.id}</span>
-                            <span class="text-xs text-slate-400 font-medium">${p.spec}</span>
-                        </div>
-                        <h3 class="text-xl font-black text-slate-800 mb-2">${p.name}</h3>
-                        <p class="text-xs font-bold text-blue-600 mb-4 italic">🏥 ${p.dept}</p>
-                        
-                        <div class="space-y-3 mb-6 flex-grow">
-                            <div class="flex gap-2">
-                                <span class="text-xs bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded h-fit whitespace-nowrap">功效</span>
-                                <p class="text-sm text-slate-600 leading-relaxed">${p.effect}</p>
-                            </div>
-                            <div class="flex gap-2">
-                                <span class="text-xs bg-amber-50 text-amber-600 px-2 py-0.5 rounded h-fit whitespace-nowrap">用法</span>
-                                <p class="text-sm text-slate-500">${p.usage}</p>
-                            </div>
-                        </div>
-
-                        <div class="pt-4 border-t border-slate-50 flex justify-between items-end">
-                            <div>
-                                <p class="text-[10px] font-bold text-slate-300 uppercase">建議售價</p>
-                                <p class="text-2xl font-black text-slate-900">$${p.price}</p>
-                            </div>
-                            <div class="text-[10px] text-slate-400 text-right">
-                                原產地<br><span class="text-slate-600 font-bold">${p.origin}</span>
-                            </div>
+                <div class="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden flex flex-col hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer" onclick="openModal('${p.id}')">
+                    <div class="product-img-box">${getImgHtml(p.id)}</div>
+                    <div class="p-6 flex-grow flex flex-col">
+                        <span class="text-[9px] font-black tracking-widest text-blue-400 uppercase mb-1">${p.id}</span>
+                        <h3 class="text-lg font-bold text-slate-800 mb-2">${p.name}</h3>
+                        <p class="text-xs text-slate-500 line-clamp-2 mb-4 italic">✨ ${p.effect}</p>
+                        <div class="mt-auto flex justify-between items-center pt-4 border-t border-slate-50">
+                            <span class="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-md">${p.dept.split('、')[0]}...</span>
+                            <span class="text-[10px] text-slate-300 font-bold uppercase">Detail 點擊詳情</span>
                         </div>
                     </div>
                 </div>
             `).join('');
         }
 
-        // 篩選邏輯
-        function applyFilter(dept, btn) {
+        function filter(dept, btn) {
             document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
-
-            if (dept === '全部') {
-                renderCards(products);
-            } else {
-                const filtered = products.filter(p => p.dept.includes(dept));
-                renderCards(filtered);
-            }
+            render(dept === '全部' ? products : products.filter(p => p.dept.includes(dept)));
         }
 
-        // 字體調整
+        function openModal(id) {
+            const p = products.find(x => x.id === id);
+            document.getElementById('modal-content').innerHTML = `
+                <div class="flex justify-between items-start mb-6">
+                    <div>
+                        <span class="text-xs font-bold text-blue-500">${p.id}</span>
+                        <h2 class="text-3xl font-black text-slate-800">${p.name}</h2>
+                    </div>
+                    <button onclick="closeModal()" class="text-3xl text-slate-300 hover:text-slate-600">&times;</button>
+                </div>
+                <div class="space-y-6 text-sm">
+                    <div class="bg-blue-50 p-5 rounded-[1.5rem] border border-blue-100">
+                        <p class="font-bold text-blue-800 mb-1">【主要保健效果】</p>
+                        <p class="text-blue-900 leading-relaxed">${p.effect}</p>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="space-y-4">
+                            <div><p class="font-bold text-slate-400 text-xs mb-1 tracking-wider uppercase">主要成分</p><p class="text-slate-700">${p.ingred}</p></div>
+                            <div><p class="font-bold text-slate-400 text-xs mb-1 tracking-wider uppercase">食用方法 / 規格</p><p class="text-slate-700">${p.usage}<br><b>(${p.spec})</b></p></div>
+                        </div>
+                        <div class="space-y-4">
+                            <div><p class="font-bold text-slate-400 text-xs mb-1 tracking-wider uppercase">適合對象</p><p class="text-slate-700">${p.target}</p></div>
+                            <div><p class="font-bold text-slate-400 text-xs mb-1 tracking-wider uppercase">原產地</p><p class="text-slate-700 font-bold">${p.origin}</p></div>
+                        </div>
+                    </div>
+                    <div class="p-5 rounded-2xl bg-slate-50 border border-slate-100">
+                        <p class="font-bold text-slate-400 text-xs mb-2 tracking-wider uppercase">推薦科別</p>
+                        <p class="text-blue-600 font-medium">${p.dept}</p>
+                    </div>
+                    <div class="p-4 bg-red-50 rounded-2xl">
+                        <p class="text-xs font-bold text-red-800 mb-1 italic underline">注意事項</p>
+                        <p class="text-xs text-red-700 leading-relaxed">${p.note}</p>
+                    </div>
+                </div>
+            `;
+            document.getElementById('modal').classList.remove('opacity-0', 'pointer-events-none');
+            document.body.classList.add('modal-active');
+        }
+
+        function closeModal() {
+            document.getElementById('modal').classList.add('opacity-0', 'pointer-events-none');
+            document.body.classList.remove('modal-active');
+        }
+
         function adjustFont(delta) {
-            currentSize += delta;
-            if(currentSize < 12) currentSize = 12;
-            if(currentSize > 24) currentSize = 24;
-            document.getElementById('readable-content').style.fontSize = currentSize + 'px';
+            fontSize += delta;
+            document.getElementById('app-content').style.fontSize = fontSize + 'px';
         }
 
         window.onload = init;
