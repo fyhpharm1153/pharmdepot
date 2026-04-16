@@ -18,10 +18,10 @@
         .subcat-pill.active { background: #3b82f6; color: white; border-color: #3b82f6; box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3); }
         .card-label { font-size: 0.7rem; padding: 1px 8px; border-radius: 4px; background: #eff6ff; color: #1d4ed8; font-weight: 700; margin-right: 4px; margin-bottom: 4px; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        .add-cart-btn { position: absolute; top: 1rem; right: 1rem; z-index: 10; background: white; border: 1px solid #e2e8f0; padding: 0.4rem 0.8rem; border-radius: 10px; font-size: 0.75rem; font-weight: bold; transition: 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        /* 修正按鈕位置與層級 */
+        .add-cart-btn { position: absolute; top: 1.25rem; right: 1.25rem; z-index: 20; background: white; border: 1px solid #e2e8f0; padding: 0.4rem 0.8rem; border-radius: 10px; font-size: 0.75rem; font-weight: bold; transition: 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .add-cart-btn.added { background: #1e293b; color: white; border-color: #1e293b; }
         .cart-float { position: fixed; bottom: 2rem; right: 2rem; z-index: 50; }
-        /* 表格字體微調 */
         .compare-table th, .compare-table td { font-size: 0.85rem; vertical-align: top; }
     </style>
 </head>
@@ -114,7 +114,8 @@
                         ${isAdded ? '已在清單' : '＋加入清單'}
                     </button>
                     <div onclick="showDetail('${p.代碼}')" class="cursor-pointer flex flex-col h-full">
-                        <div class="flex flex-wrap mb-2 min-h-[24px]">${labelsHtml}</div>
+                        <div class="flex flex-wrap mb-2 min-h-[24px] pr-24">${labelsHtml}</div>
+                        
                         <div class="aspect-square bg-slate-50 rounded-2xl mb-5 overflow-hidden flex items-center justify-center p-4">
                             <img src="${imgUrl}" class="max-h-full transition-transform hover:scale-110 duration-500">
                         </div>
@@ -186,7 +187,6 @@
             filterData();
         }
 
-        // --- 核心更新：比較清單內容 ---
         function toggleCartModal() {
             if (cart.size === 0) { alert("清單目前是空的"); return; }
             const items = allProducts.filter(p => cart.has(p.代碼));
