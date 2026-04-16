@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>醫院/診所健康營養補充品目錄</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 處理照片大小不一的關鍵 CSS */
+        .product-img-box {
+            width: 100%;
+            height: 240px; /* 固定相框高度 */
+            background-color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .product-img-box img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain; /* 縮放並保持比例，不裁切也不變形 */
+            padding: 10px;
+        }
+        .filter-btn.active {
+            background-color: #2563eb;
+            color: white;
+            box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.4);
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 transition-all duration-300">
+
+    <nav class="bg-white/80 backdrop-blur-md shadow-sm sticky top-0 z-50 p-4">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <div>
+                <h1 class="text-xl font-bold text-blue-800">健康營養產品目錄</h1>
+                <p class="text-[10px] text-slate-400 font-medium">醫事人員與病患參考專用</p>
+            </div>
+            <div class="flex items-center gap-2 bg-slate-100 p-1 rounded-xl">
+                <button onclick="adjustFont(-2)" class="px-3 py-1 hover:bg-white rounded-lg text-xs font-bold shadow-sm transition-all">A-</button>
+                <button onclick="adjustFont(2)" class="px-3 py-1 hover:bg-white rounded-lg text-xs font-bold shadow-sm transition-all">A+</button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto p-4 md:p-8" id="readable-content">
+        
+        <section class="bg-white rounded-3xl p-6 shadow-sm mb-8 border border-slate-100">
+            <h2 class="text-sm font-bold text-slate-400 mb-4 flex items-center gap-2">
+                <span class="w-1.5 h-1.5 bg-blue-500 rounded-full"></span> 按適用科別篩選
+            </h2>
+            <div id="filter-container" class="flex flex-wrap gap-2">
+                <button onclick="applyFilter('全部', this)" class="filter-btn active px-5 py-2 rounded-full border text-sm font-medium transition-all">全部產品</button>
+                </div>
+        </section>
+
+        <div id="product-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            </div>
+    </main>
+
+    <script>
+        // 從您的 Excel 完整導入的資料
+        const products = [
+            { id: "HEA-0001", name: "維生素D3液劑", dept: "婦產科、小兒科、骨科、家醫科", effect: "增進鈣吸收，幫助骨骼與牙齒發育", price: 1200, spec: "30 毫升/瓶", usage: "每日 0.2-0.3 毫升", origin: "西班牙", note: "開封後6個月內食完" },
+            { id: "HEA-0012", name: "寶乖亞D-PLUS", dept: "小兒科、新生兒科", effect: "益生菌維持腸道健康、免疫力", price: 1650, spec: "10 毫升/瓶", usage: "每日 5 滴", origin: "瑞典", note: "水溫不可超過 50℃" },
+            { id: "HEA-0014", name: "鎂溶易400MG", dept: "神經內科、腸胃科、復健科、婦產科", effect: "幫助入睡、助排便、維持肌肉正常功能", price: 850, spec: "20 包/盒", usage: "每日 1 包，直接倒入口中", origin: "奧地利", note: "苯酮尿症患者不宜" },
+            { id: "HEA-0007", name: "淨舒逸甘露醣", dept: "泌尿科、婦產科", effect: "泌尿道保健、私密處護理", price: 1100, spec: "30 包/盒", usage: "每日 1-3 包", origin: "台灣", note: "需搭配足量水分" },
+            { id: "HEA-0013", name: "沛特補高濃度魚油", dept: "心臟內科、神經內科、家醫科", effect: "循環健康、調整體質", price: 1500, spec: "60 粒/盒", usage: "每次 2 粒", origin: "台灣", note: "含魚類製品，開封後盡快食完" }
+        ];
+
+        let currentSize = 16;
+
+        function init() {
+            renderCards(products);
+            genFilterBtns();
+        }
+
+        // 產生科別按鈕
+        function genFilterBtns() {
+            const depts = [];
+            products.forEach(p => {
+                p.dept.split('、').forEach(d => {
+                    if(!depts.includes(d)) depts.push(d);
+                });
+            });
+
+            const container = document.getElementById('filter-container');
+            depts.forEach(d => {
+                const btn = document.createElement('button');
+                btn.className = "filter-btn bg-white border border-slate-200 px-5 py-2 rounded-full text-sm font-medium text-slate-600 hover:border-blue-300 transition-all";
+                btn.innerText = d;
+                btn.onclick = (e) => applyFilter(d, e.target);
+                container.appendChild(btn);
+            });
+        }
+
+        // 渲染卡片
+        function renderCards(list) {
+            const grid = document.getElementById('product-grid');
+            grid.innerHTML = list.map(p => `
+                <div class="bg-white rounded-[2rem] overflow-hidden shadow-sm border border-slate-100 flex flex-col hover:shadow-xl hover:scale-[1.02] transition-all duration-300">
+                    <div class="product-img-box">
+                        <img src="./images/${p.id}.jpg" alt="${p.name}" onerror="this.src='https://via.placeholder.com/400x300?text=圖片整理中'">
+                    </div>
+                    <div class="p-6 flex flex-col flex-grow">
+                        <div class="flex justify-between items-start mb-3">
+                            <span class="text-[10px] font-bold tracking-widest text-blue-500 bg-blue-50 px-2 py-1 rounded-lg">${p.id}</span>
+                            <span class="text-xs text-slate-400 font-medium">${p.spec}</span>
+                        </div>
+                        <h3 class="text-xl font-black text-slate-800 mb-2">${p.name}</h3>
+                        <p class="text-xs font-bold text-blue-600 mb-4 italic">🏥 ${p.dept}</p>
+                        
+                        <div class="space-y-3 mb-6 flex-grow">
+                            <div class="flex gap-2">
+                                <span class="text-xs bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded h-fit whitespace-nowrap">功效</span>
+                                <p class="text-sm text-slate-600 leading-relaxed">${p.effect}</p>
+                            </div>
+                            <div class="flex gap-2">
+                                <span class="text-xs bg-amber-50 text-amber-600 px-2 py-0.5 rounded h-fit whitespace-nowrap">用法</span>
+                                <p class="text-sm text-slate-500">${p.usage}</p>
+                            </div>
+                        </div>
+
+                        <div class="pt-4 border-t border-slate-50 flex justify-between items-end">
+                            <div>
+                                <p class="text-[10px] font-bold text-slate-300 uppercase">建議售價</p>
+                                <p class="text-2xl font-black text-slate-900">$${p.price}</p>
+                            </div>
+                            <div class="text-[10px] text-slate-400 text-right">
+                                原產地<br><span class="text-slate-600 font-bold">${p.origin}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 篩選邏輯
+        function applyFilter(dept, btn) {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            if (dept === '全部') {
+                renderCards(products);
+            } else {
+                const filtered = products.filter(p => p.dept.includes(dept));
+                renderCards(filtered);
+            }
+        }
+
+        // 字體調整
+        function adjustFont(delta) {
+            currentSize += delta;
+            if(currentSize < 12) currentSize = 12;
+            if(currentSize > 24) currentSize = 24;
+            document.getElementById('readable-content').style.fontSize = currentSize + 'px';
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
