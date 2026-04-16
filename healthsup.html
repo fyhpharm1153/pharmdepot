@@ -9,17 +9,19 @@
     <style>
         :root { --base-font-size: 16px; }
         html { font-size: var(--base-font-size); }
-        body { font-family: 'Noto Sans TC', sans-serif; background: #f1f5f9; transition: font-size 0.2s; padding-bottom: 80px; }
+        body { font-family: 'Noto Sans TC', sans-serif; background: #f1f5f9; transition: font-size 0.2s; padding-bottom: 100px; }
         .bento-card { background: white; border-radius: 1.5rem; border: 1px solid #e2e8f0; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); height: 100%; display: flex; flex-direction: column; position: relative; }
         .bento-card:hover { transform: translateY(-5px); box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1); border-color: #3b82f6; }
         .glass-nav { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(226, 232, 240, 0.8); }
         .staff-only { color: #dc2626; display: none; }
-        .tag-pill { font-size: 0.8rem; padding: 2px 10px; border-radius: 999px; background: #eff6ff; color: #1d4ed8; font-weight: 700; margin-right: 4px; margin-bottom: 4px; display: inline-block; cursor: pointer; transition: 0.2s; }
-        .tag-pill.active { background: #1d4ed8; color: white; }
+        .tag-pill { font-size: 0.75rem; padding: 2px 10px; border-radius: 999px; background: #eff6ff; color: #1d4ed8; font-weight: 700; margin-right: 4px; margin-bottom: 4px; display: inline-block; cursor: pointer; transition: 0.2s; border: 1px solid transparent; }
+        .tag-pill.active { background: #1d4ed8; color: white; border-color: #1d4ed8; }
+        .card-tag { font-size: 0.7rem; padding: 1px 8px; border-radius: 4px; background: #f1f5f9; color: #64748b; font-weight: 700; margin-right: 4px; margin-bottom: 4px; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        .add-cart-btn { position: absolute; top: 1rem; right: 1rem; z-index: 10; background: white; border: 1px solid #e2e8f0; padding: 0.5rem; border-radius: 12px; transition: 0.2s; }
+        .add-cart-btn { position: absolute; top: 1rem; right: 1rem; z-index: 10; background: white; border: 1px solid #e2e8f0; padding: 0.4rem 0.8rem; border-radius: 10px; font-size: 0.75rem; font-weight: bold; transition: 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .add-cart-btn.added { background: #3b82f6; color: white; border-color: #3b82f6; }
         .cart-float { position: fixed; bottom: 2rem; right: 2rem; z-index: 50; }
+        .modal-body img { max-width: 100%; height: auto; }
     </style>
 </head>
 <body class="text-slate-800">
@@ -39,9 +41,9 @@
     </nav>
 
     <main class="max-w-7xl mx-auto p-4 md:p-8">
-        <div class="mb-10 space-y-4">
+        <div class="mb-8 space-y-4">
             <div class="relative">
-                <input type="text" id="searchInput" oninput="filterData()" placeholder="搜尋產品名稱、症狀、對象 (如：幫助入睡)..." 
+                <input type="text" id="searchInput" oninput="filterData()" placeholder="搜尋產品名稱、關鍵字、症狀..." 
                        class="w-full p-5 pl-14 rounded-2xl border-2 border-white bg-white shadow-xl focus:border-blue-500 focus:outline-none text-lg transition-all">
                 <span class="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400">🔍</span>
             </div>
@@ -49,15 +51,15 @@
             <div id="categoryFilter" class="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
                 </div>
 
-            <div class="bg-white/50 p-4 rounded-2xl border border-white">
-                <p class="text-xs font-bold text-slate-400 mb-3 uppercase tracking-widest">篩選標籤 (可複選)</p>
+            <div class="bg-white/60 p-5 rounded-2xl border border-white shadow-sm">
+                <p class="text-[10px] font-black text-slate-400 mb-3 uppercase tracking-[0.2em]">次分類篩選 (可複選標籤)</p>
                 <div id="tagCloud" class="flex flex-wrap gap-1">
                     </div>
             </div>
         </div>
 
         <div id="productGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            <div class="col-span-full text-center py-20 font-bold text-slate-400 animate-pulse">正在同步資料庫...</div>
+            <div class="col-span-full text-center py-20 font-bold text-slate-400 animate-pulse">正在同步雲端資料庫...</div>
         </div>
     </main>
 
@@ -70,13 +72,14 @@
 
     <div id="modal" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closeModal()"></div>
-        <div id="modalWindow" class="bg-white w-full max-w-5xl max-h-[90vh] rounded-[2rem] relative z-10 overflow-y-auto shadow-2xl">
-            <button onclick="closeModal()" class="absolute right-6 top-6 z-20 bg-slate-100 hover:bg-slate-200 p-2 rounded-full font-bold">✕</button>
+        <div id="modalWindow" class="bg-white w-full max-w-5xl max-h-[90vh] rounded-[2.5rem] relative z-10 overflow-y-auto shadow-2xl">
+            <button onclick="closeModal()" class="absolute right-6 top-6 z-20 bg-slate-100 hover:bg-slate-200 w-10 h-10 rounded-full font-bold flex items-center justify-center">✕</button>
             <div id="modalContent" class="p-6 md:p-12"></div>
         </div>
     </div>
 
     <script>
+        // --- 設定區 ---
         const GOOGLE_SHEET_API = "https://script.google.com/macros/s/AKfycby9FT_rCftaktAW_JIF2wzEbrsRXo6aHvJKvpnp3RM5iR3D8xUQRSRgWmkloivVbFEG/exec"; 
         const IMAGE_PREFIX = "https://drive.google.com/thumbnail?id=";
         const IMAGE_SUFFIX = "&sz=w1000"; 
@@ -88,6 +91,7 @@
         let activeTags = new Set();
         let cart = new Set();
 
+        // 1. 初始化與抓取
         async function fetchData() {
             try {
                 const response = await fetch(GOOGLE_SHEET_API);
@@ -96,27 +100,33 @@
                 renderTags();
                 renderProducts(allProducts);
             } catch (e) {
-                document.getElementById('productGrid').innerHTML = "資料載入失敗。";
+                document.getElementById('productGrid').innerHTML = "資料同步失敗，請檢查網路或 API 設定。";
             }
         }
 
+        // 2. 渲染產品卡片
         function renderProducts(data) {
             const grid = document.getElementById('productGrid');
             grid.innerHTML = data.map(p => {
-                const imgUrl = p.圖片ID ? `${IMAGE_PREFIX}${p.圖片ID}${IMAGE_SUFFIX}` : 'https://via.placeholder.com/400';
+                const imgUrl = p.圖片ID ? `${IMAGE_PREFIX}${p.圖片ID}${IMAGE_SUFFIX}` : 'https://via.placeholder.com/400?text=No+Image';
                 const isAdded = cart.has(p.代碼);
+                
+                // 處理卡片標籤顯示 (取前三個)
+                const tagsHtml = p.標籤 ? p.標籤.split(',').slice(0, 3).map(t => `<span class="card-tag">${t.trim()}</span>`).join('') : '';
+
                 return `
                 <div class="bento-card p-5">
                     <button onclick="toggleCart('${p.代碼}')" class="add-cart-btn ${isAdded ? 'added' : ''}" id="btn-${p.代碼}">
-                        ${isAdded ? '已加入' : '＋加入清單'}
+                        ${isAdded ? '已在清單' : '＋加入清單'}
                     </button>
                     <div onclick="showDetail('${p.代碼}')" class="cursor-pointer flex flex-col h-full">
+                        <div class="flex flex-wrap mb-2 min-h-[24px]">${tagsHtml}</div>
                         <div class="aspect-square bg-slate-50 rounded-2xl mb-5 overflow-hidden flex items-center justify-center p-4">
-                            <img src="${imgUrl}" class="max-h-full transition-transform hover:scale-110">
+                            <img src="${imgUrl}" class="max-h-full transition-transform hover:scale-110 duration-500">
                         </div>
                         <div class="flex-grow">
-                            <h3 class="text-xl font-black text-slate-900 mb-2">${p.名稱}</h3>
-                            <p class="text-sm text-slate-500 line-clamp-2 mb-4">${p.主要保健效果 || ''}</p>
+                            <h3 class="text-xl font-black text-slate-900 mb-2 leading-tight">${p.名稱}</h3>
+                            <p class="text-sm text-slate-500 line-clamp-2 mb-4 font-medium">${p.主要保健效果 || ''}</p>
                         </div>
                         <div class="mt-auto pt-4 border-t border-slate-100 flex justify-between items-end">
                             <div>
@@ -133,7 +143,7 @@
             `}).join('');
         }
 
-        // 標籤篩選邏輯
+        // 3. 篩選系統
         function toggleTag(tag) {
             if (activeTags.has(tag)) activeTags.delete(tag);
             else activeTags.add(tag);
@@ -144,19 +154,16 @@
         function filterData() {
             const query = document.getElementById('searchInput').value.toLowerCase();
             const filtered = allProducts.filter(p => {
-                const matchQuery = !query || p.名稱.toLowerCase().includes(query) || (p.關鍵字 && p.關鍵字.toLowerCase().includes(query));
+                const matchQuery = !query || p.名稱.toLowerCase().includes(query) || (p.關鍵字 && p.關鍵字.toLowerCase().includes(query)) || (p.適合對象 && p.適合對象.toLowerCase().includes(query));
                 const matchCat = activeCategory === '全部' || p.大分類 === activeCategory;
-                const matchTags = activeTags.size === 0 || [...activeTags].every(t => p.標籤 && p.標籤.includes(t));
+                
+                // 複選標籤邏輯
+                const pTags = p.標籤 ? p.標籤.split(',').map(s => s.trim()) : [];
+                const matchTags = activeTags.size === 0 || [...activeTags].every(t => pTags.includes(t));
+                
                 return matchQuery && matchCat && matchTags;
             });
             renderProducts(filtered);
-        }
-
-        function renderCategories() {
-            const cats = ['全部', ...new Set(allProducts.map(p => p.大分類).filter(Boolean))];
-            document.getElementById('categoryFilter').innerHTML = cats.map(c => 
-                `<button onclick="setCategory('${c}')" class="cat-btn ${c === activeCategory ? 'active bg-blue-600 text-white' : 'bg-white text-slate-600'} px-6 py-2 rounded-full border border-slate-200 font-bold whitespace-nowrap">${c}</button>`
-            ).join('');
         }
 
         function setCategory(cat) {
@@ -165,123 +172,163 @@
             filterData();
         }
 
+        function renderCategories() {
+            const cats = ['全部', ...new Set(allProducts.map(p => p.大分類).filter(Boolean))];
+            document.getElementById('categoryFilter').innerHTML = cats.map(c => 
+                `<button onclick="setCategory('${c}')" class="cat-btn ${c === activeCategory ? 'active bg-blue-600 text-white shadow-md shadow-blue-200' : 'bg-white text-slate-600'} px-6 py-2 rounded-full border border-slate-200 font-bold transition-all whitespace-nowrap">${c === '全部' ? '全部品項' : c}</button>`
+            ).join('');
+        }
+
         function renderTags() {
-            const allTags = [...new Set(allProducts.flatMap(p => p.標籤 ? p.標籤.split(',') : []))].filter(Boolean);
-            document.getElementById('tagCloud').innerHTML = allTags.map(t => 
+            // 從「標籤」欄位自動生成
+            const tags = [...new Set(allProducts.flatMap(p => p.標籤 ? p.標籤.split(',').map(s => s.trim()) : []))].filter(Boolean);
+            document.getElementById('tagCloud').innerHTML = tags.map(t => 
                 `<span onclick="toggleTag('${t}')" class="tag-pill ${activeTags.has(t) ? 'active' : ''}">${t}</span>`
             ).join('');
         }
 
-        // 清單控制
+        // 4. 清單(購物車)功能
         function toggleCart(id) {
             const btn = document.getElementById(`btn-${id}`);
             if (cart.has(id)) {
                 cart.delete(id);
-                btn.classList.remove('added');
-                btn.innerText = '＋加入清單';
+                if(btn) { btn.classList.remove('added'); btn.innerText = '＋加入清單'; }
             } else {
                 cart.add(id);
-                btn.classList.add('added');
-                btn.innerText = '已加入';
+                if(btn) { btn.classList.add('added'); btn.innerText = '已在清單'; }
             }
             document.getElementById('cartCount').innerText = cart.size;
         }
 
         function toggleCartModal() {
-            if (cart.size === 0) { alert("清單是空的喔！請先點擊產品右上角的「＋加入清單」"); return; }
+            if (cart.size === 0) { alert("清單目前是空的，請先加入產品！"); return; }
             const items = allProducts.filter(p => cart.has(p.代碼));
             const content = `
-                <h2 class="text-3xl font-black mb-8 text-slate-900 flex items-center gap-3">📋 產品比較與諮詢清單</h2>
+                <div class="flex justify-between items-center mb-8">
+                    <h2 class="text-3xl font-black text-slate-900">📋 產品比較清單</h2>
+                    <button onclick="cart.clear(); document.getElementById('cartCount').innerText=0; filterData(); closeModal();" class="text-red-500 font-bold text-sm">全部清空</button>
+                </div>
                 <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse">
+                    <table class="w-full text-left border-collapse min-w-[600px]">
                         <thead>
-                            <tr class="bg-slate-50 text-slate-400 text-xs uppercase tracking-widest border-b">
-                                <th class="p-4">產品資訊</th>
-                                <th class="p-4">民眾價格</th>
-                                <th class="p-4">主要成分</th>
-                                <th class="p-4">操作</th>
+                            <tr class="bg-slate-50 text-slate-400 text-[10px] uppercase tracking-widest border-b">
+                                <th class="p-4">產品代碼 / 名稱</th>
+                                <th class="p-4">民眾價</th>
+                                <th class="p-4">主要成分對照</th>
+                                <th class="p-4 text-center">操作</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y">
                             ${items.map(p => `
                                 <tr>
                                     <td class="p-4">
-                                        <div class="font-black text-slate-900">${p.名稱}</div>
-                                        <div class="text-[10px] text-blue-500 font-bold">${p.代碼}</div>
+                                        <div class="text-xs font-black text-blue-500">${p.代碼}</div>
+                                        <div class="font-black text-slate-900 text-lg">${p.名稱}</div>
                                     </td>
                                     <td class="p-4 font-black text-blue-600">$${p.民眾價}</td>
-                                    <td class="p-4 text-xs text-slate-500 leading-relaxed">${p.主要成分}</td>
-                                    <td class="p-4">
-                                        <button onclick="toggleCart('${p.代碼}'); toggleCartModal();" class="text-red-400 font-bold text-xs hover:text-red-600">移除</button>
+                                    <td class="p-4 text-xs text-slate-500 leading-relaxed max-w-xs">${p.主要成分}</td>
+                                    <td class="p-4 text-center">
+                                        <button onclick="toggleCart('${p.代碼}'); toggleCartModal();" class="bg-red-50 text-red-500 w-8 h-8 rounded-full font-bold">✕</button>
                                     </td>
                                 </tr>
                             `).join('')}
                         </tbody>
                     </table>
                 </div>
-                <div class="mt-10 flex gap-4">
-                    <button onclick="window.print()" class="bg-slate-900 text-white px-8 py-3 rounded-xl font-bold">列印/存為PDF</button>
-                    <button onclick="cart.clear(); document.getElementById('cartCount').innerText=0; filterData(); closeModal();" class="text-slate-400 font-bold">清空清單</button>
+                <div class="mt-10 p-6 bg-slate-50 rounded-3xl flex flex-col md:flex-row justify-between items-center gap-4">
+                    <p class="text-slate-500 text-sm font-medium">您可以點擊下方按鈕將清單列印或存為 PDF 提供給病人。</p>
+                    <button onclick="window.print()" class="bg-slate-900 text-white px-10 py-4 rounded-2xl font-black shadow-xl hover:bg-slate-800 transition-all">列印比較表</button>
                 </div>
             `;
             document.getElementById('modalContent').innerHTML = content;
             document.getElementById('modal').classList.remove('hidden');
         }
 
-        // 詳細資訊
+        // 5. 詳細資料
         function showDetail(id) {
             const p = allProducts.find(x => x.代碼 === id);
             const imgUrl = p.圖片ID ? `${IMAGE_PREFIX}${p.圖片ID}${IMAGE_SUFFIX}` : 'https://via.placeholder.com/600';
             const content = `
                 <div class="flex flex-col lg:flex-row gap-12">
                     <div class="lg:w-2/5">
-                        <img src="${imgUrl}" class="w-full bg-slate-50 rounded-[2rem] p-8">
-                        <div class="mt-8 grid grid-cols-2 gap-4">
-                            <div class="p-5 bg-blue-50 rounded-2xl border-2 border-blue-100">
-                                <p class="text-xs font-black text-blue-400 uppercase mb-1">民眾價</p>
-                                <p class="text-3xl font-black text-blue-600">$${p.民眾價}</p>
+                        <div class="sticky top-0">
+                            <div class="bg-slate-50 rounded-[2.5rem] p-10 aspect-square flex items-center justify-center">
+                                <img src="${imgUrl}" class="max-h-full">
                             </div>
-                            <div class="staff-only p-5 bg-red-50 rounded-2xl border-2 border-red-100 ${isStaff ? '!block' : ''}">
-                                <p class="text-xs font-black text-red-400 uppercase mb-1">員眷價</p>
-                                <p class="text-3xl font-black text-red-600">$${p.員眷價}</p>
+                            <div class="grid grid-cols-2 gap-4 mt-6">
+                                <div class="p-5 bg-blue-50 rounded-3xl border border-blue-100 text-center">
+                                    <p class="text-[10px] font-black text-blue-400 uppercase mb-1">民眾價</p>
+                                    <p class="text-3xl font-black text-blue-600">$${p.民眾價}</p>
+                                </div>
+                                <div class="staff-only p-5 bg-red-50 rounded-3xl border border-red-100 text-center ${isStaff ? '!block' : ''}">
+                                    <p class="text-[10px] font-black text-red-400 uppercase mb-1">員眷價</p>
+                                    <p class="text-3xl font-black text-red-600">$${p.員眷價}</p>
+                                </div>
                             </div>
                         </div>
                     </div>
                     <div class="lg:w-3/5 space-y-8">
-                        <h2 class="text-4xl font-black text-slate-900">${p.名稱}</h2>
-                        <div class="p-6 bg-slate-900 rounded-3xl text-white">
-                            <p class="text-xs font-bold text-slate-400 mb-2">主要保健效果</p>
-                            <p class="text-xl font-bold">${p.主要保健效果}</p>
+                        <div>
+                            <span class="text-blue-500 font-black tracking-widest text-xs uppercase">${p.大分類}</span>
+                            <h2 class="text-4xl md:text-5xl font-black text-slate-900 mt-2 mb-4 leading-tight">${p.名稱}</h2>
+                            <div class="flex flex-wrap gap-2">${p.標籤 ? p.標籤.split(',').map(t=>`<span class="tag-pill !text-xs">${t.trim()}</span>`).join('') : ''}</div>
                         </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+
+                        <div class="p-8 bg-blue-600 rounded-[2rem] text-white shadow-xl shadow-blue-100">
+                            <p class="text-xs font-bold text-blue-200 mb-2">主要保健效果</p>
+                            <p class="text-2xl font-bold leading-relaxed">${p.主要保健效果}</p>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                             <div class="space-y-4">
-                                <div><p class="font-black text-slate-400 uppercase text-xs">主要成分</p><p class="font-bold">${p.主要成分}</p></div>
-                                <div><p class="font-black text-slate-400 uppercase text-xs">食用方法</p><p class="font-bold">${p.食用方法}</p></div>
+                                <div class="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                                    <p class="text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">主要成分</p>
+                                    <p class="font-bold text-slate-700 leading-relaxed">${p.主要成分}</p>
+                                </div>
+                                <div class="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                                    <p class="text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">食用方法</p>
+                                    <p class="font-bold text-slate-700 leading-relaxed">${p.食用方法}</p>
+                                </div>
                             </div>
                             <div class="space-y-4">
-                                <div><p class="font-black text-slate-400 uppercase text-xs">注意事項</p><p class="text-red-600 font-bold">${p.注意事項}</p></div>
-                                <div><p class="font-black text-slate-400 uppercase text-xs">適合對象</p><p class="font-bold">${p.適合對象}</p></div>
+                                <div class="p-4 bg-red-50 rounded-2xl border border-red-100">
+                                    <p class="text-[10px] font-black text-red-400 uppercase mb-2 tracking-widest">⚠ 注意事項</p>
+                                    <p class="font-bold text-red-700 leading-relaxed">${p.注意事項}</p>
+                                </div>
+                                <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                                    <p class="text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">適合對象</p>
+                                    <p class="font-bold text-slate-600">${p.適合對象}</p>
+                                </div>
                             </div>
+                        </div>
+
+                        <div class="pt-8 border-t border-slate-100 flex flex-wrap gap-x-12 gap-y-4 text-sm font-bold text-slate-400 uppercase tracking-widest">
+                            <div>產地：<span class="text-slate-900 ml-2">${p.原產地}</span></div>
+                            <div>規格：<span class="text-slate-900 ml-2">${p.內容包裝規格}</span></div>
                         </div>
                     </div>
                 </div>
             `;
             document.getElementById('modalContent').innerHTML = content;
             document.getElementById('modal').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
         }
 
-        function closeModal() { document.getElementById('modal').classList.add('hidden'); }
-        function staffLogin() {
-            const pw = prompt("員工密碼：");
-            if (pw === "25271180") {
-                isStaff = true;
-                alert("員工模式已開啟");
-                filterData();
-            }
-        }
+        // 6. 工具功能
+        function closeModal() { document.getElementById('modal').classList.add('hidden'); document.body.style.overflow = 'auto'; }
         function adjustFont(delta) {
             currentFontSize = Math.min(Math.max(currentFontSize + delta, 12), 32);
             document.documentElement.style.setProperty('--base-font-size', currentFontSize + 'px');
+        }
+        function staffLogin() {
+            const pw = prompt("請輸入員工專屬授權碼：");
+            if (pw === "25271180") {
+                isStaff = true;
+                alert("員工認證成功，已解鎖員眷價格。");
+                document.getElementById('staffBtn').innerHTML = "🔓";
+                document.getElementById('staffBtn').classList.add('bg-red-500', '!text-white');
+                filterData();
+            }
         }
 
         window.onload = fetchData;
