@@ -21,7 +21,6 @@
         .add-cart-btn.added { background: #1e293b; color: white; }
         .cart-float { position: fixed; bottom: 2rem; right: 2rem; z-index: 50; }
 
-        /* 列印專用 (A4 橫向) */
         @media print {
             @page { size: A4 landscape; margin: 10mm; }
             body { background: white !important; }
@@ -70,7 +69,7 @@
 
     <div id="modal" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4 no-print">
         <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closeModal()"></div>
-        <div id="modalWindow" class="bg-white w-full max-w-6xl max-h-[90vh] rounded-[2.5rem] relative z-10 overflow-y-auto p-6 md:p-10">
+        <div id="modalWindow" class="bg-white w-full max-w-4xl max-h-[90vh] rounded-[2.5rem] relative z-10 overflow-y-auto p-6 md:p-10">
             <div id="modalContent"></div>
         </div>
     </div>
@@ -118,7 +117,6 @@
             }).join('');
         }
 
-        // 篩選邏輯
         function toggleSubCat(tag) { activeSubCat = (activeSubCat === tag) ? null : tag; renderSubCategories(); filterData(); }
         function filterData() {
             const query = document.getElementById('searchInput').value.toLowerCase();
@@ -143,10 +141,9 @@
                 `<span onclick="toggleSubCat('${t}')" class="subcat-pill ${activeSubCat === t ? 'active' : ''}">${t}</span>`).join('');
         }
 
-        // 清單功能
         function toggleCart(id) { if (cart.has(id)) cart.delete(id); else cart.add(id); document.getElementById('cartCount').innerText = cart.size; filterData(); }
 
-        // 🚀 修改：診間 LINE 相容列印邏輯
+        // 🚀 修改：產生對照表 (新分頁內容，價格欄包含民眾藍與員眷紅)
         function generatePrintView() {
             const items = allProducts.filter(p => cart.has(p.代碼));
             const mainApp = document.getElementById('mainApp');
@@ -155,7 +152,10 @@
             const tableRows = items.map(p => `
                 <tr>
                     <td style="border:1px solid #000; padding:8px;"><b>${p.代碼}</b><br>${p.名稱}</td>
-                    <td style="border:1px solid #000; padding:8px; font-weight:bold; color:#2563eb;">$${p.民眾價}</td>
+                    <td style="border:1px solid #000; padding:8px; text-align:center;">
+                        <div style="color:#2563eb; font-weight:bold; margin-bottom:4px;">$${p.民眾價}</div>
+                        <div style="color:#dc2626; font-weight:bold;">$${p.員眷價}</div>
+                    </td>
                     <td style="border:1px solid #000; padding:8px; font-size:12px;">${p.主要成分 || ''}</td>
                     <td style="border:1px solid #000; padding:8px; font-size:12px;">${p.食用方法 || ''}</td>
                     <td style="border:1px solid #000; padding:8px; font-size:12px;">${p.適合對象 || ''}</td>
@@ -164,14 +164,15 @@
             `).join('');
 
             printArea.innerHTML = `
-                <div class="no-print mb-8 flex justify-between">
-                    <button onclick="closePrintView()" class="bg-slate-500 text-white px-6 py-2 rounded-xl font-bold">← 返回目錄</button>
-                    <button onclick="window.print()" class="bg-blue-600 text-white px-6 py-2 rounded-xl font-bold">點我列印 / 存為 PDF</button>
+                <div class="no-print mb-8 flex justify-between items-center">
+                    <button onclick="closePrintView()" class="bg-slate-500 text-white px-8 py-3 rounded-xl font-bold">← 返回目錄</button>
+                    <div class="text-sm text-slate-400 font-bold">價格說明：<span style="color:#2563eb">藍字民眾價</span> / <span style="color:#dc2626">紅字員眷價</span></div>
+                    <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold">列印 / 存為 PDF</button>
                 </div>
-                <h1 class="text-2xl font-black text-center mb-6">營養補充品對照表</h1>
+                <h1 class="text-2xl font-black text-center mb-6">營養補充品產品比較對照表</h1>
                 <table class="w-full border-collapse" style="border:1px solid #000">
-                    <thead class="bg-slate-100">
-                        <tr><th>名稱</th><th>價錢</th><th>成分</th><th>用法</th><th>對象</th><th>規格</th></tr>
+                    <thead style="background:#f8fafc">
+                        <tr><th>名稱/代碼</th><th>價格 (民眾/員眷)</th><th>成分</th><th>用法</th><th>對象</th><th>規格</th></tr>
                     </thead>
                     <tbody>${tableRows}</tbody>
                 </table>
@@ -188,30 +189,33 @@
             document.getElementById('printArea').classList.add('hidden');
         }
 
+        // 🚀 修改：比較清單彈窗 (第一次跳出只呈現名稱與代碼)
         function toggleCartModal() {
             if (cart.size === 0) { alert("清單是空的"); return; }
             const items = allProducts.filter(p => cart.has(p.代碼));
             document.getElementById('modalContent').innerHTML = `
                 <div class="flex justify-between items-center mb-8">
-                    <h2 class="text-3xl font-black">📋 比較清單</h2>
+                    <h2 class="text-3xl font-black text-slate-900">📋 已選擇品項</h2>
                     <button onclick="cart.clear(); document.getElementById('cartCount').innerText=0; filterData(); closeModal();" class="text-red-500 font-bold">清空</button>
                 </div>
-                <div class="overflow-x-auto mb-8">
-                    <table class="w-full text-left border-collapse min-w-[800px]">
-                        <thead class="bg-slate-50 text-[10px] uppercase border-b">
-                            <tr><th class="p-4">名稱</th><th class="p-4">價格</th><th class="p-4">規格</th><th class="p-4">移除</th></tr>
+                <div class="max-h-[50vh] overflow-y-auto mb-8 pr-2">
+                    <table class="w-full text-left border-collapse">
+                        <thead class="bg-slate-50 text-[10px] uppercase border-b sticky top-0">
+                            <tr><th class="p-4">產品代碼</th><th class="p-4">產品名稱</th><th class="p-4 text-center">移除</th></tr>
                         </thead>
-                        <tbody>${items.map(p => `
-                            <tr class="border-b">
-                                <td class="p-4"><b>${p.代碼}</b><br>${p.名稱}</td>
-                                <td class="p-4 text-blue-600 font-bold">$${p.民眾價}</td>
-                                <td class="p-4 text-xs text-slate-500">${p.內容包裝規格}</td>
-                                <td class="p-4"><button onclick="toggleCart('${p.代碼}'); toggleCartModal();" class="text-red-400 text-xl">✕</button></td>
-                            </tr>`).join('')}
+                        <tbody class="divide-y bg-white">
+                            ${items.map(p => `
+                                <tr>
+                                    <td class="p-4 font-mono text-blue-500 font-bold">${p.代碼}</td>
+                                    <td class="p-4 font-bold text-slate-800">${p.名稱}</td>
+                                    <td class="p-4 text-center"><button onclick="toggleCart('${p.代碼}'); toggleCartModal();" class="text-red-400 text-2xl">✕</button></td>
+                                </tr>`).join('')}
                         </tbody>
                     </table>
                 </div>
-                <button onclick="generatePrintView()" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-black shadow-lg">產生 A4 橫向對照表</button>
+                <button onclick="generatePrintView()" class="w-full bg-slate-900 text-white py-5 rounded-3xl font-black shadow-xl hover:scale-[1.02] transition-transform">
+                    產生詳細對照表 (進入比較模式)
+                </button>
             `;
             document.getElementById('modal').classList.remove('hidden');
         }
