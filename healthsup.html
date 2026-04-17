@@ -13,7 +13,7 @@
         .bento-card { background: white; border-radius: 1.5rem; border: 1px solid #e2e8f0; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); height: 100%; display: flex; flex-direction: column; position: relative; }
         .bento-card:hover { transform: translateY(-5px); box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1); border-color: #3b82f6; }
         .glass-nav { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(226, 232, 240, 0.8); }
-        .staff-only { color: #dc2626; display: none; }
+        .staff-price { color: #dc2626; font-weight: 900; }
         .subcat-pill { font-size: 0.75rem; padding: 4px 12px; border-radius: 999px; background: white; color: #64748b; font-weight: 700; cursor: pointer; transition: 0.2s; border: 1px solid #e2e8f0; }
         .subcat-pill.active { background: #3b82f6; color: white; border-color: #3b82f6; box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3); }
         .card-label { font-size: 0.7rem; padding: 1px 8px; border-radius: 4px; background: #eff6ff; color: #1d4ed8; font-weight: 700; margin-right: 4px; margin-bottom: 4px; }
@@ -34,7 +34,6 @@
             <div class="flex items-center gap-2">
                 <button onclick="adjustFont(2)" class="w-10 h-10 flex items-center justify-center bg-white border border-slate-200 rounded-xl shadow-sm hover:bg-slate-50 font-bold text-lg">A+</button>
                 <button onclick="adjustFont(-2)" class="w-10 h-10 flex items-center justify-center bg-white border border-slate-200 rounded-xl shadow-sm hover:bg-slate-50 font-bold text-lg">A-</button>
-                <button onclick="staffLogin()" id="staffBtn" class="w-10 h-10 flex items-center justify-center bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition-all ml-2">👤</button>
             </div>
         </div>
     </nav>
@@ -42,7 +41,7 @@
     <main class="max-w-7xl mx-auto p-4 md:p-8">
         <div class="mb-8 space-y-4">
             <div class="relative">
-                <input type="text" id="searchInput" oninput="filterData()" placeholder="搜尋名稱、關鍵字、對象..." 
+                <input type="text" id="searchInput" oninput="filterData()" placeholder="搜尋名稱、代碼、關鍵字..." 
                        class="w-full p-5 pl-14 rounded-2xl border-2 border-white bg-white shadow-xl focus:border-blue-500 focus:outline-none text-lg transition-all">
                 <span class="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400">🔍</span>
             </div>
@@ -50,7 +49,7 @@
             <div id="categoryFilter" class="flex gap-2 overflow-x-auto pb-2 no-scrollbar"></div>
 
             <div class="bg-white/60 p-5 rounded-2xl border border-white shadow-sm">
-                <p class="text-[10px] font-black text-slate-400 mb-3 uppercase tracking-[0.2em]">次分類篩選 (勾選任一即可顯示)</p>
+                <p class="text-[10px] font-black text-slate-400 mb-3 uppercase tracking-[0.2em]">次分類篩選 (單選標籤)</p>
                 <div id="subCategoryCloud" class="flex flex-wrap gap-2"></div>
             </div>
         </div>
@@ -81,10 +80,9 @@
         const IMAGE_SUFFIX = "&sz=w1000"; 
         
         let allProducts = [];
-        let isStaff = false;
         let currentFontSize = 16;
         let activeCategory = '全部';
-        let selectedSubCats = new Set();
+        let activeSubCat = null; // 改為單選儲存單一字串
         let cart = new Set();
 
         async function fetchData() {
@@ -121,10 +119,10 @@
                         </div>
                         <div class="mt-auto pt-4 border-t border-slate-100 flex justify-between items-end">
                             <div>
-                                <p class="text-[10px] font-black text-slate-400 uppercase">民眾價</p>
+                                <p class="text-[10px] font-black text-slate-400">民眾價</p>
                                 <p class="text-2xl font-black text-blue-600">$${p.民眾價 || ''}</p>
                             </div>
-                            <div class="staff-only text-right ${isStaff ? '!block' : ''}">
+                            <div class="text-right">
                                 <p class="text-[10px] font-black text-red-400 uppercase">員眷價</p>
                                 <p class="text-xl font-black text-red-600">$${p.員眷價 || ''}</p>
                             </div>
@@ -134,9 +132,13 @@
             }).join('');
         }
 
+        // --- 次分類單選邏輯 ---
         function toggleSubCat(tag) {
-            if (selectedSubCats.has(tag)) selectedSubCats.delete(tag);
-            else selectedSubCats.add(tag);
+            if (activeSubCat === tag) {
+                activeSubCat = null; // 再次點擊取消選取
+            } else {
+                activeSubCat = tag; // 選取新標籤
+            }
             renderSubCategories();
             filterData();
         }
@@ -144,13 +146,13 @@
         function filterData() {
             const query = document.getElementById('searchInput').value.toLowerCase();
             const filtered = allProducts.filter(p => {
-                const matchQuery = !query || p.名稱.toLowerCase().includes(query) || (p.關鍵字 && p.關鍵字.toLowerCase().includes(query));
+                const matchQuery = !query || p.名稱.toLowerCase().includes(query) || (p.關鍵字 && p.關鍵字.toLowerCase().includes(query)) || (p.代碼 && p.代碼.toLowerCase().includes(query));
                 const matchCat = activeCategory === '全部' || p.大分類 === activeCategory;
+                
+                // 次分類單選比對
                 const pSubCats = p.次分類 ? p.次分類.split(',').map(s => s.trim()) : [];
-                let matchSub = true;
-                if (selectedSubCats.size > 0) {
-                    matchSub = [...selectedSubCats].some(t => pSubCats.includes(t));
-                }
+                const matchSub = !activeSubCat || pSubCats.includes(activeSubCat);
+                
                 return matchQuery && matchCat && matchSub;
             });
             renderProducts(filtered);
@@ -159,7 +161,7 @@
         function renderSubCategories() {
             const tags = [...new Set(allProducts.flatMap(p => p.次分類 ? p.次分類.split(',').map(s => s.trim()) : []))].filter(Boolean);
             document.getElementById('subCategoryCloud').innerHTML = tags.map(t => 
-                `<span onclick="toggleSubCat('${t}')" class="subcat-pill ${selectedSubCats.has(t) ? 'active' : ''}">${t}</span>`).join('');
+                `<span onclick="toggleSubCat('${t}')" class="subcat-pill ${activeSubCat === t ? 'active' : ''}">${t}</span>`).join('');
         }
 
         function setCategory(cat) { activeCategory = cat; renderCategories(); filterData(); }
@@ -177,11 +179,16 @@
             filterData();
         }
 
-        // --- 核心更新：新分頁列印邏輯 ---
+        // --- 比較清單列印功能 (強化相容性) ---
         function openPrintTab() {
             const items = allProducts.filter(p => cart.has(p.代碼));
             const printWindow = window.open('', '_blank');
             
+            if (!printWindow) {
+                alert("開啟失敗！請檢查您的瀏覽器是否攔截了彈出視窗。\n如果是 LINE，請點擊右上角「...」並選擇「預設瀏覽器開啟」。");
+                return;
+            }
+
             let tableRows = items.map(p => `
                 <tr>
                     <td style="border:1px solid #000; padding:8px;"><b>${p.代碼}</b><br>${p.名稱}</td>
@@ -194,41 +201,18 @@
             `).join('');
 
             printWindow.document.write(`
-                <html>
-                <head>
-                    <title>產品比較表</title>
-                    <style>
-                        @page { size: A4 landscape; margin: 10mm; }
-                        body { font-family: sans-serif; padding: 20px; }
-                        table { width: 100%; border-collapse: collapse; }
-                        th { background: #f1f5f9; text-align: left; border: 1px solid #000; padding: 8px; font-size: 13px; }
-                        h1 { text-align: center; font-size: 20px; margin-bottom: 20px; }
-                        .no-print-btn { 
-                            display: block; width: 200px; margin: 0 auto 20px; padding: 10px; 
-                            background: #000; color: #fff; text-align: center; text-decoration: none; 
-                            border-radius: 5px; font-weight: bold;
-                        }
-                        @media print { .no-print-btn { display: none; } }
-                    </style>
-                </head>
-                <body>
-                    <h1>營養補充品 - 產品對照表</h1>
-                    <a href="javascript:window.print()" class="no-print-btn">點此列印 / 存為 PDF</a>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>產品名稱</th>
-                                <th>民眾價</th>
-                                <th>主要成分</th>
-                                <th>食用方法</th>
-                                <th>適合對象</th>
-                                <th>規格</th>
-                            </tr>
-                        </thead>
-                        <tbody>${tableRows}</tbody>
-                    </table>
-                </body>
-                </html>
+                <html><head><title>產品比較表</title><style>
+                    @page { size: A4 landscape; margin: 10mm; }
+                    body { font-family: sans-serif; padding: 20px; }
+                    table { width: 100%; border-collapse: collapse; }
+                    th { background: #f1f5f9; text-align: left; border: 1px solid #000; padding: 8px; font-size: 13px; }
+                    h1 { text-align: center; }
+                    .btn { display: block; width: 200px; margin: 0 auto 20px; padding: 10px; background: #000; color: #fff; text-align: center; border-radius: 5px; cursor: pointer; }
+                    @media print { .btn { display: none; } }
+                </style></head><body>
+                    <h1>產品對照表</h1><div class="btn" onclick="window.print()">點此列印 / 存為 PDF</div>
+                    <table><thead><tr><th>名稱</th><th>價錢</th><th>成分</th><th>用法</th><th>對象</th><th>規格</th></tr></thead>
+                    <tbody>${tableRows}</tbody></table></body></html>
             `);
             printWindow.document.close();
         }
@@ -238,40 +222,31 @@
             const items = allProducts.filter(p => cart.has(p.代碼));
             const content = `
                 <div class="flex justify-between items-center mb-8">
-                    <h2 class="text-3xl font-black text-slate-900">📋 產品比較清單</h2>
+                    <h2 class="text-3xl font-black text-slate-900">📋 比較清單</h2>
                     <button onclick="cart.clear(); document.getElementById('cartCount').innerText=0; filterData(); closeModal();" class="text-red-500 font-bold text-sm">全部清空</button>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-left border-collapse min-w-[1000px]">
                         <thead>
                             <tr class="bg-slate-100 text-slate-500 text-[10px] uppercase border-b">
-                                <th class="p-4 w-40">產品名稱</th>
-                                <th class="p-4 w-24">價格</th>
-                                <th class="p-4">主要成分</th>
-                                <th class="p-4">食用方法</th>
-                                <th class="p-4">適合對象</th>
-                                <th class="p-4 w-32">規格</th>
+                                <th class="p-4 w-40">名稱</th><th class="p-4 w-24">價格</th><th class="p-4">成分</th><th class="p-4">方法</th><th class="p-4">對象</th><th class="p-4 w-32">規格</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y bg-white">
                             ${items.map(p => `
                                 <tr>
-                                    <td class="p-4">
-                                        <div class="text-[10px] font-black text-blue-500">${p.代碼}</div>
-                                        <div class="font-black text-slate-900 leading-tight">${p.名稱}</div>
-                                    </td>
+                                    <td class="p-4"><div class="text-[10px] font-black text-blue-500">${p.代碼}</div><div class="font-black text-slate-900">${p.名稱}</div></td>
                                     <td class="p-4 font-black text-blue-600">$${p.民眾價}</td>
-                                    <td class="p-4 text-xs text-slate-600 leading-relaxed">${p.主要成分 || ''}</td>
-                                    <td class="p-4 text-xs text-slate-600 leading-relaxed">${p.食用方法 || ''}</td>
-                                    <td class="p-4 text-xs text-slate-600 leading-relaxed">${p.適合對象 || ''}</td>
-                                    <td class="p-4 text-xs text-slate-500 font-medium">${p.內容包裝規格 || ''}</td>
+                                    <td class="p-4 text-xs text-slate-600">${p.主要成分 || ''}</td>
+                                    <td class="p-4 text-xs text-slate-600">${p.食用方法 || ''}</td>
+                                    <td class="p-4 text-xs text-slate-600">${p.適合對象 || ''}</td>
+                                    <td class="p-4 text-xs text-slate-500">${p.內容包裝規格 || ''}</td>
                                 </tr>`).join('')}
                         </tbody>
                     </table>
                 </div>
-                <div class="mt-10 flex flex-col md:flex-row justify-between items-center p-6 bg-slate-50 rounded-3xl gap-4">
-                    <p class="text-slate-500 text-sm">手機用戶：點擊按鈕後會開啟新分頁，您可使用瀏覽器的「分享 > 列印」功能存為 PDF。</p>
-                    <button onclick="openPrintTab()" class="bg-slate-900 text-white px-10 py-4 rounded-2xl font-black shadow-lg">在新分頁開啟比較表</button>
+                <div class="mt-8 p-6 bg-slate-50 rounded-3xl text-center">
+                    <button onclick="openPrintTab()" class="bg-slate-900 text-white px-10 py-4 rounded-2xl font-black shadow-lg">在新分頁開啟比較表 (A4橫向)</button>
                 </div>`;
             document.getElementById('modalContent').innerHTML = content;
             document.getElementById('modal').classList.remove('hidden');
@@ -289,7 +264,7 @@
                                 <p class="text-[10px] font-black text-blue-400 uppercase">民眾價</p>
                                 <p class="text-3xl font-black text-blue-600">$${p.民眾價}</p>
                             </div>
-                            <div class="staff-only p-5 bg-red-50 rounded-3xl border border-red-100 text-center ${isStaff ? '!block' : ''}">
+                            <div class="p-5 bg-red-50 rounded-3xl border border-red-100 text-center">
                                 <p class="text-[10px] font-black text-red-400 uppercase">員眷價</p>
                                 <p class="text-3xl font-black text-red-600">$${p.員眷價}</p>
                             </div>
@@ -301,22 +276,18 @@
                             <h2 class="text-4xl font-black text-slate-900 leading-tight">${p.名稱}</h2>
                             <div class="flex flex-wrap mt-3">${p.標籤 ? p.標籤.split(',').map(t=>`<span class="card-label !text-sm">${t.trim()}</span>`).join('') : ''}</div>
                         </div>
-                        <div class="p-8 bg-blue-600 rounded-[2rem] text-white">
-                            <p class="text-2xl font-bold leading-relaxed">${p.主要保健效果}</p>
-                        </div>
+                        <div class="p-8 bg-blue-600 rounded-[2rem] text-white shadow-xl shadow-blue-200"><p class="text-2xl font-bold leading-relaxed">${p.主要保健效果}</p></div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
                             <div class="space-y-4">
-                                <div><p class="font-black text-slate-400 text-[10px] uppercase">主要成分</p><p class="font-bold">${p.主要成分}</p></div>
-                                <div><p class="font-black text-slate-400 text-[10px] uppercase">食用方法</p><p class="font-bold">${p.食用方法}</p></div>
+                                <div><p class="font-black text-slate-400 text-[10px] uppercase tracking-widest">主要成分</p><p class="font-bold">${p.主要成分}</p></div>
+                                <div><p class="font-black text-slate-400 text-[10px] uppercase tracking-widest">食用方法</p><p class="font-bold">${p.食用方法}</p></div>
                             </div>
                             <div class="space-y-4">
-                                <div class="bg-red-50 p-4 rounded-xl"><p class="font-black text-red-400 text-[10px] uppercase">注意事項</p><p class="font-bold text-red-700">${p.注意事項}</p></div>
-                                <div><p class="font-black text-slate-400 text-[10px] uppercase">適合對象</p><p class="font-bold">${p.適合對象}</p></div>
+                                <div class="bg-red-50 p-4 rounded-xl"><p class="font-black text-red-400 text-[10px] uppercase tracking-widest">⚠ 注意事項</p><p class="font-bold text-red-700">${p.注意事項}</p></div>
+                                <div><p class="font-black text-slate-400 text-[10px] uppercase tracking-widest">適合對象</p><p class="font-bold">${p.適合對象}</p></div>
                             </div>
                         </div>
-                        <div class="pt-6 border-t border-slate-100 text-xs font-bold text-slate-400 uppercase tracking-widest">
-                            產地：<span class="text-slate-900 mr-8">${p.原產地}</span> 規格：<span class="text-slate-900">${p.內容包裝規格}</span>
-                        </div>
+                        <div class="pt-6 border-t border-slate-100 text-xs font-bold text-slate-400 uppercase tracking-widest">產地：<span class="text-slate-900 mr-8">${p.原產地}</span> 規格：<span class="text-slate-900">${p.內容包裝規格}</span></div>
                     </div>
                 </div>`;
             document.getElementById('modalContent').innerHTML = content;
@@ -324,19 +295,8 @@
         }
 
         function closeModal() { document.getElementById('modal').classList.add('hidden'); }
-        function adjustFont(delta) {
-            currentFontSize = Math.min(Math.max(currentFontSize + delta, 12), 32);
-            document.documentElement.style.setProperty('--base-font-size', currentFontSize + 'px');
-        }
-        function staffLogin() {
-            const pw = prompt("員工授權碼：");
-            if (pw === "25271180") {
-                isStaff = true;
-                document.getElementById('staffBtn').innerHTML = "🔓";
-                document.getElementById('staffBtn').classList.add('bg-red-500', '!text-white');
-                filterData();
-            }
-        }
+        function adjustFont(delta) { currentFontSize = Math.min(Math.max(currentFontSize + delta, 12), 32); document.documentElement.style.setProperty('--base-font-size', currentFontSize + 'px'); }
+        
         window.onload = fetchData;
     </script>
 </body>
