@@ -17,26 +17,26 @@
         .subcat-pill.active { background: #3b82f6; color: white; border-color: #3b82f6; box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3); }
         .card-label { font-size: 0.7rem; padding: 1px 8px; border-radius: 4px; background: #eff6ff; color: #1d4ed8; font-weight: 700; margin-right: 4px; margin-bottom: 4px; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        .add-cart-btn { position: absolute; top: 1.25rem; right: 1.25rem; z-index: 20; background: white; border: 1px solid #e2e8f0; padding: 0.4rem 0.8rem; border-radius: 10px; font-size: 0.75rem; font-weight: bold; transition: 0.2s; }
+        .add-cart-btn { position: absolute; top: 1.25rem; right: 1.25rem; z-index: 20; background: white; border: 1px solid #e2e8f0; padding: 0.4rem 0.8rem; border-radius: 10px; font-size: 0.75rem; font-weight: bold; }
         .add-cart-btn.added { background: #1e293b; color: white; }
         .cart-float { position: fixed; bottom: 2rem; right: 2rem; z-index: 50; }
 
         @media print {
             @page { size: A4 landscape; margin: 10mm; }
-            body { background: white !important; }
             .no-print { display: none !important; }
-            table { width: 100% !important; border: 1px solid black !important; border-collapse: collapse; }
-            th, td { border: 1px solid black !important; padding: 8px !important; font-size: 10pt !important; }
+            #printArea { display: block !important; background: white; width: 100%; }
+            table { width: 100% !important; border-collapse: collapse; }
+            th, td { border: 1px solid black !important; padding: 8px !important; }
         }
     </style>
 </head>
 <body class="text-slate-800">
 
     <div id="mainApp" class="no-print">
-        <nav class="glass-nav sticky top-0 z-50 px-4 py-3">
+        <nav class="glass-nav sticky top-0 z-50 px-4 py-3 bg-white/80 backdrop-blur-md border-b">
             <div class="max-w-7xl mx-auto flex justify-between items-center">
                 <div class="flex flex-col">
-                    <span class="text-xs font-bold text-blue-500 tracking-widest uppercase">Health & Nutrition</span>
+                    <span class="text-xs font-bold text-blue-500 uppercase tracking-widest">Feng Yuan Hospital</span>
                     <h1 class="text-xl font-black text-slate-900 tracking-tighter">保健營養品目錄</h1>
                 </div>
                 <div class="flex items-center gap-2">
@@ -48,15 +48,16 @@
 
         <main class="max-w-7xl mx-auto p-4 md:p-8">
             <div class="mb-8 space-y-4">
-                <input type="text" id="searchInput" oninput="filterData()" placeholder="搜尋名稱、代碼、症狀..." 
-                       class="w-full p-5 rounded-2xl border-2 border-white bg-white shadow-xl focus:border-blue-500 focus:outline-none text-lg">
+                <input type="text" id="searchInput" oninput="filterData()" placeholder="搜尋產品名稱、代碼、功效..." class="w-full p-5 rounded-2xl border-2 border-white bg-white shadow-xl focus:border-blue-500 focus:outline-none text-lg">
                 <div id="categoryFilter" class="flex gap-2 overflow-x-auto no-scrollbar"></div>
                 <div class="bg-white/60 p-5 rounded-2xl border border-white shadow-sm">
-                    <p class="text-[10px] font-black text-slate-400 mb-3 uppercase tracking-widest">次分類單選</p>
+                    <p class="text-[10px] font-black text-slate-400 mb-3 uppercase tracking-widest">次分類單選標籤</p>
                     <div id="subCategoryCloud" class="flex flex-wrap gap-2"></div>
                 </div>
             </div>
-            <div id="productGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
+            <div id="productGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <div class="col-span-full text-center py-20 font-bold text-slate-400 animate-pulse">資料同步中...</div>
+            </div>
         </main>
 
         <div class="cart-float">
@@ -69,7 +70,7 @@
 
     <div id="modal" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4 no-print">
         <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closeModal()"></div>
-        <div id="modalWindow" class="bg-white w-full max-w-4xl max-h-[90vh] rounded-[2.5rem] relative z-10 overflow-y-auto p-6 md:p-10">
+        <div id="modalWindow" class="bg-white w-full max-w-4xl max-h-[90vh] rounded-[2.5rem] relative z-10 overflow-y-auto p-6 md:p-10 shadow-2xl">
             <div id="modalContent"></div>
         </div>
     </div>
@@ -77,6 +78,7 @@
     <div id="printArea" class="hidden p-8 bg-white min-h-screen"></div>
 
     <script>
+        // 🚀 已填入您的部署網址
         const GOOGLE_SHEET_API = "https://script.google.com/macros/s/AKfycby9FT_rCftaktAW_JIF2wzEbrsRXo6aHvJKvpnp3RM5iR3D8xUQRSRgWmkloivVbFEG/exec"; 
         const IMAGE_PREFIX = "https://drive.google.com/thumbnail?id=";
         
@@ -87,11 +89,15 @@
         let currentFontSize = 16;
 
         async function fetchData() {
-            const response = await fetch(GOOGLE_SHEET_API);
-            allProducts = await response.json();
-            renderCategories();
-            renderSubCategories();
-            renderProducts(allProducts);
+            try {
+                const response = await fetch(GOOGLE_SHEET_API);
+                allProducts = await response.json();
+                renderCategories();
+                renderSubCategories();
+                renderProducts(allProducts);
+            } catch (e) {
+                document.getElementById('productGrid').innerHTML = `<div class='col-span-full text-center py-20 text-red-500'>資料載入失敗，請檢查 API 部署與權限。</div>`;
+            }
         }
 
         function renderProducts(data) {
@@ -107,7 +113,7 @@
                             <img src="${IMAGE_PREFIX}${p.圖片ID}&sz=w600" class="max-h-full">
                         </div>
                         <div class="text-[10px] font-bold text-blue-600 uppercase mb-1">${p.代碼}</div>
-                        <h3 class="text-xl font-black text-slate-900 mb-2">${p.名稱}</h3>
+                        <h3 class="text-xl font-black text-slate-900 mb-2 leading-tight">${p.名稱}</h3>
                         <div class="mt-4 border-t pt-4 flex justify-between items-end">
                             <div><p class="text-[10px] text-slate-400">民眾價</p><p class="text-xl font-black text-blue-600">$${p.民眾價}</p></div>
                             <div class="text-right"><p class="text-[10px] text-red-400">員眷價</p><p class="text-xl font-black text-red-600">$${p.員眷價}</p></div>
@@ -118,10 +124,11 @@
         }
 
         function toggleSubCat(tag) { activeSubCat = (activeSubCat === tag) ? null : tag; renderSubCategories(); filterData(); }
+        
         function filterData() {
             const query = document.getElementById('searchInput').value.toLowerCase();
             const filtered = allProducts.filter(p => {
-                const matchQuery = !query || p.名稱.toLowerCase().includes(query) || (p.代碼 && p.代碼.toLowerCase().includes(query));
+                const matchQuery = !query || p.名稱.toLowerCase().includes(query) || (p.代碼 && p.代碼.toLowerCase().includes(query)) || (p.主要保健效果 && p.主要保健效果.toLowerCase().includes(query));
                 const matchCat = activeCategory === '全部' || p.大分類 === activeCategory;
                 const matchSub = !activeSubCat || (p.次分類 && p.次分類.includes(activeSubCat));
                 return matchQuery && matchCat && matchSub;
@@ -132,90 +139,98 @@
         function renderCategories() {
             const cats = ['全部', ...new Set(allProducts.map(p => p.大分類).filter(Boolean))];
             document.getElementById('categoryFilter').innerHTML = cats.map(c => 
-                `<button onclick="setCategory('${c}')" class="px-6 py-2 rounded-full border font-bold whitespace-nowrap ${c === activeCategory ? 'bg-blue-600 text-white' : 'bg-white text-slate-600'}">${c}</button>`).join('');
+                `<button onclick="setCategory('${c}')" class="px-6 py-2 rounded-full border font-bold whitespace-nowrap ${c === activeCategory ? 'bg-blue-600 text-white shadow-md' : 'bg-white text-slate-600'}">${c}</button>`).join('');
         }
         function setCategory(cat) { activeCategory = cat; renderCategories(); filterData(); }
+
         function renderSubCategories() {
             const tags = [...new Set(allProducts.flatMap(p => p.次分類 ? p.次分類.split(',').map(s => s.trim()) : []))].filter(Boolean);
-            document.getElementById('subCategoryCloud').innerHTML = tags.map(t => 
-                `<span onclick="toggleSubCat('${t}')" class="subcat-pill ${activeSubCat === t ? 'active' : ''}">${t}</span>`).join('');
+            document.getElementById('subCategoryCloud').innerHTML = tags.map(t => `<span onclick="toggleSubCat('${t}')" class="subcat-pill ${activeSubCat === t ? 'active' : ''}">${t}</span>`).join('');
         }
 
         function toggleCart(id) { if (cart.has(id)) cart.delete(id); else cart.add(id); document.getElementById('cartCount').innerText = cart.size; filterData(); }
 
-        // 🚀 修改：產生對照表 (新分頁內容，價格欄包含民眾藍與員眷紅)
-        function generatePrintView() {
+        // 🚀 寄件功能
+        async function sendEmailAction() {
+            const email = prompt("請輸入病人或收件人的電子信箱：");
+            if (!email || !email.includes('@')) { alert("信箱格式不正確"); return; }
+
             const items = allProducts.filter(p => cart.has(p.代碼));
-            const mainApp = document.getElementById('mainApp');
-            const printArea = document.getElementById('printArea');
-            
-            const tableRows = items.map(p => `
-                <tr>
-                    <td style="border:1px solid #000; padding:8px;"><b>${p.代碼}</b><br>${p.名稱}</td>
-                    <td style="border:1px solid #000; padding:8px; text-align:center;">
-                        <div style="color:#2563eb; font-weight:bold; margin-bottom:4px;">$${p.民眾價}</div>
+            const tableHtml = items.map(p => `
+                <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding:10px; border:1px solid #ddd;"><b>${p.代碼}</b><br>${p.名稱}</td>
+                    <td style="padding:10px; border:1px solid #ddd; text-align:center;">
+                        <div style="color:#2563eb; font-weight:bold;">$${p.民眾價}</div>
                         <div style="color:#dc2626; font-weight:bold;">$${p.員眷價}</div>
                     </td>
-                    <td style="border:1px solid #000; padding:8px; font-size:12px;">${p.主要成分 || ''}</td>
-                    <td style="border:1px solid #000; padding:8px; font-size:12px;">${p.食用方法 || ''}</td>
-                    <td style="border:1px solid #000; padding:8px; font-size:12px;">${p.適合對象 || ''}</td>
-                    <td style="border:1px solid #000; padding:8px; font-size:12px;">${p.內容包裝規格 || ''}</td>
+                    <td style="padding:10px; border:1px solid #ddd; font-size:12px;"><b>成分：</b>${p.主要成分}<br><b>用法：</b>${p.食用方法}</td>
+                    <td style="padding:10px; border:1px solid #ddd; font-size:12px;"><b>適合對象：</b>${p.適合對象}<br><b>規格：</b>${p.內容包裝規格}</td>
                 </tr>
             `).join('');
 
-            printArea.innerHTML = `
-                <div class="no-print mb-8 flex justify-between items-center">
+            alert("正在發送郵件，請稍候...");
+            try {
+                await fetch(GOOGLE_SHEET_API, {
+                    method: 'POST',
+                    mode: 'no-cors', 
+                    body: JSON.stringify({ action: 'sendEmail', email: email, tableHtml: tableHtml })
+                });
+                alert("郵件發送指令已送出！請於 1 分鐘後檢查收件匣或垃圾郵件。");
+            } catch (e) { alert("寄送錯誤：" + e.message); }
+        }
+
+        // 🚀 列印預覽
+        function generatePrintView() {
+            const items = allProducts.filter(p => cart.has(p.代碼));
+            const tableRows = items.map(p => `
+                <tr>
+                    <td><b>${p.代碼}</b><br>${p.名稱}</td>
+                    <td style="text-align:center;">
+                        <div style="color:#2563eb; font-weight:bold;">$${p.民眾價}</div>
+                        <div style="color:#dc2626; font-weight:bold;">$${p.員眷價}</div>
+                    </td>
+                    <td style="font-size:11px;">${p.主要成分}</td>
+                    <td style="font-size:11px;">${p.食用方法}</td>
+                    <td style="font-size:11px;">${p.適合對象}</td>
+                    <td style="font-size:11px;">${p.內容包裝規格}</td>
+                </tr>`).join('');
+
+            document.getElementById('printArea').innerHTML = `
+                <div class="no-print flex justify-between mb-8">
                     <button onclick="closePrintView()" class="bg-slate-500 text-white px-8 py-3 rounded-xl font-bold">← 返回目錄</button>
-                    <div class="text-sm text-slate-400 font-bold">價格說明：<span style="color:#2563eb">藍字民眾價</span> / <span style="color:#dc2626">紅字員眷價</span></div>
                     <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold">列印 / 存為 PDF</button>
                 </div>
-                <h1 class="text-2xl font-black text-center mb-6">營養補充品產品比較對照表</h1>
-                <table class="w-full border-collapse" style="border:1px solid #000">
+                <h1 style="text-align:center; font-size:24px; font-weight:900;">營養補充品產品比較對照表</h1>
+                <table style="width:100%; border-collapse:collapse; margin-top:20px;">
                     <thead style="background:#f8fafc">
                         <tr><th>名稱/代碼</th><th>價格 (民眾/員眷)</th><th>成分</th><th>用法</th><th>對象</th><th>規格</th></tr>
                     </thead>
                     <tbody>${tableRows}</tbody>
                 </table>
             `;
-            
-            mainApp.classList.add('hidden');
-            printArea.classList.remove('hidden');
+            document.getElementById('mainApp').classList.add('hidden');
+            document.getElementById('printArea').classList.remove('hidden');
             closeModal();
             window.scrollTo(0,0);
         }
 
-        function closePrintView() {
-            document.getElementById('mainApp').classList.remove('hidden');
-            document.getElementById('printArea').classList.add('hidden');
-        }
+        function closePrintView() { document.getElementById('mainApp').classList.remove('hidden'); document.getElementById('printArea').classList.add('hidden'); }
 
-        // 🚀 修改：比較清單彈窗 (第一次跳出只呈現名稱與代碼)
         function toggleCartModal() {
-            if (cart.size === 0) { alert("清單是空的"); return; }
+            if (cart.size === 0) { alert("請先加入產品"); return; }
             const items = allProducts.filter(p => cart.has(p.代碼));
             document.getElementById('modalContent').innerHTML = `
-                <div class="flex justify-between items-center mb-8">
-                    <h2 class="text-3xl font-black text-slate-900">📋 已選擇品項</h2>
-                    <button onclick="cart.clear(); document.getElementById('cartCount').innerText=0; filterData(); closeModal();" class="text-red-500 font-bold">清空</button>
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-black text-slate-900">📋 已選擇品項預覽</h2>
+                    <button onclick="cart.clear(); document.getElementById('cartCount').innerText=0; filterData(); closeModal();" class="text-red-500 font-bold">全部清空</button>
                 </div>
-                <div class="max-h-[50vh] overflow-y-auto mb-8 pr-2">
-                    <table class="w-full text-left border-collapse">
-                        <thead class="bg-slate-50 text-[10px] uppercase border-b sticky top-0">
-                            <tr><th class="p-4">產品代碼</th><th class="p-4">產品名稱</th><th class="p-4 text-center">移除</th></tr>
-                        </thead>
-                        <tbody class="divide-y bg-white">
-                            ${items.map(p => `
-                                <tr>
-                                    <td class="p-4 font-mono text-blue-500 font-bold">${p.代碼}</td>
-                                    <td class="p-4 font-bold text-slate-800">${p.名稱}</td>
-                                    <td class="p-4 text-center"><button onclick="toggleCart('${p.代碼}'); toggleCartModal();" class="text-red-400 text-2xl">✕</button></td>
-                                </tr>`).join('')}
-                        </tbody>
-                    </table>
+                <div class="space-y-3 mb-8 max-h-[40vh] overflow-y-auto pr-2">
+                    ${items.map(p => `<div class="flex justify-between items-center p-3 bg-slate-50 rounded-xl"><span><b>${p.代碼}</b> ${p.名稱}</span><button onclick="toggleCart('${p.代碼}'); toggleCartModal();" class="text-red-400 text-xl">✕</button></div>`).join('')}
                 </div>
-                <button onclick="generatePrintView()" class="w-full bg-slate-900 text-white py-5 rounded-3xl font-black shadow-xl hover:scale-[1.02] transition-transform">
-                    產生詳細對照表 (進入比較模式)
-                </button>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <button onclick="generatePrintView()" class="bg-blue-600 text-white py-4 rounded-2xl font-black shadow-lg">產生 A4 對照表</button>
+                    <button onclick="sendEmailAction()" class="bg-slate-900 text-white py-4 rounded-2xl font-black shadow-lg">直接寄送給病人</button>
+                </div>
             `;
             document.getElementById('modal').classList.remove('hidden');
         }
@@ -223,22 +238,27 @@
         function showDetail(id) {
             const p = allProducts.find(x => x.代碼 === id);
             document.getElementById('modalContent').innerHTML = `
-                <div class="flex flex-col lg:flex-row gap-12 text-left">
-                    <div class="lg:w-2/5">
-                        <img src="${IMAGE_PREFIX}${p.圖片ID}&sz=w800" class="w-full bg-slate-50 rounded-[2rem] p-8">
-                        <div class="grid grid-cols-2 gap-4 mt-6">
-                            <div class="p-4 bg-blue-50 rounded-2xl text-center"><p class="text-[10px] text-blue-400 font-bold">民眾價</p><p class="text-2xl font-black">$${p.民眾價}</p></div>
-                            <div class="p-4 bg-red-50 rounded-2xl text-center"><p class="text-[10px] text-red-400 font-bold">員眷價</p><p class="text-2xl font-black text-red-600">$${p.員眷價}</p></div>
+                <div class="flex flex-col lg:flex-row gap-10">
+                    <div class="lg:w-1/3"><img src="${IMAGE_PREFIX}${p.圖片ID}&sz=w800" class="w-full bg-slate-50 rounded-[2rem] p-6 shadow-inner"></div>
+                    <div class="lg:w-2/3">
+                        <div class="mb-4">
+                            <span class="text-blue-500 font-black tracking-widest text-xs uppercase">${p.代碼} | ${p.大分類}</span>
+                            <h2 class="text-3xl font-black text-slate-900">${p.名稱}</h2>
                         </div>
-                    </div>
-                    <div class="lg:w-3/5 space-y-6">
-                        <div><h2 class="text-3xl font-black">${p.名稱}</h2><p class="text-blue-500 font-bold mt-1 uppercase text-xs">${p.代碼} | ${p.大分類}</p></div>
-                        <div class="p-6 bg-blue-600 text-white rounded-[2rem] font-bold text-xl">${p.主要保健效果}</div>
-                        <div class="grid md:grid-cols-2 gap-4 text-sm">
-                            <div><p class="text-slate-400 font-bold uppercase text-[10px]">主要成分</p><p class="font-bold">${p.主要成分}</p></div>
-                            <div><p class="text-slate-400 font-bold uppercase text-[10px]">食用方法</p><p class="font-bold">${p.食用方法}</p></div>
-                            <div class="bg-red-50 p-4 rounded-xl"><p class="text-red-400 font-bold uppercase text-[10px]">注意事項</p><p class="font-bold text-red-700">${p.注意事項}</p></div>
-                            <div><p class="text-slate-400 font-bold uppercase text-[10px]">規格/產地</p><p class="font-bold">${p.內容包裝規格} (${p.原產地})</p></div>
+                        <div class="flex gap-4 mb-6">
+                            <div class="bg-blue-50 p-4 rounded-2xl flex-1 text-center"><p class="text-xs text-blue-400 font-bold">民眾價</p><p class="text-2xl font-black text-blue-700">$${p.民眾價}</p></div>
+                            <div class="bg-red-50 p-4 rounded-2xl flex-1 text-center"><p class="text-xs text-red-400 font-bold">員眷價</p><p class="text-2xl font-black text-red-600">$${p.員眷價}</p></div>
+                        </div>
+                        <div class="p-6 bg-blue-600 text-white rounded-3xl text-lg font-bold mb-6">${p.主要保健效果}</div>
+                        <div class="grid md:grid-cols-2 gap-6 text-sm">
+                            <div class="space-y-4">
+                                <div><p class="text-slate-400 font-bold uppercase text-[10px]">主要成分</p><p class="font-bold text-slate-700 leading-relaxed">${p.主要成分}</p></div>
+                                <div><p class="text-slate-400 font-bold uppercase text-[10px]">食用方法</p><p class="font-bold text-slate-700 leading-relaxed">${p.食用方法}</p></div>
+                            </div>
+                            <div class="space-y-4">
+                                <div class="bg-red-50 p-4 rounded-xl border border-red-100"><p class="text-red-400 font-bold uppercase text-[10px]">注意事項</p><p class="font-bold text-red-700 leading-relaxed">${p.注意事項}</p></div>
+                                <div><p class="text-slate-400 font-bold uppercase text-[10px]">適合對象/規格</p><p class="font-bold text-slate-700 leading-relaxed">${p.適合對象}<br>${p.內容包裝規格} (${p.原產地})</p></div>
+                            </div>
                         </div>
                     </div>
                 </div>`;
@@ -247,6 +267,7 @@
 
         function closeModal() { document.getElementById('modal').classList.add('hidden'); }
         function adjustFont(delta) { currentFontSize = Math.min(Math.max(currentFontSize + delta, 12), 32); document.documentElement.style.setProperty('--base-font-size', currentFontSize + 'px'); }
+        
         window.onload = fetchData;
     </script>
 </body>
