@@ -159,7 +159,7 @@
         function generatePrintView() {
             const items = allProducts.filter(p => cart.has(p.代碼));
             const tableRows = items.map(p => {
-                const imgUrl = p.圖片ID ? `${IMAGE_PREFIX}${p.圖片ID}&sz=w200` : '';
+                const imgUrl = p.圖片ID ? `${IMAGE_PREFIX}${p.圖片ID}&sz=w400` : '';
                 return `
                 <tr style="page-break-inside: auto !important;">
                     <td style="border: 1px solid black; padding: 5px;">
