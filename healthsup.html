@@ -151,47 +151,79 @@
         }
         function toggleCart(id) { if (cart.has(id)) cart.delete(id); else cart.add(id); document.getElementById('cartCount').innerText = cart.size; filterData(); }
 
-        // 🚀 修正後的列印預覽函式
-        function generatePrintView() {
-            const items = allProducts.filter(p => cart.has(p.代碼));
-            const tableRows = items.map(p => `
-                <tr style="page-break-inside: auto !important;">
-                    <td style="width: 15%;"><b>${p.代碼}</b><br>${p.名稱}</td>
-                    <td style="width: 12%; text-align:center;">
-                        <div style="color:#2563eb; font-weight:bold;">$${p.民眾價}</div>
-                        <div style="color:#dc2626; font-weight:bold;">$${p.員眷價}</div>
-                    </td>
-                    <td style="width: 28%; font-size:10px;">${p.主要成分}</td>
-                    <td style="width: 15%; font-size:10px;">${p.食用方法}</td>
-                    <td style="width: 15%; font-size:10px;">${p.適合對象}</td>
-                    <td style="width: 15%; font-size:10px;">${p.內容包裝規格}</td>
-                </tr>`).join('');
+function generatePrintView() {
+    const items = allProducts.filter(p => cart.has(p.代碼));
+    const tableRows = items.map(p => `
+        <tr class="print-row">
+            <td><b>${p.代碼}</b><br>${p.名稱}</td>
+            <td style="text-align:center;">
+                <div style="color:#2563eb; font-weight:bold;">$${p.民眾價}</div>
+                <div style="color:#dc2626; font-weight:bold;">$${p.員眷價}</div>
+            </td>
+            <td style="font-size:10px;">${p.主要成分}</td>
+            <td style="font-size:10px;">${p.食用方法}</td>
+            <td style="font-size:10px;">${p.適合對象}</td>
+            <td style="font-size:10px;">${p.內容包裝規格}</td>
+        </tr>`).join('');
 
-            document.getElementById('printArea').innerHTML = `
-                <div class="no-print flex justify-between mb-4">
-                    <button onclick="closePrintView()" class="bg-slate-500 text-white px-6 py-2 rounded-xl font-bold">← 返回目錄</button>
-                    <button onclick="window.print()" class="bg-blue-600 text-white px-6 py-2 rounded-xl font-bold">執行列印 / 存為 PDF</button>
-                </div>
-                <h1 style="text-align:center; font-size:18px; font-weight:900; margin-bottom: 10px;">營養補充品產品比較對照表</h1>
-                <table style="width:100%; border-collapse:collapse;">
-                    <thead style="background:#f8fafc">
-                        <tr>
-                            <th style="border: 1px solid black; padding: 4px;">名稱/代碼</th>
-                            <th style="border: 1px solid black; padding: 4px;">價格(民/員)</th>
-                            <th style="border: 1px solid black; padding: 4px;">主要成分</th>
-                            <th style="border: 1px solid black; padding: 4px;">用法</th>
-                            <th style="border: 1px solid black; padding: 4px;">對象</th>
-                            <th style="border: 1px solid black; padding: 4px;">規格</th>
-                        </tr>
-                    </thead>
-                    <tbody>${tableRows}</tbody>
-                </table>
-            `;
-            document.getElementById('mainApp').classList.add('hidden');
-            document.getElementById('printArea').classList.remove('hidden');
-            closeModal();
-            window.scrollTo(0,0);
-        }
+    document.getElementById('printArea').innerHTML = `
+        <style>
+            @page { 
+                size: A4 landscape; 
+                margin: 1cm; 
+            }
+            /* 修正：強制允許表格列內部斷行，不跳頁 */
+            table { 
+                width: 100%; 
+                border-collapse: collapse; 
+                table-layout: fixed; /* 固定佈局防止被內容撐開 */
+            }
+            th, td { 
+                border: 1px solid black !important; 
+                padding: 6px !important; 
+                word-wrap: break-word; 
+                overflow-wrap: break-word;
+                vertical-align: top;
+            }
+            /* 核心修正：取消防止斷行的機制 */
+            .print-row {
+                page-break-inside: auto !important;
+                break-inside: auto !important;
+            }
+            tr {
+                page-break-inside: auto !important;
+                break-inside: auto !important;
+            }
+            thead { 
+                display: table-header-group; 
+            }
+            .no-print { display: none !important; }
+        </style>
+        
+        <div class="no-print flex justify-between mb-4">
+            <button onclick="closePrintView()" class="bg-slate-500 text-white px-8 py-3 rounded-xl font-bold">← 返回目錄</button>
+            <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold">執行列印 / 存為 PDF</button>
+        </div>
+        <h1 style="text-align:center; font-size:18px; font-weight:900; margin-bottom: 10px;">營養補充品產品比較對照表</h1>
+        <table>
+            <thead style="background:#f8fafc">
+                <tr>
+                    <th style="width: 14%;">名稱/代碼</th>
+                    <th style="width: 12%;">價格(民/員)</th>
+                    <th style="width: 29%;">主要成分</th>
+                    <th style="width: 15%;">用法</th>
+                    <th style="width: 15%;">對象</th>
+                    <th style="width: 15%;">規格</th>
+                </tr>
+            </thead>
+            <tbody>${tableRows}</tbody>
+        </table>
+    `;
+    document.getElementById('mainApp').classList.add('hidden');
+    document.getElementById('printArea').classList.remove('hidden');
+    closeModal();
+    window.scrollTo(0,0);
+}
 
         // 後面函式保持原狀
         async function sendEmailAction() {
