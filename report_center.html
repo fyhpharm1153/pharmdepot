@@ -2,68 +2,74 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>藥品撥補 - 區間查詢中心</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>藥品撥補 - 近7日看板</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>[v-cloak] { display: none; }</style>
 </head>
-<body class="p-4 bg-slate-50">
-    <div id="app" class="max-w-4xl mx-auto py-8">
+<body class="bg-slate-100 p-4 md:p-8">
+    <div id="app" v-cloak class="max-w-5xl mx-auto">
         
-        <div class="bg-white p-6 rounded-3xl shadow-lg border-2 border-slate-800 mb-8">
-            <h2 class="text-2xl font-black mb-6 flex items-center gap-2">
-                <i class="fa-solid fa-filter text-blue-600"></i> 選擇匯出區間
-            </h2>
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        <header class="bg-white p-6 rounded-3xl shadow-lg border-2 border-slate-800 mb-8">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-4">
                 <div>
-                    <label class="block text-sm font-bold text-slate-500 mb-2">開始日期</label>
-                    <input type="date" v-model="dateRange.start" class="w-full p-4 bg-slate-100 rounded-xl border-2 border-slate-200 font-bold">
+                    <h1 class="text-3xl font-black text-slate-800">近 7 日撥補總覽</h1>
+                    <p class="text-slate-500 font-bold mt-1">
+                        <i class="fa-solid fa-calendar-day mr-2"></i>{{ dateRangeText }}
+                    </p>
                 </div>
-                <div>
-                    <label class="block text-sm font-bold text-slate-500 mb-2">結束日期</label>
-                    <input type="date" v-model="dateRange.end" class="w-full p-4 bg-slate-100 rounded-xl border-2 border-slate-200 font-bold">
-                </div>
-            </div>
-
-            <button @click="fetchDataByRange" 
-                :disabled="loading"
-                class="w-full bg-blue-600 text-white py-4 rounded-2xl font-black text-xl shadow-[4px_4px_0px_0px_rgba(30,58,138,1)] active:translate-y-1 active:shadow-none transition-all disabled:opacity-50">
-                <i v-if="loading" class="fa-solid fa-spinner fa-spin mr-2"></i>
-                {{ loading ? '資料抓取中...' : '從資料庫抓取資料' }}
-            </button>
-        </div>
-
-        <div v-if="filteredLogs.length > 0">
-            <div class="flex justify-between items-center mb-4">
-                <p class="font-bold text-slate-600">找到 {{ filteredLogs.length }} 筆資料</p>
-                <button @click="exportToExcel" class="bg-emerald-600 text-white px-6 py-2 rounded-xl font-bold shadow-md hover:bg-emerald-700">
-                    <i class="fa-solid fa-file-excel mr-2"></i>匯出區間報表
-                </button>
-            </div>
-
-            <div class="space-y-3">
-                <div v-for="log in filteredLogs" :key="log.id" class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex justify-between items-center">
-                    <div>
-                        <div class="text-xs font-bold text-slate-400">{{ log.time }}</div>
-                        <div class="font-black text-slate-800">{{ log.name }}</div>
+                <div class="flex gap-3">
+                    <div class="bg-blue-50 border-2 border-blue-200 p-3 rounded-2xl text-center min-w-[100px]">
+                        <div class="text-xs font-bold text-blue-500 uppercase">總筆數</div>
+                        <div class="text-2xl font-black text-blue-800">{{ logs.length }}</div>
                     </div>
-                    <div class="font-black text-blue-600 text-xl">{{ log.qty }}</div>
+                    <button @click="exportWeekly" class="bg-emerald-600 text-white px-6 py-3 rounded-2xl font-black shadow-[4px_4px_0px_0px_rgba(5,150,105,1)] active:translate-y-1 active:shadow-none transition-all">
+                        <i class="fa-solid fa-file-excel mr-2"></i>匯出週報
+                    </button>
                 </div>
             </div>
+        </header>
+
+        <div v-if="loading" class="text-center py-20">
+            <i class="fa-solid fa-circle-notch fa-spin text-5xl text-blue-600 mb-4"></i>
+            <p class="text-slate-500 font-black">正在同步近 7 天資料...</p>
         </div>
 
-        <div v-else-if="hasSearched && !loading" class="text-center py-20 text-slate-400 font-bold">
-            該區間內查無資料，請更換日期。
+        <div v-else class="space-y-8">
+            <div v-for="(dayLogs, date) in groupedLogs" :key="date">
+                <h2 class="text-xl font-black text-slate-700 mb-4 flex items-center gap-2">
+                    <span class="bg-slate-800 text-white px-3 py-1 rounded-lg text-sm">{{ date }}</span>
+                    <span class="text-slate-400 text-sm">共 {{ dayLogs.length }} 筆</span>
+                </h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div v-for="log in dayLogs" :key="log.id" 
+                         class="bg-white p-4 rounded-2xl border-2 border-slate-200 shadow-sm hover:border-blue-400 transition-all">
+                        <div class="flex justify-between items-start mb-2">
+                            <span class="text-[10px] font-bold text-slate-400">{{ log.time.split(' ')[1] }}</span>
+                            <span :class="getTypeClass(log)" class="text-[10px] px-2 py-0.5 rounded-full font-black border">
+                                {{ getTypeName(log) }}
+                            </span>
+                        </div>
+                        <div class="font-bold text-slate-500 text-xs mb-1">[{{ log.code }}]</div>
+                        <div class="font-black text-slate-800 text-lg leading-tight mb-2">{{ log.name }}</div>
+                        <div class="flex justify-between items-end">
+                            <span class="text-xs font-bold text-slate-400">人員: {{ log.user }}</span>
+                            <span class="text-2xl font-black text-blue-600">{{ log.qty }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
 <script type="module">
-    import { createApp, ref } from "https://unpkg.com/vue@3/dist/vue.esm-browser.js";
+    import { createApp, ref, computed, onMounted } from "https://unpkg.com/vue@3/dist/vue.esm-browser.js";
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getDatabase, ref as dbRef, query, orderByChild, startAt, endAt, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+    import { getDatabase, ref as dbRef, query, orderByChild, startAt, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-    // Firebase 配置 (沿用你的設定)
     const firebaseConfig = {
       apiKey: "AIzaSyDZuNztwb9aLG1RqeDOyrj6KJrPhwBFi9M",
       authDomain: "fyh-pharmacy-inventory.firebaseapp.com",
@@ -79,68 +85,64 @@
 
     createApp({
         setup() {
-            const dateRange = ref({
-                start: new Date().toISOString().split('T')[0],
-                end: new Date().toISOString().split('T')[0]
+            const logs = ref([]);
+            const loading = ref(true);
+            const today = new Date();
+            const sevenDaysAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+            const dateRangeText = computed(() => {
+                const f = (d) => `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;
+                return `${f(sevenDaysAgo)} ～ ${f(today)}`;
             });
-            const filteredLogs = ref([]);
-            const loading = ref(false);
-            const hasSearched = ref(false);
 
-            const fetchDataByRange = async () => {
+            const fetchData = async () => {
                 loading.value = true;
-                hasSearched.value = true;
+                // 格式化為資料庫字串格式 yyyy/m/d
+                const startStr = `${sevenDaysAgo.getFullYear()}/${sevenDaysAgo.getMonth()+1}/${sevenDaysAgo.getDate()} 00:00:00`;
                 
-                try {
-                    // 將 HTML Date (2026-04-20) 轉為你的 Firebase 格式 (2026/4/20)
-                    const formatForFB = (d) => {
-                        const parts = d.split('-');
-                        return `${parts[0]}/${Number(parts[1])}/${Number(parts[2])}`;
-                    };
-
-                    const startStr = formatForFB(dateRange.value.start) + " 00:00:00";
-                    const endStr = formatForFB(dateRange.value.end) + " 23:59:59";
-
-                    // 關鍵：使用 Firebase 伺服器端篩選
-                    const logsQuery = query(
-                        dbRef(db, "transfer_logs"),
-                        orderByChild("time"),
-                        startAt(startStr),
-                        endAt(endStr)
-                    );
-
-                    const snapshot = await get(logsQuery);
-                    
-                    if (snapshot.exists()) {
-                        // 轉為陣列並排序
-                        const data = Object.entries(snapshot.val()).map(([id, v]) => ({ id, ...v }));
-                        filteredLogs.value = data.sort((a, b) => b.time.localeCompare(a.time));
-                    } else {
-                        filteredLogs.value = [];
-                    }
-                } catch (error) {
-                    console.error("抓取失敗:", error);
-                    alert("抓取資料時發生錯誤");
-                } finally {
-                    loading.value = false;
+                const q = query(dbRef(db, "transfer_logs"), orderByChild("time"), startAt(startStr));
+                const s = await get(q);
+                
+                if (s.exists()) {
+                    logs.value = Object.entries(s.val())
+                        .map(([id, v]) => ({ id, ...v }))
+                        .sort((a, b) => b.time.localeCompare(a.time));
                 }
+                loading.value = false;
             };
 
-            const exportToExcel = () => {
-                const data = filteredLogs.value.map(l => ({
-                    '時間': l.time,
-                    '人員': l.user,
-                    '藥品名稱': l.name,
-                    '數量': l.qty,
-                    '類型': l.isSuperUrgent ? '超急' : (l.isUrgent ? '急領' : (l.isER ? '急診' : '一般'))
+            const groupedLogs = computed(() => {
+                const g = {};
+                logs.value.forEach(l => {
+                    const d = l.time.split(' ')[0];
+                    if (!g[d]) g[d] = [];
+                    g[d].push(l);
+                });
+                return g;
+            });
+
+            const exportWeekly = () => {
+                const data = logs.value.map(l => ({
+                    '時間': l.time, '人員': l.user, '代碼': l.code, '藥名': l.name, 
+                    '數量': l.qty, '類型': getTypeName(l)
                 }));
                 const ws = XLSX.utils.json_to_sheet(data);
                 const wb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(wb, ws, "區間報表");
-                XLSX.writeFile(wb, `撥補報表_${dateRange.value.start}_至_${dateRange.value.end}.xlsx`);
+                XLSX.utils.book_append_sheet(wb, ws, "週報表");
+                XLSX.writeFile(wb, `近7日撥補紀錄_${new Date().toISOString().split('T')[0]}.xlsx`);
             };
 
-            return { dateRange, filteredLogs, loading, hasSearched, fetchDataByRange, exportToExcel };
+            const getTypeName = (l) => l.isSuperUrgent ? '超急' : (l.isUrgent ? '急領' : (l.isER ? '急診' : '一般'));
+            const getTypeClass = (l) => {
+                if (l.isSuperUrgent) return 'bg-purple-100 text-purple-700 border-purple-200';
+                if (l.isUrgent) return 'bg-orange-100 text-orange-700 border-orange-200';
+                if (l.isER) return 'bg-indigo-100 text-indigo-700 border-indigo-200';
+                return 'bg-slate-100 text-slate-600 border-slate-200';
+            };
+
+            onMounted(fetchData);
+
+            return { logs, loading, dateRangeText, groupedLogs, exportWeekly, getTypeName, getTypeClass };
         }
     }).mount('#app');
 </script>
