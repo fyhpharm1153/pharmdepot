@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>藥劑科管理系統 v7.0</title>
+    <title>藥劑科管理系統</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -11,14 +11,11 @@
         :root { --base-size: 32px; }
         [v-cloak] { display: none !important; }
         body { background-color: #f1f5f9; font-size: var(--base-size); transition: font-size 0.2s; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #1e293b; }
-        
         .marquee-container { height: 95px; background: #fff7ed; border-bottom: 5px solid #fbbf24; display: flex; align-items: center; overflow: hidden; z-index: 50; width: 100%; }
         .marquee-text { font-size: 2.2rem; font-weight: 900; color: #92400e; width: 100%; }
-        
         .responsive-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 0.75rem; }
         @media (min-width: 1024px) { .responsive-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
         @media (min-width: 1440px) { .responsive-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
-
         .nav-card { background: white; border-radius: 1.25rem; padding: 1rem; display: flex; align-items: center; gap: 1rem; border: 1px solid #e2e8f0; cursor: pointer; transition: 0.2s; }
         .nav-card:hover { transform: translateY(-3px); border-color: #2563eb; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
         .nav-card span { font-weight: 800; font-size: 0.9em; }
@@ -69,6 +66,41 @@
                     <h3 class="font-black text-xl text-slate-800">推播控制台</h3>
                     <button @click="showAdmin = false"><i class="fa-solid fa-times text-xl text-slate-300"></i></button>
                 </div>
+
+                <div class="mb-6 p-5 bg-slate-50 rounded-3xl border">
+                    <div class="flex justify-between items-center mb-3">
+                        <span class="text-[11px] font-black text-slate-400 uppercase tracking-widest">雲端快捷按鈕</span>
+                        <button @click="addPreset" class="bg-blue-600 text-white text-[10px] px-2 py-1 rounded-full">+ 新增</button>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <div v-for="(p, index) in presets" :key="index" class="relative group">
+                            <button @click="newNotice = p" class="preset-btn">{{ p }}</button>
+                            <button @click="removePreset(index)" class="absolute -top-2 -right-1 bg-red-500 text-white rounded-full w-4 h-4 text-[10px] flex items-center justify-center">×</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-xs font-black text-slate-500 mb-2">1. 有效時間 (分鐘)</label>
+                        <div class="flex items-center gap-2">
+                            <input type="number" v-model="duration" class="w-16 p-2 bg-slate-50 border-2 rounded-xl text-center font-bold text-sm">
+                            <div class="flex flex-wrap gap-1">
+                                <button v-for="t in [1, 3, 5, 10, 60]" @click="duration = t" class="text-[10px] bg-slate-200 px-2 py-1 rounded-md">{{ t }}分</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-black text-slate-500 mb-2">2. 重播間隔 (秒，0=不重播)</label>
+                        <div class="flex items-center gap-2">
+                            <input type="number" v-model="repeatInterval" class="w-16 p-2 bg-slate-50 border-2 rounded-xl text-center font-bold text-sm">
+                            <div class="flex flex-wrap gap-1">
+                                <button v-for="s in [0, 10, 30, 60]" @click="repeatInterval = s" class="text-[10px] bg-slate-200 px-2 py-1 rounded-md">{{ s === 0 ? '不重播' : s + '秒' }}</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <textarea v-model="newNotice" class="w-full h-24 p-4 border-2 rounded-3xl outline-none mb-4 text-base" placeholder="請輸入語音內容..."></textarea>
                 <button @click="postNotice" :disabled="isPosting" class="w-full bg-blue-600 text-white font-black py-4 rounded-2xl shadow-lg transition-all active:scale-95">
                     {{ isPosting ? '同步中...' : '確認發布' }}
@@ -172,7 +204,6 @@
                     <span class="text-[0.4em] font-black uppercase tracking-widest">總瀏覽人次</span>
                     <span class="text-lg font-black text-slate-700" id="busuanzi_value_site_pv">--</span>
                 </div>
-
                 <button @click="postEmergency" class="inline-flex items-center gap-2 bg-white px-6 py-2 rounded-2xl border border-red-50 shadow-sm text-red-300 hover:text-red-500 hover:bg-red-50 transition-all active:scale-95">
                     <i class="fa-solid fa-triangle-exclamation text-xs"></i>
                     <span class="text-[0.4em] font-black uppercase tracking-widest">緊急支援</span>
@@ -185,7 +216,6 @@
 
 <script>
     const { createApp, ref, onMounted } = Vue;
-
     createApp({
         setup() {
             const API_URL = 'https://script.google.com/macros/s/AKfycbwjO7uRLEpkEgyl2IHfD0CzvSlAU07ampEp4jRcO9g35lIkEbnxIETUdBCRfgCda0op/exec';
