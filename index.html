@@ -128,9 +128,16 @@
                         <div class="icon-box bg-blue-50 text-blue-600"><i class="fa-solid fa-list-check"></i></div>
                         <span>盤點系統</span>
                     </div>
-                    <div onclick="window.open('search.html')" class="nav-card">
-                        <div class="icon-box bg-emerald-50 text-emerald-600"><i class="fa-solid fa-magnifying-glass"></i></div>
-                        <span>儲位搜尋</span>
+                    <!-- 分開西藥與中藥儲位按鈕：固定 50/50 分開，並統一字體與圖示大小 -->
+                    <div class="nav-card p-0 overflow-hidden items-stretch gap-0 cursor-default">
+                        <div onclick="window.open('search.html')" class="split-zone w-1/2 border-r border-slate-100 group flex items-center justify-center gap-3">
+                            <i class="fa-solid fa-magnifying-glass text-emerald-600 text-[1.5rem] group-hover:scale-110 transition-transform"></i>
+                            <span class="font-extrabold text-[0.9em]">西藥儲位</span>
+                        </div>
+                        <div onclick="window.open('https://fyhpharm1153.github.io/TCM/')" class="split-zone w-1/2 group flex items-center justify-center gap-3">
+                            <i class="fa-solid fa-leaf text-amber-600 text-[1.5rem] group-hover:scale-110 transition-transform"></i>
+                            <span class="font-extrabold text-[0.9em]">中藥儲位</span>
+                        </div>
                     </div>
                     <div onclick="window.open('https://fyhpharm1153.github.io/pharmdepot/transfer.html')" class="nav-card">
                         <div class="icon-box bg-sky-50 text-sky-600"><i class="fa-solid fa-truck-fast"></i></div>
