@@ -27,12 +27,10 @@
         
         /* 選單：今日已發完成樣式 (綠色) */
         .drug-card.completed { @apply border-emerald-500 bg-emerald-50 opacity-80; }
-        .completed-badge { @apply bg-emerald-500 text-white px-2 py-0.5 rounded font-black text-[10px] ml-2 shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]; }
-
+        .completed-badge { @apply bg-emerald-500 text-white px-2 py-0.5 rounded font-black text-[10px] shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]; }
         /* 審核視窗：已在待辦中樣式 (橘色) */
         .review-card-pending { @apply border-orange-500 bg-orange-50 ring-2 ring-orange-200 !important; }
         .pending-badge { @apply bg-orange-500 text-white px-2 py-0.5 rounded font-black text-[10px] ml-2 shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]; }
-
         .shelf-badge { @apply bg-yellow-400 text-slate-900 px-2 py-0.5 rounded font-black border border-slate-800 text-xs w-fit shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]; }
         .name-text { @apply text-xl font-black text-slate-800 leading-tight mt-2; }
         .modal-overlay { @apply fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm; }
@@ -87,12 +85,27 @@
                              :key="drug.id" 
                              @click="toggleSelect(drug)" 
                              :class="['drug-card', isSelected(drug) ? 'selected' : '', isCompleted(drug.code) ? 'completed' : '']">
-                            <div class="flex justify-between items-center">
-                                <div>
+                            <div class="flex justify-between items-start">
+                                <div class="flex flex-wrap items-center gap-1.5 max-w-[80%]">
                                     <span class="shelf-badge">{{ drug.shelf }}</span>
+                                    
+                                    <!-- 安全量 -->
+                                    <span v-if="drug.safe" 
+                                          :class="['px-1.5 py-0.5 rounded font-black border border-slate-800 text-[10px] shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] flex items-center gap-0.5 transition-all', 
+                                                   isSelected(drug) ? 'bg-rose-200 text-rose-900 border-white' : 'bg-rose-100 text-rose-800']">
+                                        <i class="fa-solid fa-shield-halved text-[9px]"></i>安:{{ drug.safe }}
+                                    </span>
+                                    
+                                    <!-- 包裝量 -->
+                                    <span v-if="drug.pack" 
+                                          :class="['px-1.5 py-0.5 rounded font-black border border-slate-800 text-[10px] shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] flex items-center gap-0.5 transition-all', 
+                                                   isSelected(drug) ? 'bg-teal-200 text-teal-900 border-white' : 'bg-teal-100 text-teal-800']">
+                                        <i class="fa-solid fa-box text-[9px]"></i>包:{{ drug.pack }}
+                                    </span>
+
                                     <span v-if="isCompleted(drug.code)" class="completed-badge">今日已發</span>
                                 </div>
-                                <span class="text-[0.6rem] font-bold uppercase tracking-tighter" :class="isSelected(drug) ? 'text-indigo-200' : 'text-slate-400'">{{ drug.code }}</span>
+                                <span class="text-[0.6rem] font-bold uppercase tracking-tighter shrink-0" :class="isSelected(drug) ? 'text-indigo-200' : 'text-slate-400'">{{ drug.code }}</span>
                             </div>
                             <h3 class="name-text" :class="isSelected(drug) ? 'text-white' : 'text-slate-800'">{{ drug.name }}</h3>
                         </div>
@@ -144,6 +157,7 @@
             </div>
         </section>
 
+        <!-- 管理中心 -->
         <div v-if="showManager" class="modal-overlay">
             <div class="bg-white w-full max-w-4xl rounded-3xl border-2 border-slate-800 shadow-2xl flex flex-col max-h-[90vh]">
                 <div class="p-4 border-b-2 border-slate-800 flex justify-between items-center bg-indigo-50">
@@ -156,20 +170,66 @@
                         <div class="flex gap-2 mb-4"><input v-model="newStaff" placeholder="姓名..." class="flex-1 p-2 border-2 border-slate-800 rounded-lg font-bold"><button @click="addStaff" class="bg-indigo-600 text-white px-5 rounded-lg font-black">新增</button></div>
                         <div class="flex flex-wrap gap-2"><span v-for="(name, idx) in staffList" :key="idx" class="bg-slate-50 border border-slate-800 px-3 py-1 rounded-lg font-bold flex items-center gap-2">{{ name }} <i @click="removeStaff(idx)" class="fa-solid fa-times text-red-500 cursor-pointer"></i></span></div>
                     </section>
+                    
                     <section class="pt-6 border-t border-dashed border-slate-300">
-                        <div class="flex justify-between items-end mb-3"><h3 class="text-lg font-black text-blue-700"><i class="fa-solid fa-pills mr-1"></i>單品儲位維護</h3><input v-model="adminSearch" placeholder="搜尋..." class="p-1.5 border-2 border-slate-800 rounded-lg font-bold text-xs outline-none"></div>
-                        <div class="bg-blue-50 p-4 rounded-xl border-2 border-slate-800 mb-4 grid grid-cols-1 md:grid-cols-4 gap-2">
+                        <div class="flex justify-between items-end mb-3">
+                            <h3 class="text-lg font-black text-blue-700"><i class="fa-solid fa-pills mr-1"></i>單品儲位與數量維護</h3>
+                            <input v-model="adminSearch" placeholder="搜尋..." class="p-1.5 border-2 border-slate-800 rounded-lg font-bold text-xs outline-none">
+                        </div>
+                        
+                        <!-- 編輯與新增區 -->
+                        <div class="bg-blue-50 p-4 rounded-xl border-2 border-slate-800 mb-4 grid grid-cols-1 md:grid-cols-6 gap-2">
                             <input v-model="editDrug.code" placeholder="代碼" class="p-2 border-2 border-slate-800 rounded-lg font-bold text-sm">
                             <input v-model="editDrug.name" placeholder="藥名" class="p-2 border-2 border-slate-800 rounded-lg font-bold text-sm">
                             <input v-model="editDrug.shelf" placeholder="儲位" class="p-2 border-2 border-slate-800 rounded-lg font-bold text-sm">
+                            <input v-model="editDrug.safe" placeholder="安全量 (safe)" class="p-2 border-2 border-slate-800 rounded-lg font-bold text-sm">
+                            <input v-model="editDrug.pack" placeholder="包裝量 (pack)" class="p-2 border-2 border-slate-800 rounded-lg font-bold text-sm">
                             <button @click="saveSingleDrug" class="bg-blue-600 text-white rounded-lg font-black">{{ editDrug.isEdit ? '修改' : '新增' }}</button>
                         </div>
-                        <div class="max-h-64 overflow-y-auto border-2 border-slate-800 rounded-xl"><table class="w-full admin-table text-left"><thead><tr><th>代碼</th><th>藥名</th><th>儲位</th><th>操作</th></tr></thead><tbody><tr v-for="drug in adminFilteredInventory" :key="drug.id"><td>{{ drug.code }}</td><td>{{ drug.name }}</td><td>{{ drug.shelf }}</td><td class="flex gap-4"><button @click="prepareEdit(drug)" class="text-blue-600"><i class="fa-solid fa-edit"></i></button><button @click="deleteSingleDrug(drug)" class="text-red-500"><i class="fa-solid fa-trash"></i></button></td></tr></tbody></table></div>
+                        
+                        <!-- 列表維護 -->
+                        <div class="max-h-64 overflow-y-auto border-2 border-slate-800 rounded-xl">
+                            <table class="w-full admin-table text-left">
+                                <thead>
+                                    <tr>
+                                        <th>代碼</th>
+                                        <th>藥名</th>
+                                        <th>儲位</th>
+                                        <th>安全量</th>
+                                        <th>包裝量</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="drug in adminFilteredInventory" :key="drug.id">
+                                        <td>{{ drug.code }}</td>
+                                        <td>{{ drug.name }}</td>
+                                        <td>{{ drug.shelf }}</td>
+                                        <td>
+                                            <span v-if="drug.safe" class="bg-rose-100 text-rose-800 px-1.5 py-0.5 rounded font-bold border border-slate-300 text-xs">{{ drug.safe }}</span>
+                                            <span v-else class="text-slate-400 font-normal">-</span>
+                                        </td>
+                                        <td>
+                                            <span v-if="drug.pack" class="bg-teal-100 text-teal-800 px-1.5 py-0.5 rounded font-bold border border-slate-300 text-xs">{{ drug.pack }}</span>
+                                            <span v-else class="text-slate-400 font-normal">-</span>
+                                        </td>
+                                        <td class="flex gap-4">
+                                            <button @click="prepareEdit(drug)" class="text-blue-600"><i class="fa-solid fa-edit"></i></button>
+                                            <button @click="deleteSingleDrug(drug)" class="text-red-500"><i class="fa-solid fa-trash"></i></button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </section>
+                    
                     <section class="pt-6 border-t border-dashed border-slate-300">
-                        <h3 class="text-lg font-black mb-3 text-emerald-700"><i class="fa-solid fa-file-excel mr-1"></i>Excel 匯入 (防亂碼)</h3>
+                        <h3 class="text-lg font-black mb-3 text-emerald-700"><i class="fa-solid fa-file-excel mr-1"></i>Excel 匯入/匯出 (支援 安全量 包裝量)</h3>
                         <div class="grid grid-cols-2 gap-3">
-                            <div class="relative"><input type="file" @change="importExcel" accept=".xlsx, .xls" class="absolute inset-0 opacity-0 cursor-pointer"><div class="neo-btn bg-emerald-50 p-4 text-center rounded-xl font-black text-sm">選擇 Excel</div></div>
+                            <div class="relative">
+                                <input type="file" @change="importExcel" accept=".xlsx, .xls" class="absolute inset-0 opacity-0 cursor-pointer">
+                                <div class="neo-btn bg-emerald-50 p-4 text-center rounded-xl font-black text-sm">選擇 Excel 匯入</div>
+                            </div>
                             <button @click="exportInventory" class="neo-btn bg-blue-50 p-4 rounded-xl font-black text-sm text-blue-800">匯出目前對應表</button>
                         </div>
                     </section>
@@ -194,8 +254,8 @@
                 <h2 class="text-2xl font-black text-slate-800 mb-6 text-center italic underline decoration-yellow-400">核對點單品項</h2>
                 <div class="flex-1 overflow-y-auto space-y-3 mb-6 pr-2">
                     <div v-for="d in selectedDrugs" :key="d.code" 
-                         :class="['bg-slate-50 border-2 border-slate-800 rounded-xl p-4 flex justify-between items-center shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]', 
-                                  isInPending(d.code) ? 'review-card-pending' : '']">
+                          :class="['bg-slate-50 border-2 border-slate-800 rounded-xl p-4 flex justify-between items-center shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]', 
+                                   isInPending(d.code) ? 'review-card-pending' : '']">
                         <div>
                             <div class="flex items-center">
                                 <span class="shelf-badge mb-1 inline-block shadow-none">{{ d.shelf }}</span>
@@ -253,13 +313,13 @@
             const activeEntry = ref(null);
             const editMode = ref('process');
             const entryQtyStr = ref('');
-            const editDrug = ref({ code: '', name: '', shelf: '', isEdit: false, id: null });
+            const editDrug = ref({ code: '', name: '', shelf: '', safe: '', pack: '', isEdit: false, id: null });
             const baseFontSize = ref(parseFloat(localStorage.getItem('preferred_font_size')) || 1);
 
             onMounted(() => {
                 applyFontSize();
                 onValue(dbRef(db, "inventory"), s => { 
-                    inventory.value = s.val() ? Object.entries(s.val()).map(([id, v]) => ({ id, ...v })).filter(i => i.zone === 'UD') : [];
+                     inventory.value = s.val() ? Object.entries(s.val()).map(([id, v]) => ({ id, ...v })).filter(i => i.zone === 'UD') : [];
                 });
                 onValue(dbRef(db, "warehouse"), s => { warehouse.value = s.val() ? Object.values(s.val()) : []; });
                 onValue(dbRef(db, "replenishment_orders"), s => {
@@ -319,12 +379,10 @@
                 });
             });
 
-            // 判斷邏輯：今日是否已完成發藥
             const isCompleted = (code) => {
                 return todayUDLogs.value.some(l => l.code === code && l.qty > 0);
             };
 
-            // 判斷邏輯：是否已經在待辦清單中
             const isInPending = (code) => {
                 return pendingOrders.value.some(o => o.code === code);
             };
@@ -397,16 +455,34 @@
             const deleteLog = async (log) => { if (confirm("確定刪除？")) await remove(dbRef(db, `transfer_logs/${log.id}`)); };
             const addStaff = async () => { if(newStaff.value){ staffList.value.push(newStaff.value); await set(dbRef(db, "staff_list"), staffList.value); newStaff.value = ''; } };
             const removeStaff = async (idx) => { staffList.value.splice(idx, 1); await set(dbRef(db, "staff_list"), staffList.value); };
-            const prepareEdit = (drug) => { editDrug.value = { ...drug, isEdit: true }; };
-            const resetEdit = () => { editDrug.value = { code: '', name: '', shelf: '', isEdit: false, id: null }; };
+            
+            const prepareEdit = (drug) => { 
+                editDrug.value = { ...drug, safe: drug.safe || '', pack: drug.pack || '', isEdit: true }; 
+            };
+            const resetEdit = () => { editDrug.value = { code: '', name: '', shelf: '', safe: '', pack: '', isEdit: false, id: null }; };
+            
             const saveSingleDrug = async () => {
                 if (!editDrug.value.code || !editDrug.value.name) return alert("輸入代碼與名稱");
-                const data = { code: editDrug.value.code.trim(), name: editDrug.value.name.trim(), shelf: (editDrug.value.shelf||'').trim(), zone: 'UD' };
+                const data = { 
+                    code: editDrug.value.code.trim(), 
+                    name: editDrug.value.name.trim(), 
+                    shelf: (editDrug.value.shelf||'').trim(), 
+                    safe: (editDrug.value.safe||'').trim(),
+                    pack: (editDrug.value.pack||'').trim(),
+                    zone: 'UD' 
+                };
                 if (editDrug.value.isEdit) await update(dbRef(db, `inventory/${editDrug.value.id}`), data);
                 else await push(dbRef(db, "inventory"), data);
                 resetEdit();
             };
+            
             const deleteSingleDrug = async (drug) => { if (confirm(`確定刪除？`)) await remove(dbRef(db, `inventory/${drug.id}`)); };
+
+            // 輔助讀取 Excel 欄位的函數
+            const getRowVal = (row, key1, key2) => {
+                const val = row[key1] !== undefined ? row[key1] : (row[key2] !== undefined ? row[key2] : '');
+                return String(val).trim();
+            };
 
             const importExcel = (e) => {
                 const file = e.target.files[0];
@@ -415,11 +491,16 @@
                     const data = new Uint8Array(res.target.result);
                     const workbook = XLSX.read(data, { type: 'array' });
                     const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+                    
                     const newInv = jsonData.map(row => ({
-                        code: String(row.code || row['代碼'] || '').trim(),
-                        name: String(row.name || row['名稱'] || '').trim(),
-                        shelf: String(row.shelf || row['儲位'] || '').trim(), zone: 'UD'
+                        code: getRowVal(row, 'code', '代碼'),
+                        name: getRowVal(row, 'name', '名稱'),
+                        shelf: getRowVal(row, 'shelf', '儲位'),
+                        safe: getRowVal(row, 'safe', '安全量'),
+                        pack: getRowVal(row, 'pack', '包裝量'),
+                        zone: 'UD'
                     })).filter(i => i.code && i.name);
+                    
                     if(confirm(`更新 ${newInv.length} 筆？`)) {
                         const s = await get(dbRef(db, "inventory"));
                         const otherZone = (s.val() ? Object.values(s.val()) : []).filter(i => i.zone !== 'UD');
@@ -434,8 +515,30 @@
                 currentUser, staffList, menuSearch, adminSearch, currentGroup, shelfGroups, filteredUDItems, adminFilteredInventory, sortedPendingOrders, todayUDLogs, selectedDrugs, showReview, showManager, activeEntry, entryQtyStr, editMode, isSaving, filterDate, newStaff,
                 inventory, editDrug, prepareEdit, saveSingleDrug, deleteSingleDrug, resetEdit,
                 toggleSelect, isSelected, openReviewModal, finalSubmitOrder, openActionModal, handleCalc, submitFinalAction, submitAsZero: () => { entryQtyStr.value='0'; submitFinalAction(); }, deleteLog, doCalculation, getWarehouseShelf, changeFontSize, isCompleted, isInPending,
-                addStaff, removeStaff, importExcel, exportInventory: () => { const ws = XLSX.utils.json_to_sheet(inventory.value.map(i => ({ code: i.code, name: i.name, shelf: i.shelf }))); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "UD"); XLSX.writeFile(wb, "UD儲位表.xlsx"); },
-                exportTodayReport: async () => { const s = await get(dbRef(db, "transfer_logs")); const target = filterDate.value.split('-').map(n => parseInt(n)).join('/'); const logs = Object.values(s.val()||{}).filter(l => l.time.startsWith(target) && (l.user.includes('UD') || l.type === 'UD點單')); const ws = XLSX.utils.json_to_sheet(logs.map(l => ({ '時間': l.time, '人員': l.user, '代碼': l.code, '名稱': l.name, '數量': l.qty }))); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Report"); XLSX.writeFile(wb, `UD報表_${filterDate.value}.xlsx`); },
+                addStaff, removeStaff, importExcel, 
+                exportInventory: () => { 
+                    const ws = XLSX.utils.json_to_sheet(inventory.value.map(i => ({ 
+                        '代碼': i.code, 
+                        '名稱': i.name, 
+                        '儲位': i.shelf,
+                        '安全量': i.safe || '',
+                        '包裝量': i.pack || '',
+                        'safe': i.safe || '',
+                        'pack': i.pack || ''
+                    }))); 
+                    const wb = XLSX.utils.book_new(); 
+                    XLSX.utils.book_append_sheet(wb, ws, "UD"); 
+                    XLSX.writeFile(wb, "UD儲位表.xlsx"); 
+                },
+                exportTodayReport: async () => { 
+                    const s = await get(dbRef(db, "transfer_logs")); 
+                    const target = filterDate.value.split('-').map(n => parseInt(n)).join('/'); 
+                    const logs = Object.values(s.val()||{}).filter(l => l.time.startsWith(target) && (l.user.includes('UD') || l.type === 'UD點單')); 
+                    const ws = XLSX.utils.json_to_sheet(logs.map(l => ({ '時間': l.time, '人員': l.user, '代碼': l.code, '名稱': l.name, '數量': l.qty }))); 
+                    const wb = XLSX.utils.book_new(); 
+                    XLSX.utils.book_append_sheet(wb, ws, "Report"); 
+                    XLSX.writeFile(wb, `UD報表_${filterDate.value}.xlsx`); 
+                },
                 saveUser: () => localStorage.setItem('preferred_user', currentUser.value),
                 getBtnClass: (n) => n === 'AC' ? 'calc-btn btn-ac' : (['/','*','-','+'].includes(n) ? 'calc-btn btn-op' : (n==='DEL'?'calc-btn btn-num text-red-500':'calc-btn btn-num')),
                 getBtnLabel: (n) => n === '*' ? '×' : (n === '/' ? '÷' : (n==='DEL'?'←':n))
