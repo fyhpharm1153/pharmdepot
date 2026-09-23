@@ -8,6 +8,9 @@
     <style>
         body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; padding: 50px; background-color: #f4f4f9; }
         .card { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); text-align: center; }
+        .input-group { margin-bottom: 20px; }
+        label { font-weight: bold; margin-right: 10px; color: #333; }
+        input[type="date"] { padding: 8px; font-size: 14px; border: 1px solid #ccc; border-radius: 4px; }
         button { background-color: #4CAF50; color: white; border: none; padding: 12px 24px; font-size: 16px; cursor: pointer; border-radius: 4px; transition: 0.3s; }
         button:hover { background-color: #45a049; }
         button:disabled { background-color: #ccc; cursor: not-allowed; }
@@ -18,22 +21,46 @@
 
     <div class="card">
         <h2>藥局庫存轉移日誌下載</h2>
-        <p>點擊下方按鈕抓取 Firebase 資料並匯出為 Excel</p>
-        <button id="downloadBtn">下載全部資料 (Excel)</button>
+        
+        <!-- 新增日期選擇區塊 -->
+        <div class="input-group">
+            <label for="datePicker">選擇下載日期：</label>
+            <input type="date" id="datePicker">
+        </div>
+
+        <p>選擇日期後點擊下方按鈕抓取該日資料並匯出為 Excel</p>
+        <button id="downloadBtn">下載指定日期資料 (Excel)</button>
         <p id="status"></p>
     </div>
 
     <script>
         const FIREBASE_URL = 'https://fyh-pharmacy-inventory-default-rtdb.asia-southeast1.firebasedatabase.app/transfer_logs.json';
 
+        // 頁面載入時，預設日期帶入「今天」
+        window.addEventListener('DOMContentLoaded', () => {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('datePicker').value = today;
+        });
+
         document.getElementById('downloadBtn').addEventListener('click', async () => {
             const btn = document.getElementById('downloadBtn');
             const status = document.getElementById('status');
-            
+            const selectedDateStr = document.getElementById('datePicker').value; // 格式像 "2026-01-20"
+
+            if (!selectedDateStr) {
+                alert('請先選擇日期！');
+                return;
+            }
+
+            // 將使用者選的 "2026-01-20" 轉換成比對格式 "2026/1/20"
+            const [selYear, selMonth, selDay] = selectedDateStr.split('-');
+            const targetDatePrefix = `${parseInt(selYear)}/${parseInt(selMonth)}/${parseInt(selDay)}`; 
+            // 注意：parseInt 可以將 "01" 變成 "1"，以符合你的 "2026/1/20" 格式
+
             try {
                 btn.disabled = true;
                 status.innerText = '正在抓取資料...';
-
+                
                 // 1. 從 Firebase 抓取資料
                 const response = await fetch(FIREBASE_URL);
                 if (!response.ok) throw new Error('連線失敗');
@@ -46,14 +73,25 @@
                     return;
                 }
 
-                // 2. 資料預處理 (Firebase JSON 通常是物件格式，需要轉成陣列)
-                // 假設資料結構是 { "id1": {data}, "id2": {data} }
+                // 2. 資料預處理並進行日期篩選
                 const formattedData = Object.keys(rawData).map(key => {
                     return {
                         FirebaseID: key, // 保留原始 ID
                         ...rawData[key]
                     };
+                }).filter(item => {
+                    if (!item.time) return false;
+                    
+                    // 取得 time 欄位的第一部分（日期部分，例如 "2026/1/20 08:39:34" 切割後為 "2026/1/20"）
+                    const itemDatePart = item.time.split(' ')[0];
+                    return itemDatePart === targetDatePrefix;
                 });
+
+                if (formattedData.length === 0) {
+                    status.innerText = `找不到 ${targetDatePrefix} 的相關資料。`;
+                    btn.disabled = false;
+                    return;
+                }
 
                 // 3. 使用 SheetJS 建立活頁簿
                 const worksheet = XLSX.utils.json_to_sheet(formattedData);
@@ -61,10 +99,10 @@
                 XLSX.utils.book_append_sheet(workbook, worksheet, "Transfer Logs");
 
                 // 4. 產生檔案並觸發瀏覽器下載
-                const fileName = `Transfer_Logs_${new Date().toISOString().split('T')[0]}.xlsx`;
+                const fileName = `Transfer_Logs_${selectedDateStr}.xlsx`;
                 XLSX.writeFile(workbook, fileName);
 
-                status.innerText = '下載成功！';
+                status.innerText = `下載成功！共匯出 ${formattedData.length} 筆資料。`;
             } catch (error) {
                 console.error(error);
                 status.innerText = '錯誤: ' + error.message;
